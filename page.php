@@ -6,6 +6,8 @@
 get_header();
 ?>
 
+<div class="site-container page-section">
+
 <?php while ( have_posts() ) : the_post(); ?>
 
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'page' ); ?>>
@@ -16,6 +18,8 @@ get_header();
 	</article>
 
 <?php endwhile; ?>
+
+</div>
 
 <?php
 get_footer();

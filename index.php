@@ -6,6 +6,8 @@
 get_header();
 ?>
 
+<div class="site-container page-section">
+
 <?php if ( have_posts() ) : ?>
 
 	<?php while ( have_posts() ) : the_post(); ?>
@@ -31,6 +33,8 @@ get_header();
 	<p><?php esc_html_e( 'No content found.', 'sojib68' ); ?></p>
 
 <?php endif; ?>
+
+</div>
 
 <?php
 get_footer();
