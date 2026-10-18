@@ -8,6 +8,7 @@
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="color-scheme" content="light">
 	<?php if ( is_front_page() ) : ?>
 		<meta name="description" content="<?php echo esc_attr__( 'জমি রেজিস্ট্রেশন, নামজারি, দলিল অনুসন্ধান, সার্টিফাইড কপি ও ভূমিসংক্রান্ত বিষয়ে পরামর্শ ও সহায়তা।', 'sojib68' ); ?>">
 	<?php endif; ?>

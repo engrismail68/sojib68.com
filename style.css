@@ -11,6 +11,7 @@ Text Domain: sojib68
 */
 
 :root {
+  color-scheme: light;
   --color-teal: #123F46;
   --color-copper: #B8744F;
   --color-warm-white: #F7F5F0;
@@ -292,11 +293,13 @@ section {
 
 .hero__media-lines {
   position: absolute;
-  inset: -8% -8% auto auto;
+  top: -8%;
+  right: -8%;
   width: 70%;
   color: var(--color-copper);
   opacity: 0.18;
   z-index: 0;
+  pointer-events: none;
 }
 
 .hero__portrait {
