@@ -940,18 +940,6 @@ function sojib68_office_render_print( $deed_id ) {
 	}
 
 	$user = wp_get_current_user();
-
-	$categories = sojib68_expense_category_options();
-	$exp_sums   = array_fill_keys( array_keys( $categories ), 0 );
-	foreach ( $deed->expenses as $e ) {
-		$key = isset( $exp_sums[ $e->category ] ) ? $e->category : 'other';
-		$exp_sums[ $key ] += (int) $e->amount_poysha;
-	}
-	$total_expenses = array_sum( $exp_sums );
-
-	$total_due = (int) $deed->client_total_due_poysha;
-	$collected = (int) $deed->total_received_poysha;
-	$methods   = sojib68_payment_method_options();
 	?>
 	<!DOCTYPE html>
 	<html <?php language_attributes(); ?>>
@@ -1040,54 +1028,6 @@ function sojib68_office_render_print( $deed_id ) {
 						<?php endforeach; ?>
 						</tbody>
 					</table>
-				</section>
-			<?php endif; ?>
-
-			<section class="print-section">
-				<h2><?php esc_html_e( 'গ্রাহকের হিসাব', 'sojib68' ); ?></h2>
-				<table class="print-kv">
-					<tr><th><?php esc_html_e( 'মোট টাকা (গ্রাহকের কাছে প্রাপ্য)', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $deed->client_total_due_poysha ); // phpcs:ignore ?></td></tr>
-					<tr><th><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $collected ); // phpcs:ignore ?></td></tr>
-					<tr class="print-kv--total">
-						<th><?php echo esc_html( null !== $deed->due_poysha && $deed->due_poysha < 0 ? __( 'অগ্রিম জমা', 'sojib68' ) : __( 'বাকি', 'sojib68' ) ); ?></th>
-						<td>
-							<?php if ( null === $deed->due_poysha ) : ?>
-								—
-							<?php else : ?>
-								<?php echo sojib68_money_html( abs( $deed->due_poysha ) ); // phpcs:ignore ?>
-							<?php endif; ?>
-						</td>
-					</tr>
-				</table>
-
-				<?php if ( ! empty( $deed->receipts ) ) : ?>
-					<h3><?php esc_html_e( 'আদায়ের ইতিহাস', 'sojib68' ); ?></h3>
-					<table class="print-table">
-						<thead><tr><th><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></th><th><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></th><th><?php esc_html_e( 'মাধ্যম', 'sojib68' ); ?></th><th><?php esc_html_e( 'মন্তব্য', 'sojib68' ); ?></th></tr></thead>
-						<tbody>
-						<?php foreach ( $deed->receipts as $r ) : ?>
-							<tr>
-								<td><?php echo esc_html( $r->received_date ?: '—' ); ?></td>
-								<td><?php echo sojib68_money_html( $r->amount_poysha ); // phpcs:ignore ?></td>
-								<td><?php echo esc_html( isset( $methods[ $r->method ] ) ? $methods[ $r->method ] : '—' ); ?></td>
-								<td><?php echo esc_html( $r->note ?: '—' ); ?></td>
-							</tr>
-						<?php endforeach; ?>
-						</tbody>
-					</table>
-				<?php endif; ?>
-			</section>
-
-			<?php if ( $total_expenses > 0 ) : ?>
-				<section class="print-section print-section--internal">
-					<h2><?php esc_html_e( 'খরচ (অভ্যন্তরীণ)', 'sojib68' ); ?></h2>
-					<table class="print-kv">
-						<?php foreach ( $categories as $key => $label ) : if ( ! $exp_sums[ $key ] ) { continue; } ?>
-							<tr><th><?php echo esc_html( $label ); ?></th><td><?php echo sojib68_money_html( $exp_sums[ $key ] ); // phpcs:ignore ?></td></tr>
-						<?php endforeach; ?>
-						<tr class="print-kv--total"><th><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $total_expenses ); // phpcs:ignore ?></td></tr>
-					</table>
-					<p class="print-hint"><?php esc_html_e( 'এই অংশ শুধু অফিসের নিজস্ব হিসাবের জন্য — গ্রাহককে দেওয়ার আগে বাদ দিন।', 'sojib68' ); ?></p>
 				</section>
 			<?php endif; ?>
 
