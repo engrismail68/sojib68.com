@@ -1,0 +1,602 @@
+<?php
+/**
+ * Core helpers for the deed records: digit normalization, money
+ * handling (integer poysha, never float), saved office/type lists,
+ * transactional save, search, and audit logging.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/* ---------------------------------------------------------------------
+ * Digit normalization (so Bengali and English numerals behave
+ * identically for storage and search, and leading zeros survive
+ * because everything stays a string — never cast to int).
+ * ------------------------------------------------------------------ */
+
+function sojib68_bn_to_en_digits( $str ) {
+	static $map = array(
+		'০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4',
+		'৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9',
+	);
+	return strtr( (string) $str, $map );
+}
+
+/**
+ * Normalizes a free-text field (deed no, khatian no, mobile) for
+ * storage in a *_normalized column used by search: Bengali digits to
+ * English, trims whitespace. The original, as typed, is kept in the
+ * main column for display.
+ */
+function sojib68_normalize_field( $str ) {
+	return trim( sojib68_bn_to_en_digits( (string) $str ) );
+}
+
+/* ---------------------------------------------------------------------
+ * Money: always integer poysha (1 taka = 100 poysha). Never float.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Parses a user-entered amount (possibly with Bengali digits, commas,
+ * a decimal point) into integer poysha. Returns null for blank input
+ * — a blank money field means "unknown", not zero.
+ */
+function sojib68_money_to_poysha( $input ) {
+	$input = trim( sojib68_bn_to_en_digits( (string) $input ) );
+	$input = str_replace( ',', '', $input );
+
+	if ( '' === $input ) {
+		return null;
+	}
+
+	if ( ! preg_match( '/^-?\d+(\.\d{1,2})?$/', $input ) ) {
+		return null; // Not a parseable number — treated as not provided.
+	}
+
+	$parts = explode( '.', $input );
+	$taka  = (int) $parts[0];
+	$paisa = isset( $parts[1] ) ? str_pad( substr( $parts[1], 0, 2 ), 2, '0' ) : '00';
+
+	$sign = $taka < 0 ? -1 : 1;
+	return $sign * ( abs( $taka ) * 100 + (int) $paisa );
+}
+
+/**
+ * Formats integer poysha back to a "1,234.56" style taka string for
+ * display. Returns '' for null (unknown), and explicitly handles 0
+ * ("০" entered on purpose) as a real value, not unknown.
+ */
+function sojib68_poysha_to_display( $poysha ) {
+	if ( null === $poysha || '' === $poysha ) {
+		return '';
+	}
+	$poysha = (int) $poysha;
+	$taka   = intdiv( abs( $poysha ), 100 );
+	$paisa  = abs( $poysha ) % 100;
+	$sign   = $poysha < 0 ? '-' : '';
+	return $sign . number_format( $taka ) . ( $paisa ? '.' . str_pad( $paisa, 2, '0', STR_PAD_LEFT ) : '' );
+}
+
+/* ---------------------------------------------------------------------
+ * Saved offices / deed types
+ * ------------------------------------------------------------------ */
+
+function sojib68_offices_list() {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'offices' );
+	return $wpdb->get_results( "SELECT id, name FROM $table ORDER BY name ASC" );
+}
+
+function sojib68_deed_types_list() {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_types' );
+	return $wpdb->get_results( "SELECT id, name FROM $table ORDER BY name ASC" );
+}
+
+function sojib68_office_add_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'offices' );
+	$wpdb->query( $wpdb->prepare(
+		"INSERT IGNORE INTO $table (name, created_at) VALUES (%s, %s)",
+		$name,
+		current_time( 'mysql' )
+	) );
+	return $name;
+}
+
+function sojib68_deed_type_add_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'deed_types' );
+	$wpdb->query( $wpdb->prepare(
+		"INSERT IGNORE INTO $table (name, created_at) VALUES (%s, %s)",
+		$name,
+		current_time( 'mysql' )
+	) );
+	return $name;
+}
+
+/* ---------------------------------------------------------------------
+ * Audit log
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_audit_log( $deed_id, $user_id, $action, $summary = '' ) {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_audit' );
+	$wpdb->insert( $table, array(
+		'deed_id'    => $deed_id,
+		'user_id'    => $user_id,
+		'action'     => $action,
+		'changed_at' => current_time( 'mysql' ),
+		'summary'    => $summary,
+	) );
+}
+
+/* ---------------------------------------------------------------------
+ * Double-submit protection
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_token_lookup( $token ) {
+	global $wpdb;
+	if ( '' === (string) $token ) {
+		return null;
+	}
+	$table = sojib68_deeds_table( 'submission_tokens' );
+	$deed_id = $wpdb->get_var( $wpdb->prepare( "SELECT deed_id FROM $table WHERE token = %s", $token ) );
+	return $deed_id ? (int) $deed_id : null;
+}
+
+function sojib68_deed_token_store( $token, $deed_id ) {
+	global $wpdb;
+	if ( '' === (string) $token ) {
+		return;
+	}
+	$table = sojib68_deeds_table( 'submission_tokens' );
+	$wpdb->query( $wpdb->prepare(
+		"INSERT IGNORE INTO $table (token, deed_id, created_at) VALUES (%s, %d, %s)",
+		$token,
+		$deed_id,
+		current_time( 'mysql' )
+	) );
+}
+
+/* ---------------------------------------------------------------------
+ * Duplicate detection (warn, never block, never auto-merge)
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_find_possible_duplicate( $deed_no_normalized, $reg_year, $office, $exclude_id = 0 ) {
+	global $wpdb;
+
+	if ( '' === (string) $deed_no_normalized || empty( $reg_year ) || '' === (string) $office ) {
+		return null; // Not enough information to meaningfully compare.
+	}
+
+	$table = sojib68_deeds_table( 'deeds' );
+	$sql   = "SELECT id, deed_no, reg_year, sub_registry_office FROM $table
+		WHERE deed_no_normalized = %s AND reg_year = %d AND sub_registry_office = %s
+		AND deleted_at IS NULL";
+	$args  = array( $deed_no_normalized, $reg_year, $office );
+
+	if ( $exclude_id ) {
+		$sql   .= ' AND id != %d';
+		$args[] = $exclude_id;
+	}
+
+	$sql .= ' LIMIT 1';
+
+	return $wpdb->get_row( $wpdb->prepare( $sql, $args ) );
+}
+
+/* ---------------------------------------------------------------------
+ * Save (create or update) — one deed plus all of its donors,
+ * grantees, lands, receipts and expenses, inside a single
+ * transaction: either everything saves, or nothing does.
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_save( array $data, $deed_id, $user_id ) {
+	global $wpdb;
+
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+	$now         = current_time( 'mysql' );
+	$is_update   = ! empty( $deed_id );
+
+	$deed_no            = isset( $data['deed_no'] ) ? trim( (string) $data['deed_no'] ) : '';
+	$deed_no_normalized = sojib68_normalize_field( $deed_no );
+	$office              = isset( $data['sub_registry_office'] ) ? trim( (string) $data['sub_registry_office'] ) : '';
+	$reg_year            = ! empty( $data['reg_year'] ) ? (int) sojib68_bn_to_en_digits( $data['reg_year'] ) : null;
+	$reg_date            = ! empty( $data['reg_date'] ) ? $data['reg_date'] : null;
+
+	$deed_row = array(
+		'sub_registry_office'      => '' !== $office ? $office : null,
+		'reg_date'                 => $reg_date,
+		'reg_year'                 => $reg_year,
+		'deed_no'                  => '' !== $deed_no ? $deed_no : null,
+		'deed_no_normalized'       => '' !== $deed_no_normalized ? $deed_no_normalized : null,
+		'deed_type'                => ! empty( $data['deed_type'] ) ? trim( $data['deed_type'] ) : null,
+		'deed_value_poysha'        => sojib68_money_to_poysha( $data['deed_value'] ?? '' ),
+		'client_total_due_poysha'  => sojib68_money_to_poysha( $data['client_total_due'] ?? '' ),
+		'fee_agreed_poysha'        => sojib68_money_to_poysha( $data['fee_agreed'] ?? '' ),
+		'fee_collected_poysha'     => sojib68_money_to_poysha( $data['fee_collected'] ?? '' ),
+		'dues_verified'            => ! empty( $data['dues_verified'] ) ? 1 : 0,
+		'notes'                    => isset( $data['notes'] ) ? trim( $data['notes'] ) : null,
+		'updated_by'               => $user_id,
+		'updated_at'               => $now,
+	);
+
+	$wpdb->query( 'START TRANSACTION' );
+
+	if ( $is_update ) {
+		$result = $wpdb->update( $deeds_table, $deed_row, array( 'id' => $deed_id ) );
+	} else {
+		$deed_row['created_by'] = $user_id;
+		$deed_row['created_at'] = $now;
+		$result  = $wpdb->insert( $deeds_table, $deed_row );
+		$deed_id = $wpdb->insert_id;
+	}
+
+	if ( false === $result ) {
+		$wpdb->query( 'ROLLBACK' );
+		return new WP_Error( 'deed_save_failed', __( 'দলিল সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', 'sojib68' ) );
+	}
+
+	$ok = true;
+	$ok = $ok && sojib68_deed_replace_children( 'deed_donors', $deed_id, $data['donors'] ?? array(), array(
+		'name', 'address', 'mobile',
+	) );
+	$ok = $ok && sojib68_deed_replace_children( 'deed_grantees', $deed_id, $data['grantees'] ?? array(), array(
+		'name', 'address', 'mobile',
+	) );
+	$ok = $ok && sojib68_deed_replace_lands( $deed_id, $data['lands'] ?? array() );
+	$ok = $ok && sojib68_deed_replace_receipts( $deed_id, $data['receipts'] ?? array() );
+	$ok = $ok && sojib68_deed_replace_expenses( $deed_id, $data['expenses'] ?? array() );
+
+	if ( ! $ok ) {
+		$wpdb->query( 'ROLLBACK' );
+		return new WP_Error( 'deed_save_failed', __( 'দলিল সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', 'sojib68' ) );
+	}
+
+	$wpdb->query( 'COMMIT' );
+
+	sojib68_deed_audit_log( $deed_id, $user_id, $is_update ? 'update' : 'create' );
+
+	return $deed_id;
+}
+
+function sojib68_deed_replace_children( $table_key, $deed_id, $rows, $text_fields ) {
+	global $wpdb;
+	$table = sojib68_deeds_table( $table_key );
+
+	if ( false === $wpdb->delete( $table, array( 'deed_id' => $deed_id ) ) && $wpdb->last_error ) {
+		return false;
+	}
+
+	$order = 0;
+	foreach ( (array) $rows as $row ) {
+		$has_content = false;
+		$values      = array( 'deed_id' => $deed_id, 'sort_order' => $order );
+		foreach ( $text_fields as $field ) {
+			$val = isset( $row[ $field ] ) ? trim( (string) $row[ $field ] ) : '';
+			if ( 'mobile' === $field ) {
+				$val = sojib68_normalize_field( $val );
+			}
+			if ( '' !== $val ) {
+				$has_content = true;
+			}
+			$values[ $field ] = '' !== $val ? $val : null;
+		}
+
+		if ( ! $has_content ) {
+			continue; // Skip fully empty repeated rows (e.g. a blank "+ add" group left untouched).
+		}
+
+		if ( false === $wpdb->insert( $table, $values ) ) {
+			return false;
+		}
+		$order++;
+	}
+
+	return true;
+}
+
+function sojib68_deed_replace_lands( $deed_id, $rows ) {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_lands' );
+
+	if ( false === $wpdb->delete( $table, array( 'deed_id' => $deed_id ) ) && $wpdb->last_error ) {
+		return false;
+	}
+
+	$order = 0;
+	foreach ( (array) $rows as $row ) {
+		$mouza       = isset( $row['mouza'] ) ? trim( (string) $row['mouza'] ) : '';
+		$khatian     = isset( $row['khatian_no'] ) ? trim( (string) $row['khatian_no'] ) : '';
+		$khatian_norm = sojib68_normalize_field( $khatian );
+		$quantity_raw = isset( $row['quantity'] ) ? trim( sojib68_bn_to_en_digits( $row['quantity'] ) ) : '';
+		$unit        = isset( $row['unit'] ) ? trim( (string) $row['unit'] ) : '';
+
+		$quantity = ( '' !== $quantity_raw && is_numeric( $quantity_raw ) ) ? (float) $quantity_raw : null;
+
+		if ( '' === $mouza && '' === $khatian && null === $quantity && '' === $unit ) {
+			continue; // Empty row, skip.
+		}
+
+		$values = array(
+			'deed_id'               => $deed_id,
+			'mouza'                 => '' !== $mouza ? $mouza : null,
+			'khatian_no'            => '' !== $khatian ? $khatian : null,
+			'khatian_no_normalized' => '' !== $khatian_norm ? $khatian_norm : null,
+			'quantity'              => $quantity,
+			'unit'                  => '' !== $unit ? $unit : null,
+			'sort_order'            => $order,
+		);
+
+		if ( false === $wpdb->insert( $table, $values ) ) {
+			return false;
+		}
+		$order++;
+	}
+
+	return true;
+}
+
+function sojib68_deed_replace_receipts( $deed_id, $rows ) {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_receipts' );
+
+	if ( false === $wpdb->delete( $table, array( 'deed_id' => $deed_id ) ) && $wpdb->last_error ) {
+		return false;
+	}
+
+	$order = 0;
+	foreach ( (array) $rows as $row ) {
+		$date   = ! empty( $row['received_date'] ) ? $row['received_date'] : null;
+		$amount = sojib68_money_to_poysha( $row['amount'] ?? '' );
+		$method = isset( $row['method'] ) ? trim( (string) $row['method'] ) : '';
+		$note   = isset( $row['note'] ) ? trim( (string) $row['note'] ) : '';
+
+		if ( null === $date && null === $amount && '' === $method && '' === $note ) {
+			continue;
+		}
+
+		$values = array(
+			'deed_id'       => $deed_id,
+			'received_date' => $date,
+			'amount_poysha' => null !== $amount ? $amount : 0,
+			'method'        => '' !== $method ? $method : null,
+			'note'          => '' !== $note ? $note : null,
+			'sort_order'    => $order,
+		);
+
+		if ( false === $wpdb->insert( $table, $values ) ) {
+			return false;
+		}
+		$order++;
+	}
+
+	return true;
+}
+
+function sojib68_deed_replace_expenses( $deed_id, $rows ) {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_expenses' );
+
+	if ( false === $wpdb->delete( $table, array( 'deed_id' => $deed_id ) ) && $wpdb->last_error ) {
+		return false;
+	}
+
+	$order = 0;
+	foreach ( (array) $rows as $row ) {
+		$category    = isset( $row['category'] ) ? trim( (string) $row['category'] ) : '';
+		$description = isset( $row['description'] ) ? trim( (string) $row['description'] ) : '';
+		$amount      = sojib68_money_to_poysha( $row['amount'] ?? '' );
+		$paid_date   = ! empty( $row['paid_date'] ) ? $row['paid_date'] : null;
+		$paid_status = isset( $row['paid_status'] ) ? trim( (string) $row['paid_status'] ) : '';
+		$paid_by     = isset( $row['paid_by'] ) ? trim( (string) $row['paid_by'] ) : '';
+
+		if ( '' === $category && '' === $description && null === $amount && null === $paid_date ) {
+			continue;
+		}
+
+		$values = array(
+			'deed_id'      => $deed_id,
+			'category'     => '' !== $category ? $category : null,
+			'description'  => '' !== $description ? $description : null,
+			'amount_poysha' => null !== $amount ? $amount : 0,
+			'paid_date'    => $paid_date,
+			'paid_status'  => '' !== $paid_status ? $paid_status : null,
+			'paid_by'      => '' !== $paid_by ? $paid_by : null,
+			'sort_order'   => $order,
+		);
+
+		if ( false === $wpdb->insert( $table, $values ) ) {
+			return false;
+		}
+		$order++;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------
+ * Fetch a single deed (with all children) for the edit form / detail view.
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_get( $deed_id ) {
+	global $wpdb;
+
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+	$deed        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $deeds_table WHERE id = %d AND deleted_at IS NULL", $deed_id ) );
+
+	if ( ! $deed ) {
+		return null;
+	}
+
+	$deed->donors   = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . sojib68_deeds_table( 'deed_donors' ) . ' WHERE deed_id = %d ORDER BY sort_order', $deed_id ) );
+	$deed->grantees = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . sojib68_deeds_table( 'deed_grantees' ) . ' WHERE deed_id = %d ORDER BY sort_order', $deed_id ) );
+	$deed->lands    = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . sojib68_deeds_table( 'deed_lands' ) . ' WHERE deed_id = %d ORDER BY sort_order', $deed_id ) );
+	$deed->receipts = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . sojib68_deeds_table( 'deed_receipts' ) . ' WHERE deed_id = %d ORDER BY sort_order', $deed_id ) );
+	$deed->expenses = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . sojib68_deeds_table( 'deed_expenses' ) . ' WHERE deed_id = %d ORDER BY sort_order', $deed_id ) );
+
+	$total_received = 0;
+	foreach ( $deed->receipts as $r ) {
+		$total_received += (int) $r->amount_poysha;
+	}
+	$deed->total_received_poysha = $total_received;
+	$deed->due_poysha            = null !== $deed->client_total_due_poysha
+		? ( (int) $deed->client_total_due_poysha - $total_received )
+		: null;
+
+	return $deed;
+}
+
+/* ---------------------------------------------------------------------
+ * Search / "সকল দলিল" listing
+ * ------------------------------------------------------------------ */
+
+function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$donors   = sojib68_deeds_table( 'deed_donors' );
+	$grantees = sojib68_deeds_table( 'deed_grantees' );
+	$lands    = sojib68_deeds_table( 'deed_lands' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+
+	$where = array( 'd.deleted_at IS NULL' );
+	$args  = array();
+
+	if ( ! empty( $filters['name'] ) ) {
+		$like = '%' . $wpdb->esc_like( trim( $filters['name'] ) ) . '%';
+		$where[] = "(EXISTS (SELECT 1 FROM $donors dn WHERE dn.deed_id = d.id AND dn.name LIKE %s)
+			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND gr.name LIKE %s))";
+		$args[] = $like;
+		$args[] = $like;
+	}
+
+	if ( ! empty( $filters['mobile'] ) ) {
+		$mobile_norm = sojib68_normalize_field( $filters['mobile'] );
+		$like        = '%' . $wpdb->esc_like( $mobile_norm ) . '%';
+		$where[] = "(EXISTS (SELECT 1 FROM $donors dn WHERE dn.deed_id = d.id AND dn.mobile LIKE %s)
+			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND gr.mobile LIKE %s))";
+		$args[] = $like;
+		$args[] = $like;
+	}
+
+	if ( ! empty( $filters['address'] ) ) {
+		$like = '%' . $wpdb->esc_like( trim( $filters['address'] ) ) . '%';
+		$where[] = "(EXISTS (SELECT 1 FROM $donors dn WHERE dn.deed_id = d.id AND dn.address LIKE %s)
+			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND gr.address LIKE %s))";
+		$args[] = $like;
+		$args[] = $like;
+	}
+
+	if ( ! empty( $filters['deed_no'] ) ) {
+		$norm = sojib68_normalize_field( $filters['deed_no'] );
+		$where[] = 'd.deed_no_normalized LIKE %s';
+		$args[]  = '%' . $wpdb->esc_like( $norm ) . '%';
+	}
+
+	if ( ! empty( $filters['deed_type'] ) ) {
+		$where[] = 'd.deed_type = %s';
+		$args[]  = $filters['deed_type'];
+	}
+
+	if ( ! empty( $filters['office'] ) ) {
+		$where[] = 'd.sub_registry_office = %s';
+		$args[]  = $filters['office'];
+	}
+
+	if ( ! empty( $filters['reg_year'] ) ) {
+		$where[] = 'd.reg_year = %d';
+		$args[]  = (int) sojib68_bn_to_en_digits( $filters['reg_year'] );
+	}
+
+	if ( ! empty( $filters['date_from'] ) ) {
+		$where[] = 'd.reg_date >= %s';
+		$args[]  = $filters['date_from'];
+	}
+	if ( ! empty( $filters['date_to'] ) ) {
+		$where[] = 'd.reg_date <= %s';
+		$args[]  = $filters['date_to'];
+	}
+
+	if ( ! empty( $filters['value_min'] ) ) {
+		$where[] = 'd.deed_value_poysha >= %d';
+		$args[]  = sojib68_money_to_poysha( $filters['value_min'] );
+	}
+	if ( ! empty( $filters['value_max'] ) ) {
+		$where[] = 'd.deed_value_poysha <= %d';
+		$args[]  = sojib68_money_to_poysha( $filters['value_max'] );
+	}
+
+	// Mouza + khatian + quantity/unit must all match on the SAME land row,
+	// so one deed is never listed twice for matching two different rows.
+	if ( ! empty( $filters['mouza'] ) || ! empty( $filters['khatian_no'] ) || ! empty( $filters['land_unit'] ) ) {
+		$land_conditions = array();
+
+		if ( ! empty( $filters['mouza'] ) ) {
+			$land_conditions[] = 'l.mouza LIKE %s';
+			$args[]            = '%' . $wpdb->esc_like( trim( $filters['mouza'] ) ) . '%';
+		}
+		if ( ! empty( $filters['khatian_no'] ) ) {
+			$land_conditions[] = 'l.khatian_no_normalized LIKE %s';
+			$args[]            = '%' . $wpdb->esc_like( sojib68_normalize_field( $filters['khatian_no'] ) ) . '%';
+		}
+		if ( ! empty( $filters['land_unit'] ) ) {
+			$land_conditions[] = 'l.unit = %s';
+			$args[]            = $filters['land_unit'];
+		}
+
+		$where[] = "EXISTS (SELECT 1 FROM $lands l WHERE l.deed_id = d.id AND " . implode( ' AND ', $land_conditions ) . ')';
+	}
+
+	if ( isset( $filters['has_due'] ) && '' !== $filters['has_due'] ) {
+		if ( '1' === (string) $filters['has_due'] ) {
+			$where[] = "d.client_total_due_poysha IS NOT NULL
+				AND (d.client_total_due_poysha - COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0)) > 0";
+		} elseif ( '0' === (string) $filters['has_due'] ) {
+			$where[] = "d.client_total_due_poysha IS NOT NULL
+				AND (d.client_total_due_poysha - COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0)) <= 0";
+		}
+	}
+
+	$where_sql = implode( ' AND ', $where );
+
+	$per_page = max( 1, (int) $per_page );
+	$paged    = max( 1, (int) $paged );
+	$offset   = ( $paged - 1 ) * $per_page;
+
+	$count_sql = "SELECT COUNT(*) FROM $deeds d WHERE $where_sql";
+	$total     = (int) ( empty( $args ) ? $wpdb->get_var( $count_sql ) : $wpdb->get_var( $wpdb->prepare( $count_sql, $args ) ) );
+
+	$list_sql  = "SELECT d.* FROM $deeds d WHERE $where_sql ORDER BY d.reg_date DESC, d.id DESC LIMIT %d OFFSET %d";
+	$list_args = array_merge( $args, array( $per_page, $offset ) );
+	$rows      = $wpdb->get_results( $wpdb->prepare( $list_sql, $list_args ) );
+
+	foreach ( $rows as $row ) {
+		$received = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COALESCE(SUM(amount_poysha),0) FROM $receipts WHERE deed_id = %d",
+			$row->id
+		) );
+		$row->total_received_poysha = $received;
+		$row->due_poysha            = null !== $row->client_total_due_poysha
+			? ( (int) $row->client_total_due_poysha - $received )
+			: null;
+	}
+
+	return array(
+		'rows'       => $rows,
+		'total'      => $total,
+		'per_page'   => $per_page,
+		'paged'      => $paged,
+		'total_pages' => (int) ceil( $total / $per_page ),
+	);
+}

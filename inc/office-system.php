@@ -311,10 +311,7 @@ function sojib68_office_menu_items() {
 	return array(
 		'dashboard'  => __( 'ড্যাশবোর্ড', 'sojib68' ),
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
-		'entry-old'  => __( 'পুরোনো খাতা এন্ট্রি', 'sojib68' ),
-		'search'     => __( 'দলিল অনুসন্ধান', 'sojib68' ),
-		'dues'       => __( 'জমা–বকেয়া', 'sojib68' ),
-		'reports'    => __( 'রিপোর্ট ও ব্যাকআপ', 'sojib68' ),
+		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 	);
 }
 
@@ -325,6 +322,11 @@ function sojib68_office_render_dashboard( $page_key ) {
 	}
 
 	$user = wp_get_current_user();
+
+	$page_title = $menu[ $page_key ];
+	if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) {
+		$page_title = __( 'দলিল সম্পাদনা', 'sojib68' );
+	}
 	?>
 	<!DOCTYPE html>
 	<html <?php language_attributes(); ?>>
@@ -332,7 +334,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 		<meta charset="<?php bloginfo( 'charset' ); ?>">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="robots" content="noindex, nofollow">
-		<title><?php echo esc_html( $menu[ $page_key ] ); ?> — <?php esc_html_e( 'অফিস', 'sojib68' ); ?></title>
+		<title><?php echo esc_html( $page_title ); ?> — <?php esc_html_e( 'অফিস', 'sojib68' ); ?></title>
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
 		<link rel="stylesheet" href="<?php echo esc_url( get_stylesheet_uri() ); ?>">
 		<style><?php echo sojib68_office_inline_css(); // phpcs:ignore ?></style>
@@ -378,7 +380,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 				</header>
 
 				<main class="office-content">
-					<h1><?php echo esc_html( $menu[ $page_key ] ); ?></h1>
+					<h1><?php echo esc_html( $page_title ); ?></h1>
 					<?php echo sojib68_office_render_section( $page_key ); // phpcs:ignore ?>
 				</main>
 			</div>
@@ -405,15 +407,22 @@ function sojib68_office_render_dashboard( $page_key ) {
 function sojib68_office_render_section( $page_key ) {
 	switch ( $page_key ) {
 		case 'dashboard':
-			return '<p>' . esc_html__( 'এখানে পরবর্তীতে সারসংক্ষেপ (সাম্প্রতিক এন্ট্রি, বকেয়ার অবস্থা ইত্যাদি) দেখানো হবে।', 'sojib68' ) . '</p>'
-				. '<div class="office-placeholder"><p>' . esc_html__( 'এই মুহূর্তে দেখানোর মতো কোনো রেকর্ড নেই — ফর্ম ও ডেটা স্ট্রাকচার এখনো ঠিক করা হয়নি।', 'sojib68' ) . '</p></div>';
+			$total = function_exists( 'sojib68_deed_search' ) ? sojib68_deed_search( array(), 1, 1 )['total'] : 0;
+			return '<p>' . esc_html( sprintf(
+				/* translators: %d: deed count */
+				__( 'এই মুহূর্তে মোট %d টি দলিল সংরক্ষিত আছে।', 'sojib68' ),
+				$total
+			) ) . '</p>';
 
 		case 'entry-new':
-		case 'entry-old':
-		case 'search':
-		case 'dues':
-		case 'reports':
-			return '<div class="office-placeholder"><p>' . esc_html__( 'এই সেকশনের ফর্ম ও কার্যকারিতা পরবর্তী ধাপে তৈরি করা হবে।', 'sojib68' ) . '</p></div>';
+			ob_start();
+			sojib68_office_render_entry_form();
+			return ob_get_clean();
+
+		case 'all-deeds':
+			ob_start();
+			sojib68_office_render_all_deeds();
+			return ob_get_clean();
 
 		default:
 			return '';
@@ -551,6 +560,121 @@ function sojib68_office_inline_css() {
 	.office-sidebar.is-open { transform: translateX(0); }
 	.office-topbar { padding-left: 64px; }
 	.office-content { padding: 20px; }
+}
+
+/* ---- Deed entry form ---- */
+.deed-section {
+	border: 1px solid var(--color-border, #E3E1D6);
+	border-radius: var(--radius-md, 12px);
+	padding: 18px 20px;
+	margin: 0 0 20px;
+}
+.deed-section legend {
+	font-weight: 700;
+	padding: 0 8px;
+	color: var(--color-heading, #032737);
+}
+.deed-hint { font-size: 0.85rem; color: var(--color-muted, #6E7D77); margin: 4px 0 12px; }
+.deed-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.deed-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.deed-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.deed-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+.deed-field label { font-size: 0.86rem; font-weight: 600; color: var(--color-heading, #032737); }
+.deed-field--checkbox { flex-direction: row; align-items: center; }
+.deed-field--checkbox label { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.deed-field input,
+.deed-field select,
+.deed-field textarea {
+	padding: 9px 11px;
+	border: 1px solid var(--color-border, #E3E1D6);
+	border-radius: var(--radius-sm, 6px);
+	font-family: inherit;
+	font-size: 0.96rem;
+}
+.deed-add-link {
+	align-self: flex-start;
+	background: none;
+	border: none;
+	color: var(--color-green, #198030);
+	font-size: 0.82rem;
+	font-weight: 600;
+	cursor: pointer;
+	padding: 2px 0;
+}
+.deed-repeat-row {
+	position: relative;
+	border: 1px dashed var(--color-border, #E3E1D6);
+	border-radius: var(--radius-sm, 6px);
+	padding: 14px 40px 14px 14px;
+	margin-bottom: 12px;
+}
+.deed-remove-row {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	border: 1px solid var(--color-border, #E3E1D6);
+	background: #fff;
+	color: #b3401f;
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+}
+.deed-add-row {
+	background: var(--color-soft-green, #F2F8F2);
+	border: 1px solid var(--color-border, #E3E1D6);
+	border-radius: var(--radius-sm, 6px);
+	padding: 8px 16px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: var(--color-green-deep, #0f6023);
+	cursor: pointer;
+}
+.deed-summary {
+	margin-top: 14px;
+	padding: 12px 14px;
+	background: var(--color-soft-green, #F2F8F2);
+	border-radius: var(--radius-sm, 6px);
+	font-size: 0.88rem;
+}
+.deed-summary-numbers { display: flex; gap: 20px; margin-top: 6px; flex-wrap: wrap; }
+.deed-form-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.deed-success-actions { display: flex; gap: 12px; margin-top: 10px; }
+.deed-notice-area:empty { display: none; }
+.deed-notice-area .office-notice { margin-bottom: 16px; }
+
+/* ---- All deeds: filters + table ---- */
+.deed-filters {
+	border: 1px solid var(--color-border, #E3E1D6);
+	border-radius: var(--radius-md, 12px);
+	padding: 14px 18px;
+	margin-bottom: 18px;
+}
+.deed-filters summary { cursor: pointer; font-weight: 600; }
+.deed-filter-form { margin-top: 14px; }
+.deed-filter-actions { display: flex; gap: 10px; margin-top: 12px; }
+.deed-result-count { font-size: 0.9rem; color: var(--color-muted, #6E7D77); margin-bottom: 10px; }
+.deed-table-wrap { overflow-x: auto; border: 1px solid var(--color-border, #E3E1D6); border-radius: var(--radius-md, 12px); }
+.deed-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.deed-table th, .deed-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--color-border, #E3E1D6); white-space: nowrap; }
+.deed-table th { background: var(--color-soft-green, #F2F8F2); font-weight: 700; }
+.deed-due-chip { padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.deed-due-chip--due { background: #fdecea; color: #b3401f; }
+.deed-due-chip--settled { background: #e6f4ea; color: #1c6b3e; }
+.deed-due-chip--advance { background: #eef2fd; color: #1d4ed8; }
+.deed-pagination { display: flex; gap: 6px; margin-top: 16px; flex-wrap: wrap; }
+.deed-pagination a { padding: 6px 12px; border: 1px solid var(--color-border, #E3E1D6); border-radius: var(--radius-sm, 6px); font-size: 0.86rem; }
+.deed-pagination a.is-active { background: var(--color-green, #198030); color: #fff; border-color: var(--color-green, #198030); }
+
+@media (max-width: 860px) {
+	.deed-grid-2, .deed-grid-3, .deed-grid-4 { grid-template-columns: 1fr; }
+	.deed-table thead { display: none; }
+	.deed-table, .deed-table tbody, .deed-table tr, .deed-table td { display: block; width: 100%; }
+	.deed-table tr { border-bottom: 2px solid var(--color-border, #E3E1D6); padding: 8px 0; }
+	.deed-table td { white-space: normal; border: none; padding: 4px 14px; }
+	.deed-table td[data-label]:not([data-label=""])::before { content: attr(data-label) ": "; font-weight: 700; }
 }
 CSS;
 }
