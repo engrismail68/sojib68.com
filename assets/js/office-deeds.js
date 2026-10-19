@@ -8,113 +8,131 @@
 
 	var baseUrl = form.getAttribute( 'data-base-url' ) || '/';
 
-	/* ---------------- Repeatable row groups ---------------- */
+	/* ---------------- Repeatable rows (cloned from <template>s) ---------------- */
 
-	var rowTemplates = {
-		donors: function ( i ) {
-			return personRowHtml( 'donors', i, 'দাতার নাম' );
-		},
-		grantees: function ( i ) {
-			return personRowHtml( 'grantees', i, 'গ্রহীতার নাম' );
-		},
-		lands: function ( i ) {
-			return landRowHtml( i );
-		},
-		receipts: function ( i ) {
-			return receiptRowHtml( i );
-		},
-		expenses: function ( i ) {
-			return expenseRowHtml( i );
-		},
-	};
+	var BN = '০১২৩৪৫৬৭৮৯';
 
-	function fieldHtml( label, inputHtml ) {
-		return '<div class="deed-field"><label>' + label + '</label>' + inputHtml + '</div>';
+	function toNumber( str ) {
+		var clean = String( str || '' )
+			.replace( /[০-৯]/g, function ( d ) { return String( BN.indexOf( d ) ); } )
+			.replace( /[^0-9.]/g, '' );
+		var n = parseFloat( clean );
+		return isNaN( n ) ? null : n;
 	}
 
-	function personRowHtml( group, i, nameLabel ) {
-		return (
-			'<div class="deed-repeat-row"><div class="deed-grid-3">' +
-			fieldHtml( nameLabel, '<input type="text" name="' + group + '[' + i + '][name]">' ) +
-			fieldHtml( 'ঠিকানা', '<input type="text" name="' + group + '[' + i + '][address]">' ) +
-			fieldHtml( 'মোবাইল নং', '<input type="text" name="' + group + '[' + i + '][mobile]">' ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
-		);
+	function fmt( n ) {
+		return '৳ ' + ( Math.round( n * 100 ) / 100 ).toLocaleString( 'en-IN', { maximumFractionDigits: 2 } );
 	}
 
-	function selectHtml( name, options, blank ) {
-		var html = '<select name="' + name + '"><option value="">' + ( blank || '— নির্বাচন করুন —' ) + '</option>';
-		options.forEach( function ( opt ) {
-			html += '<option value="' + opt[0] + '">' + opt[1] + '</option>';
-		} );
-		return html + '</select>';
+	function syncEmpty( group ) {
+		var container = form.querySelector( '[data-repeat="' + group + '"]' );
+		var note = form.querySelector( '[data-empty-for="' + group + '"]' );
+		if ( container && note ) {
+			note.hidden = container.children.length > 0;
+		}
 	}
 
-	var landUnits = [ [ 'শতক', 'শতক/ডেসিমেল' ], [ 'একর', 'একর' ], [ 'বর্গফুট', 'বর্গফুট' ] ];
-	var paymentMethods = [ [ 'cash', 'নগদ' ], [ 'bank', 'ব্যাংক' ], [ 'mobile_banking', 'মোবাইল ব্যাংকিং' ], [ 'other', 'অন্যান্য' ] ];
-	var expenseCategories = [ [ 'registration_fee', 'রেজিস্ট্রেশন ফি' ], [ 'other_govt_fee_tax', 'অন্যান্য সরকারি ফি ও কর' ], [ 'other', 'অন্যান্য' ] ];
-	var expenseStatuses = [ [ 'paid', 'পরিশোধিত' ], [ 'unpaid', 'অপরিশোধিত' ], [ 'unknown', 'অজানা' ] ];
-	var expensePaidBy = [ [ 'me', 'আমার মাধ্যমে' ], [ 'client_direct', 'গ্রাহক সরাসরি' ], [ 'other', 'অন্যান্য' ], [ 'unknown', 'অজানা' ] ];
-
-	function landRowHtml( i ) {
-		return (
-			'<div class="deed-repeat-row"><div class="deed-grid-4">' +
-			fieldHtml( 'মৌজা', '<input type="text" name="lands[' + i + '][mouza]">' ) +
-			fieldHtml( 'খতিয়ান নং', '<input type="text" name="lands[' + i + '][khatian_no]">' ) +
-			fieldHtml( 'জমির পরিমাণ', '<input type="text" inputmode="decimal" name="lands[' + i + '][quantity]">' ) +
-			fieldHtml( 'একক', selectHtml( 'lands[' + i + '][unit]', landUnits ) ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
-		);
-	}
-
-	function receiptRowHtml( i ) {
-		return (
-			'<div class="deed-repeat-row"><div class="deed-grid-4">' +
-			fieldHtml( 'টাকা গ্রহণের তারিখ', '<input type="date" name="receipts[' + i + '][received_date]">' ) +
-			fieldHtml( 'জমার পরিমাণ', '<input type="text" inputmode="decimal" name="receipts[' + i + '][amount]">' ) +
-			fieldHtml( 'মাধ্যম', selectHtml( 'receipts[' + i + '][method]', paymentMethods ) ) +
-			fieldHtml( 'মন্তব্য', '<input type="text" name="receipts[' + i + '][note]">' ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
-		);
-	}
-
-	function expenseRowHtml( i ) {
-		return (
-			'<div class="deed-repeat-row"><div class="deed-grid-3">' +
-			fieldHtml( 'খরচের খাত', selectHtml( 'expenses[' + i + '][category]', expenseCategories ) ) +
-			fieldHtml( 'খরচের বিবরণ', '<input type="text" name="expenses[' + i + '][description]">' ) +
-			fieldHtml( 'টাকার পরিমাণ', '<input type="text" inputmode="decimal" name="expenses[' + i + '][amount]">' ) +
-			fieldHtml( 'পরিশোধের তারিখ', '<input type="date" name="expenses[' + i + '][paid_date]">' ) +
-			fieldHtml( 'পরিশোধের অবস্থা', selectHtml( 'expenses[' + i + '][paid_status]', expenseStatuses ) ) +
-			fieldHtml( 'কে পরিশোধ করেছেন', selectHtml( 'expenses[' + i + '][paid_by]', expensePaidBy ) ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
-		);
-	}
-
-	document.querySelectorAll( '[data-add-row]' ).forEach( function ( btn ) {
+	form.querySelectorAll( '[data-add-row]' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
-			var group     = btn.getAttribute( 'data-add-row' );
+			var group = btn.getAttribute( 'data-add-row' );
 			var container = form.querySelector( '[data-repeat="' + group + '"]' );
-			if ( ! container || ! rowTemplates[ group ] ) {
+			var tpl = document.getElementById( 'tpl-' + group );
+			if ( ! container || ! tpl ) {
 				return;
 			}
-			var nextIndex = container.children.length;
-			container.insertAdjacentHTML( 'beforeend', rowTemplates[ group ]( nextIndex ) );
+			var index = parseInt( container.getAttribute( 'data-next' ), 10 ) || 0;
+			container.setAttribute( 'data-next', index + 1 );
+			container.insertAdjacentHTML( 'beforeend', tpl.innerHTML.replace( /__INDEX__/g, index ) );
+			syncEmpty( group );
+			updateSummary();
+			var first = container.lastElementChild && container.lastElementChild.querySelector( 'input,select' );
+			if ( first ) { first.focus(); }
 		} );
 	} );
 
+	// Groups that always keep one visible row (clear it instead of removing the last one).
+	var keepOne = { donors: 1, grantees: 1, lands: 1 };
+
 	form.addEventListener( 'click', function ( e ) {
-		if ( e.target.classList.contains( 'deed-remove-row' ) ) {
-			var row = e.target.closest( '.deed-repeat-row' );
-			if ( row ) {
-				row.remove();
+		var btn = e.target.closest( '.deed-row__remove' );
+		if ( ! btn ) {
+			return;
+		}
+		var row = btn.closest( '.deed-row' );
+		var container = row && row.parentNode;
+		if ( ! container ) {
+			return;
+		}
+		var group = container.getAttribute( 'data-repeat' );
+		if ( keepOne[ group ] && container.children.length === 1 ) {
+			row.querySelectorAll( 'input,select' ).forEach( function ( el ) { el.value = ''; } );
+		} else {
+			row.remove();
+		}
+		syncEmpty( group );
+		updateSummary();
+	} );
+
+	/* ---------------- Live summary ---------------- */
+
+	function setSum( key, text ) {
+		var el = form.querySelector( '[data-sum="' + key + '"]' );
+		if ( el ) { el.textContent = text; }
+	}
+
+	function updateSummary() {
+		var value = toNumber( ( document.getElementById( 'f-deed-value' ) || {} ).value );
+		var totalDue = toNumber( ( document.getElementById( 'f-total-due' ) || {} ).value );
+
+		var received = 0;
+		form.querySelectorAll( '[data-money="receipt"]' ).forEach( function ( el ) {
+			received += toNumber( el.value ) || 0;
+		} );
+
+		var expenses = 0;
+		var mine = 0;
+		form.querySelectorAll( '[data-repeat="expenses"] .deed-row' ).forEach( function ( row ) {
+			var amt = toNumber( ( row.querySelector( '[data-money="expense"]' ) || {} ).value ) || 0;
+			expenses += amt;
+			var status = ( row.querySelector( '[data-expense="status"]' ) || {} ).value;
+			var by = ( row.querySelector( '[data-expense="paid_by"]' ) || {} ).value;
+			if ( 'paid' === status && 'me' === by ) { mine += amt; }
+		} );
+
+		setSum( 'value', null === value ? '—' : fmt( value ) );
+		setSum( 'total_due', null === totalDue ? '—' : fmt( totalDue ) );
+		setSum( 'received', fmt( received ) );
+		setSum( 'expenses', fmt( expenses ) );
+		setSum( 'my_expenses', fmt( mine ) );
+
+		var chip = form.querySelector( '[data-sum="status"]' );
+		var label = form.querySelector( '[data-sum="due_label"]' );
+		var cls = 'deed-chip deed-chip--unknown';
+		var chipText = 'প্রাপ্য অজানা';
+		var dueText = '—';
+		var dueLabel = 'বকেয়া';
+		if ( null !== totalDue ) {
+			var due = Math.round( ( totalDue - received ) * 100 ) / 100;
+			if ( due > 0 ) {
+				cls = 'deed-chip deed-chip--due'; chipText = 'বকেয়া আছে'; dueText = fmt( due );
+			} else if ( due < 0 ) {
+				cls = 'deed-chip deed-chip--advance'; chipText = 'অগ্রিম জমা'; dueText = fmt( -due ); dueLabel = 'অগ্রিম';
+			} else {
+				cls = 'deed-chip deed-chip--settled'; chipText = 'পরিশোধিত'; dueText = fmt( 0 );
 			}
 		}
-	} );
+		setSum( 'due', dueText );
+		if ( label ) { label.textContent = dueLabel; }
+		if ( chip ) { chip.className = cls; chip.textContent = chipText; }
+	}
+
+	form.addEventListener( 'input', updateSummary );
+	form.addEventListener( 'change', updateSummary );
+	updateSummary();
 
 	/* ---------------- Add custom office / deed type (AJAX, form data preserved) ---------------- */
 
-	document.querySelectorAll( '[data-add]' ).forEach( function ( btn ) {
+	form.querySelectorAll( '[data-add]' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
 			var kind = btn.getAttribute( 'data-add' ); // 'office' or 'deed_type'
 			var label = 'office' === kind ? 'নতুন অফিসের নাম লিখুন' : 'নতুন দলিলের ধরনের নাম লিখুন';
@@ -153,7 +171,7 @@
 
 	/* ---------------- Delete a mistakenly-added office / deed type ---------------- */
 
-	document.querySelectorAll( '[data-delete]' ).forEach( function ( btn ) {
+	form.querySelectorAll( '[data-delete]' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
 			var kind = btn.getAttribute( 'data-delete' ); // 'office' or 'deed_type'
 			var select = document.getElementById( btn.getAttribute( 'data-select' ) );

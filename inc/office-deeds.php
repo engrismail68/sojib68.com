@@ -616,6 +616,15 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		$row->due_poysha            = null !== $row->client_total_due_poysha
 			? ( (int) $row->client_total_due_poysha - $received )
 			: null;
+
+		// Display data for the listing: party names and land rows.
+		$donor_table   = sojib68_deeds_table( 'deed_donors' );
+		$grantee_table = sojib68_deeds_table( 'deed_grantees' );
+		$land_table    = sojib68_deeds_table( 'deed_lands' );
+
+		$row->donor_names   = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $donor_table WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+		$row->grantee_names = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $grantee_table WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+		$row->lands         = (array) $wpdb->get_results( $wpdb->prepare( "SELECT mouza, khatian_no, quantity, unit FROM $land_table WHERE deed_id = %d ORDER BY sort_order", $row->id ) );
 	}
 
 	return array(
