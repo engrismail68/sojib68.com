@@ -30,7 +30,8 @@
 			<ul>
 				<li><a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'হোম', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#about' ) ); ?>"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></a></li>
-				<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php esc_html_e( 'ভূমিসেবা', 'sojib68' ); ?></a></li>
+				<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php esc_html_e( 'সেবাসমূহ', 'sojib68' ); ?></a></li>
+				<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
 		</nav>
@@ -48,11 +49,19 @@
 					<li><?php echo esc_html( SOJIB68_ADDRESS ); ?></li>
 				<?php endif; ?>
 			</ul>
+			<?php $sojib68_socials = function_exists( 'sojib68_get_social_links' ) ? sojib68_get_social_links() : array(); ?>
+			<?php if ( ! empty( $sojib68_socials ) ) : ?>
+				<ul class="footer-socials">
+					<?php foreach ( $sojib68_socials as $network => $url ) : ?>
+						<li><a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( ucfirst( $network ) ); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
 		</div>
 	</div>
 
 	<div class="site-container footer-bottom">
-		<p><?php esc_html_e( 'এটি একটি বেসরকারি পরামর্শ ও সহায়তা সেবার ওয়েবসাইট।', 'sojib68' ); ?></p>
+		<p><?php esc_html_e( 'বেসরকারি পরামর্শ ও সহায়তা সেবা।', 'sojib68' ); ?></p>
 		<p>&copy; <?php echo esc_html( gmdate( 'Y' ) ); ?> <?php bloginfo( 'name' ); ?></p>
 	</div>
 </footer>

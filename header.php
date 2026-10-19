@@ -52,8 +52,8 @@
 			<ul>
 				<li><a href="<?php echo esc_url( is_front_page() ? '#top' : home_url( '/' ) ); ?>"><?php esc_html_e( 'হোম', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#about' ) ); ?>"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></a></li>
-				<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php esc_html_e( 'ভূমিসেবা', 'sojib68' ); ?></a></li>
-				<li><a href="<?php echo esc_url( home_url( '/#resources' ) ); ?>"><?php esc_html_e( 'তথ্য ও টুলস', 'sojib68' ); ?></a></li>
+				<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php esc_html_e( 'সেবাসমূহ', 'sojib68' ); ?></a></li>
+				<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
 			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-primary nav-cta"><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>

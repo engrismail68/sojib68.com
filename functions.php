@@ -51,7 +51,7 @@ add_action( 'after_setup_theme', 'sojib68_setup' );
 function sojib68_enqueue_assets() {
 	wp_enqueue_style(
 		'sojib68-fonts',
-		'https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap',
+		'https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap',
 		array(),
 		null
 	);
@@ -78,58 +78,60 @@ add_action( 'wp_enqueue_scripts', 'sojib68_enqueue_assets' );
  */
 function sojib68_get_services() {
 	return array(
-		'buy-sell'       => array(
-			'title' => 'জমি কিনবেন বা বিক্রি করবেন?',
-			'text'  => 'কেনাবেচার প্রস্তুতি, প্রয়োজনীয় কাগজপত্র ও পরবর্তী করণীয় সম্পর্কে সহায়তা।',
-			'icon'  => 'handshake',
+		'buy-sell-registration' => array(
+			'number' => '০১',
+			'title'  => 'জমি কেনাবেচা ও রেজিস্ট্রেশন',
+			'text'   => 'কেনাবেচার প্রস্তুতি, প্রয়োজনীয় কাগজপত্র এবং দলিল রেজিস্ট্রেশনের ধাপে সহায়তা।',
 		),
-		'registration'   => array(
-			'title' => 'জমি রেজিস্ট্রেশন করবেন?',
-			'text'  => 'দলিল প্রস্তুতি ও রেজিস্ট্রেশন প্রক্রিয়ার প্রয়োজনীয় ধাপে সহায়তা।',
-			'icon'  => 'document',
+		'mutation-tax'          => array(
+			'number' => '০২',
+			'title'  => 'নামজারি ও ভূমি উন্নয়ন কর',
+			'text'   => 'নামজারি আবেদন ও ভূমি উন্নয়ন করসংক্রান্ত প্রয়োজনীয় কাজে সহায়তা।',
 		),
-		'mutation-tax'   => array(
-			'title' => 'নামজারি বা ভূমি করের কাজ?',
-			'text'  => 'নামজারি আবেদন ও ভূমি উন্নয়ন করসংক্রান্ত প্রয়োজনীয় কাজে সহায়তা।',
-			'icon'  => 'receipt',
+		'document-search'       => array(
+			'number' => '০৩',
+			'title'  => 'দলিল অনুসন্ধান ও সার্টিফাইড কপি',
+			'text'   => 'হারানো বা পুরোনো দলিলের তথ্য অনুসন্ধান এবং সার্টিফাইড কপি সংগ্রহে সহায়তা।',
 		),
-		'lost-deed'      => array(
-			'title' => 'দলিল হারিয়ে গেছে?',
-			'text'  => 'দলিলের তথ্য অনুসন্ধান ও সার্টিফাইড কপি সংগ্রহে সহায়তা।',
-			'icon'  => 'search',
+		'document-issue'        => array(
+			'number' => '০৪',
+			'title'  => 'কাগজপত্রের জটিলতা ও পরামর্শ',
+			'text'   => 'দলিল ও সংশ্লিষ্ট কাগজপত্র নিয়ে সমস্যায় প্রয়োজনীয় করণীয় বুঝতে সহায়তা।',
 		),
-		'document-issue' => array(
-			'title' => 'কাগজপত্রে সমস্যা আছে?',
-			'text'  => 'দলিল ও সংশ্লিষ্ট কাগজপত্র দেখে পরবর্তী করণীয় সম্পর্কে পরামর্শ।',
-			'icon'  => 'alert',
-		),
-		'measurement'    => array(
-			'title' => 'জমি পরিমাপ করতে চান?',
-			'text'  => 'জমি পরিমাপ ও পরিমাণ নির্ণয়ে প্রয়োজনীয় সেবার ব্যবস্থা।',
-			'icon'  => 'ruler',
+		'measurement'           => array(
+			'number' => '০৫',
+			'title'  => 'জমি পরিমাপ',
+			'text'   => 'জমির পরিমাণ নির্ণয় ও পরিমাপসংক্রান্ত সেবার ব্যবস্থা।',
 		),
 	);
 }
 
 /**
- * Outputs a small inline SVG line icon by name. Keeping these inline
- * avoids pulling in an icon font/library for six icons.
+ * Verified testimonials go here once available. The testimonials
+ * section is hidden entirely while this is empty — no placeholder or
+ * fabricated reviews are ever shown.
  */
-function sojib68_icon( $name ) {
-	$icons = array(
-		'handshake' => '<path d="M3 12l4-4 4 4 2-2 2 2 4-4 2 2"/><path d="M3 12v4a2 2 0 0 0 2 2h2"/><path d="M19 12v4a2 2 0 0 1-2 2h-2"/>',
-		'document'  => '<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
-		'receipt'   => '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/>',
-		'search'    => '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
-		'alert'     => '<path d="M12 3L2 20h20L12 3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/>',
-		'ruler'     => '<path d="M3 16l10-10 5 5-10 10-5-5z"/><path d="M10.5 8.5l2 2M7.5 11.5l2 2M13.5 5.5l2 2"/>',
+function sojib68_get_testimonials() {
+	return array();
+}
+
+/**
+ * Real case stories go here once available (with permission to
+ * publish). Until then the portfolio section renders an honest
+ * "content coming soon" placeholder instead of invented stories.
+ */
+function sojib68_get_case_stories() {
+	return array();
+}
+
+/**
+ * Verified social links. Add only confirmed URLs — empty entries are
+ * hidden instead of rendering a dead icon.
+ */
+function sojib68_get_social_links() {
+	return array(
+		// 'facebook' => 'https://facebook.com/...',
 	);
-
-	if ( ! isset( $icons[ $name ] ) ) {
-		return '';
-	}
-
-	return '<svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icons[ $name ] . '</svg>';
 }
 
 /**
