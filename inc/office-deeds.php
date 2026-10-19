@@ -281,7 +281,11 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 		'name', 'address', 'mobile',
 	) );
 	$ok = $ok && sojib68_deed_replace_lands( $deed_id, $data['lands'] ?? array() );
-	$ok = $ok && sojib68_deed_replace_receipts( $deed_id, $data['receipts'] ?? array() );
+	// null = receipts were not part of this submission (edit form keeps the
+	// payment history untouched; payments are managed from the dues page).
+	if ( isset( $data['receipts'] ) ) {
+		$ok = $ok && sojib68_deed_replace_receipts( $deed_id, $data['receipts'] );
+	}
 	$ok = $ok && sojib68_deed_replace_expenses( $deed_id, $data['expenses'] ?? array() );
 
 	if ( ! $ok ) {
@@ -692,5 +696,181 @@ function sojib68_office_dashboard_stats() {
 		'total_expenses'    => $total_expenses,
 		'total_profit'      => $total_profit,
 		'total_due'         => $total_due,
+	);
+}
+
+/* ---------------------------------------------------------------------
+ * Dues collection (বকেয়া আদায়)
+ * ------------------------------------------------------------------ */
+
+/** Record one payment against a deed. Returns payment id or WP_Error. */
+function sojib68_deed_add_payment( $deed_id, $amount_input, $date, $method, $note, $user_id ) {
+	global $wpdb;
+
+	$deed_id = (int) $deed_id;
+	$deeds   = sojib68_deeds_table( 'deeds' );
+	$table   = sojib68_deeds_table( 'deed_receipts' );
+
+	if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $deeds WHERE id = %d AND deleted_at IS NULL", $deed_id ) ) ) {
+		return new WP_Error( 'no_deed', __( 'দলিলটি খুঁজে পাওয়া যায়নি।', 'sojib68' ) );
+	}
+
+	$amount = sojib68_money_to_poysha( $amount_input );
+	if ( null === $amount || $amount <= 0 ) {
+		return new WP_Error( 'bad_amount', __( 'সঠিক টাকার পরিমাণ লিখুন।', 'sojib68' ) );
+	}
+
+	$date = trim( (string) $date );
+	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+		$date = current_time( 'Y-m-d' );
+	}
+
+	$method = trim( (string) $method );
+	$note   = trim( (string) $note );
+	$order  = 1 + (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(MAX(sort_order), 0) FROM $table WHERE deed_id = %d", $deed_id ) );
+
+	$ok = $wpdb->insert( $table, array(
+		'deed_id'       => $deed_id,
+		'received_date' => $date,
+		'amount_poysha' => $amount,
+		'method'        => '' !== $method ? $method : null,
+		'note'          => '' !== $note ? $note : null,
+		'sort_order'    => $order,
+	) );
+
+	if ( false === $ok ) {
+		return new WP_Error( 'save_failed', __( 'টাকা সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', 'sojib68' ) );
+	}
+
+	$payment_id = (int) $wpdb->insert_id;
+	sojib68_deed_audit_log( $deed_id, $user_id, 'payment_add', sojib68_poysha_to_display( $amount ) );
+
+	return $payment_id;
+}
+
+/** Remove a mistakenly entered payment. */
+function sojib68_deed_delete_payment( $payment_id, $user_id ) {
+	global $wpdb;
+
+	$table = sojib68_deeds_table( 'deed_receipts' );
+	$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", (int) $payment_id ) );
+	if ( ! $row ) {
+		return new WP_Error( 'no_payment', __( 'এন্ট্রিটি খুঁজে পাওয়া যায়নি।', 'sojib68' ) );
+	}
+
+	if ( false === $wpdb->delete( $table, array( 'id' => (int) $payment_id ) ) ) {
+		return new WP_Error( 'delete_failed', __( 'মুছে ফেলা যায়নি।', 'sojib68' ) );
+	}
+
+	sojib68_deed_audit_log( (int) $row->deed_id, $user_id, 'payment_delete', sojib68_poysha_to_display( $row->amount_poysha ) );
+	return true;
+}
+
+/** Summary numbers shown above the dues list. */
+function sojib68_dues_summary() {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+
+	$rows = $wpdb->get_results(
+		"SELECT d.client_total_due_poysha AS total,
+			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
+		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
+	);
+
+	$total_due = 0;
+	$count     = 0;
+	foreach ( $rows as $row ) {
+		$due = (int) $row->total - (int) $row->received;
+		if ( $due > 0 ) {
+			$total_due += $due;
+			$count++;
+		}
+	}
+
+	$month_start     = current_time( 'Y-m-01' );
+	$month_collected = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COALESCE(SUM(r.amount_poysha), 0) FROM $receipts r
+		 INNER JOIN $deeds d ON d.id = r.deed_id
+		 WHERE d.deleted_at IS NULL AND r.received_date >= %s",
+		$month_start
+	) );
+
+	return array(
+		'total_due'       => $total_due,
+		'deed_count'      => $count,
+		'month_collected' => $month_collected,
+	);
+}
+
+/**
+ * Deeds that still owe money. $filters: q (name / mobile / deed no),
+ * sort: due_desc | oldest | newest.
+ */
+function sojib68_dues_list( array $filters, $paged = 1, $per_page = 15 ) {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$donors   = sojib68_deeds_table( 'deed_donors' );
+	$grantees = sojib68_deeds_table( 'deed_grantees' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+
+	$received_sql = "COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0)";
+
+	$where = array(
+		'd.deleted_at IS NULL',
+		'd.client_total_due_poysha IS NOT NULL',
+		"(d.client_total_due_poysha - $received_sql) > 0",
+	);
+	$args = array();
+
+	if ( ! empty( $filters['q'] ) ) {
+		$q    = trim( sojib68_bn_to_en_digits( $filters['q'] ) );
+		$like = '%' . $wpdb->esc_like( $q ) . '%';
+		$where[] = "(EXISTS (SELECT 1 FROM $donors dn WHERE dn.deed_id = d.id AND (dn.name LIKE %s OR dn.mobile LIKE %s))
+			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND (gr.name LIKE %s OR gr.mobile LIKE %s))
+			OR d.deed_no_normalized LIKE %s)";
+		array_push( $args, $like, $like, $like, $like, $like );
+	}
+
+	$where_sql = implode( ' AND ', $where );
+
+	switch ( $filters['sort'] ?? 'due_desc' ) {
+		case 'oldest':
+			$order = 'd.reg_date IS NULL, d.reg_date ASC, d.id ASC';
+			break;
+		case 'newest':
+			$order = 'd.reg_date DESC, d.id DESC';
+			break;
+		default:
+			$order = "(d.client_total_due_poysha - $received_sql) DESC, d.id DESC";
+	}
+
+	$per_page = max( 1, (int) $per_page );
+	$paged    = max( 1, (int) $paged );
+	$offset   = ( $paged - 1 ) * $per_page;
+
+	$count_sql = "SELECT COUNT(*) FROM $deeds d WHERE $where_sql";
+	$total     = (int) ( $args ? $wpdb->get_var( $wpdb->prepare( $count_sql, $args ) ) : $wpdb->get_var( $count_sql ) );
+
+	$list_sql = "SELECT d.*, $received_sql AS received_poysha FROM $deeds d WHERE $where_sql ORDER BY $order LIMIT %d OFFSET %d";
+	$rows     = $wpdb->get_results( $wpdb->prepare( $list_sql, array_merge( $args, array( $per_page, $offset ) ) ) );
+
+	foreach ( $rows as $row ) {
+		$row->received_poysha = (int) $row->received_poysha;
+		$row->due_poysha      = (int) $row->client_total_due_poysha - $row->received_poysha;
+
+		$row->donors   = (array) $wpdb->get_results( $wpdb->prepare( "SELECT name, mobile FROM $donors WHERE deed_id = %d AND (name <> '' OR mobile <> '') ORDER BY sort_order", $row->id ) );
+		$row->grantees = (array) $wpdb->get_results( $wpdb->prepare( "SELECT name, mobile FROM $grantees WHERE deed_id = %d AND (name <> '' OR mobile <> '') ORDER BY sort_order", $row->id ) );
+		$row->payments = (array) $wpdb->get_results( $wpdb->prepare( "SELECT id, received_date, amount_poysha, method, note FROM $receipts WHERE deed_id = %d ORDER BY received_date DESC, id DESC", $row->id ) );
+	}
+
+	return array(
+		'rows'        => $rows,
+		'total'       => $total,
+		'per_page'    => $per_page,
+		'paged'       => $paged,
+		'total_pages' => (int) ceil( $total / $per_page ),
 	);
 }

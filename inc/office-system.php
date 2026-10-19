@@ -312,6 +312,7 @@ function sojib68_office_menu_items() {
 		'dashboard'  => __( 'ড্যাশবোর্ড', 'sojib68' ),
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
+		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
 	);
 }
 
@@ -322,11 +323,12 @@ function sojib68_office_render_dashboard( $page_key ) {
 	}
 
 	$user  = wp_get_current_user();
-	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list' );
+	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock' );
 	$subs  = array(
 		'dashboard' => __( 'আপনার সব দলিল ও হিসাবের এক নজরে সারসংক্ষেপ', 'sojib68' ),
 		'entry-new' => __( 'যতটুকু তথ্য জানেন ততটুকুই লিখুন — সব ঘর ঐচ্ছিক', 'sojib68' ),
 		'all-deeds' => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
+		'dues'      => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
 	);
 
 	$page_title = $menu[ $page_key ];
@@ -401,6 +403,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 			</div>
 		</div>
 
+		<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-inputs.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-inputs.js' ) ); ?>"></script>
 		<script>
 		(function () {
 			'use strict';
@@ -434,6 +437,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'all-deeds':
 			ob_start();
 			sojib68_office_render_all_deeds();
+			return ob_get_clean();
+
+		case 'dues':
+			ob_start();
+			sojib68_office_render_dues();
 			return ob_get_clean();
 
 		default:

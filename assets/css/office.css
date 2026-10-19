@@ -475,3 +475,63 @@
 @media (max-width: 520px) { .deed-result { grid-template-columns: 1fr; } }
 .deed-row__more { margin-top: 10px; }
 .deed-row__more summary { cursor: pointer; font-size: .8rem; font-weight: 700; color: var(--o-muted); margin-bottom: 10px; }
+
+/* ---------- Money hint, field notes ---------- */
+.money-hint { font-family: 'Figtree', sans-serif; font-size: .8rem; font-weight: 700; color: var(--o-green); min-height: 0; }
+.money-hint:empty { display: none; }
+.deed-fieldnote { font-size: .74rem; color: var(--o-muted); }
+.deed-field input[readonly] { background: #f0f0e8; color: #555; }
+.deed-cta { margin: 18px 0 0; }
+.deed-cta .btn { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---------- Dues collection ---------- */
+.office-stats-grid--3 { margin-bottom: 18px; }
+.dues-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.dues-toolbar__search { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px; padding: 0 14px; background: #fff; border: 1px solid #d9d7cb; border-radius: 12px; color: var(--o-muted); }
+.dues-toolbar__search:focus-within { border-color: var(--o-green); box-shadow: 0 0 0 3px rgba(25, 128, 48, .15); }
+.dues-toolbar input { flex: 1; border: none; outline: none; min-height: 46px; font-family: inherit; font-size: .95rem; background: transparent; }
+.dues-toolbar select { min-height: 46px; padding: 0 12px; border: 1px solid #d9d7cb; border-radius: 12px; font-family: inherit; background: #fff; }
+.dues-toolbar .btn { min-height: 46px; }
+.dues-flash { margin-bottom: 14px; padding: 12px 16px; border-radius: 12px; background: #e7f5ea; color: #14532d; border: 1px solid #c4e4cb; font-weight: 700; }
+
+.due-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .due-list { grid-template-columns: 1fr; } }
+.due-card { background: #fff; border: 1px solid var(--o-line); border-left: 4px solid #b3261e; border-radius: var(--o-radius); box-shadow: var(--o-shadow); padding: 16px 18px; }
+.due-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.due-card__title { margin: 0; font-size: 1.05rem; color: var(--o-ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.due-card__sub { margin: 2px 0 0; font-size: .82rem; color: var(--o-muted); }
+.due-card__due { text-align: right; }
+.due-card__due > span { display: block; font-size: .74rem; font-weight: 700; color: var(--o-muted); }
+.due-card__due strong { font-family: 'Figtree', sans-serif; font-size: 1.6rem; color: #b3261e; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.due-card__people { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.due-person { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: .9rem; }
+.due-person__role { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #eef1f2; color: #5b6b72; font-size: .72rem; font-weight: 700; margin-right: 4px; }
+.due-person__name { font-weight: 600; color: var(--o-ink); }
+.due-person__actions { display: inline-flex; gap: 6px; }
+.due-act { padding: 5px 11px; border-radius: 999px; font-size: .8rem; font-weight: 700; text-decoration: none; font-family: 'Figtree', sans-serif; }
+.due-act--call { background: #e3eefb; color: #1d63b8; }
+.due-act--wa { background: #dff5e4; color: #14672b; }
+.due-progress { margin-top: 14px; }
+.due-progress__bar { height: 8px; border-radius: 999px; background: #f1dedb; overflow: hidden; }
+.due-progress__bar span { display: block; height: 100%; background: linear-gradient(90deg, #198030, #3da45a); border-radius: 999px; }
+.due-progress__meta { display: flex; justify-content: space-between; margin-top: 6px; font-size: .78rem; color: var(--o-muted); font-variant-numeric: tabular-nums; }
+.due-card__actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.due-card__actions .btn { display: inline-flex; align-items: center; gap: 6px; }
+.due-card__collect { margin-top: 14px; padding: 14px; background: #f1f8f2; border: 1px solid #cfe6d4; border-radius: 12px; }
+.due-card__history { margin-top: 12px; }
+.due-card__history summary { cursor: pointer; font-size: .84rem; font-weight: 700; color: var(--o-muted); }
+
+.collect { margin-top: 10px; }
+.collect .deed-field--end .btn { width: 100%; min-height: 44px; }
+.collect__msg { margin: 8px 0 0; font-size: .86rem; font-weight: 700; }
+.collect__msg.is-err { color: #b3261e; }
+.collect__msg.is-ok { color: #14672b; }
+.deed-card .collect { padding: 14px; background: #f1f8f2; border: 1px solid #cfe6d4; border-radius: 12px; }
+
+.pay-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pay-list li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #faf9f4; border: 1px solid var(--o-line); border-radius: 10px; font-size: .88rem; flex-wrap: wrap; }
+.pay-list__date { color: var(--o-muted); font-variant-numeric: tabular-nums; }
+.pay-list__amt { font-family: 'Figtree', sans-serif; color: #14672b; }
+.pay-list__meta { flex: 1; color: var(--o-muted); font-size: .82rem; }
+.pay-list__del { background: none; border: none; color: #b3261e; cursor: pointer; padding: 4px; border-radius: 8px; }
+.pay-list__del:hover { background: #fdecea; }

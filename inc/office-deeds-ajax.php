@@ -107,7 +107,8 @@ function sojib68_deed_collect_post_data() {
 		'donors'              => $rows( 'donors', array( 'name', 'address', 'mobile' ) ),
 		'grantees'            => $rows( 'grantees', array( 'name', 'address', 'mobile' ) ),
 		'lands'               => $rows( 'lands', array( 'mouza', 'khatian_no', 'quantity', 'unit' ) ),
-		'receipts'            => $rows( 'receipts', array( 'received_date', 'amount', 'method', 'note' ) ),
+		// Only present when the form posts it (new deeds); edits leave payment history alone.
+		'receipts'            => isset( $_POST['receipts'] ) ? $rows( 'receipts', array( 'received_date', 'amount', 'method', 'note' ) ) : null,
 		'expenses'            => $rows( 'expenses', array( 'category', 'description', 'amount', 'paid_date', 'paid_status', 'paid_by' ) ),
 	);
 }
@@ -162,4 +163,36 @@ function sojib68_ajax_delete_deed_type() {
 
 	sojib68_deed_type_delete_custom( $name );
 	wp_send_json_success();
+}
+
+add_action( 'wp_ajax_sojib68_add_payment', 'sojib68_ajax_add_payment' );
+function sojib68_ajax_add_payment() {
+	sojib68_deeds_ajax_guard();
+
+	$result = sojib68_deed_add_payment(
+		isset( $_POST['deed_id'] ) ? (int) $_POST['deed_id'] : 0,
+		isset( $_POST['amount'] ) ? sanitize_text_field( wp_unslash( $_POST['amount'] ) ) : '',
+		isset( $_POST['received_date'] ) ? sanitize_text_field( wp_unslash( $_POST['received_date'] ) ) : '',
+		isset( $_POST['method'] ) ? sanitize_text_field( wp_unslash( $_POST['method'] ) ) : '',
+		isset( $_POST['note'] ) ? sanitize_text_field( wp_unslash( $_POST['note'] ) ) : '',
+		get_current_user_id()
+	);
+
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	}
+
+	wp_send_json_success( array( 'payment_id' => $result, 'message' => __( 'টাকা আদায় সংরক্ষিত হয়েছে।', 'sojib68' ) ) );
+}
+
+add_action( 'wp_ajax_sojib68_delete_payment', 'sojib68_ajax_delete_payment' );
+function sojib68_ajax_delete_payment() {
+	sojib68_deeds_ajax_guard();
+
+	$result = sojib68_deed_delete_payment( isset( $_POST['payment_id'] ) ? (int) $_POST['payment_id'] : 0, get_current_user_id() );
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	}
+
+	wp_send_json_success( array( 'message' => __( 'এন্ট্রি মুছে ফেলা হয়েছে।', 'sojib68' ) ) );
 }
