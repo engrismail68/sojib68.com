@@ -124,6 +124,32 @@ function sojib68_deed_type_add_custom( $name ) {
 	return $name;
 }
 
+/**
+ * Removes a saved office/deed-type from the dropdown list only — any
+ * deed already saved with that office/type keeps its own copy of the
+ * text (it isn't a foreign key), so past records are unaffected and
+ * the name can always be re-added later via "+ যোগ করুন".
+ */
+function sojib68_office_delete_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'offices' );
+	return false !== $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE name = %s", $name ) );
+}
+
+function sojib68_deed_type_delete_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'deed_types' );
+	return false !== $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE name = %s", $name ) );
+}
+
 /* ---------------------------------------------------------------------
  * Audit log
  * ------------------------------------------------------------------ */

@@ -136,7 +136,10 @@ function sojib68_office_render_entry_form() {
 							</option>
 						<?php endforeach; ?>
 					</select>
-					<button type="button" class="deed-add-link" data-add="office"><?php esc_html_e( '+ নতুন অফিস যোগ করুন', 'sojib68' ); ?></button>
+					<div class="deed-add-link-row">
+						<button type="button" class="deed-add-link" data-add="office"><?php esc_html_e( '+ নতুন অফিস যোগ করুন', 'sojib68' ); ?></button>
+						<button type="button" class="deed-add-link deed-add-link--danger" data-delete="office" data-select="f-office"><?php esc_html_e( '− নির্বাচিতটি মুছুন', 'sojib68' ); ?></button>
+					</div>
 				</div>
 
 				<div class="deed-field">
@@ -149,7 +152,10 @@ function sojib68_office_render_entry_form() {
 							</option>
 						<?php endforeach; ?>
 					</select>
-					<button type="button" class="deed-add-link" data-add="deed_type"><?php esc_html_e( '+ নতুন ধরন যোগ করুন', 'sojib68' ); ?></button>
+					<div class="deed-add-link-row">
+						<button type="button" class="deed-add-link" data-add="deed_type"><?php esc_html_e( '+ নতুন ধরন যোগ করুন', 'sojib68' ); ?></button>
+						<button type="button" class="deed-add-link deed-add-link--danger" data-delete="deed_type" data-select="f-deed-type"><?php esc_html_e( '− নির্বাচিতটি মুছুন', 'sojib68' ); ?></button>
+					</div>
 				</div>
 
 				<div class="deed-field">
@@ -334,7 +340,7 @@ function sojib68_render_person_row( $group, $i, $row ) {
 				<input type="text" name="<?php echo esc_attr( $group ); ?>[<?php echo (int) $i; ?>][mobile]" value="<?php echo esc_attr( $row->mobile ?? '' ); ?>">
 			</div>
 		</div>
-		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>">&times;</button>
+		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
 	</div>
 	<?php
 }
@@ -366,7 +372,7 @@ function sojib68_render_land_row( $i, $row ) {
 				</select>
 			</div>
 		</div>
-		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>">&times;</button>
+		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
 	</div>
 	<?php
 }
@@ -398,7 +404,7 @@ function sojib68_render_receipt_row( $i, $row ) {
 				<input type="text" name="receipts[<?php echo (int) $i; ?>][note]" value="<?php echo esc_attr( $row->note ?? '' ); ?>">
 			</div>
 		</div>
-		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>">&times;</button>
+		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
 	</div>
 	<?php
 }
@@ -450,7 +456,7 @@ function sojib68_render_expense_row( $i, $row ) {
 				</select>
 			</div>
 		</div>
-		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>">&times;</button>
+		<button type="button" class="deed-remove-row" aria-label="<?php esc_attr_e( 'সরান', 'sojib68' ); ?>"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
 	</div>
 	<?php
 }

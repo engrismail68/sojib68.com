@@ -560,65 +560,81 @@ function sojib68_office_inline_css() {
 }
 
 /* ---- Deed entry form ---- */
+.deed-form { max-width: 720px; }
 .deed-section {
 	border: 1px solid var(--color-border, #E3E1D6);
 	border-radius: var(--radius-md, 12px);
-	padding: 18px 20px;
-	margin: 0 0 20px;
+	padding: 14px 16px;
+	margin: 0 0 16px;
 }
 .deed-section legend {
 	font-weight: 700;
-	padding: 0 8px;
+	font-size: 0.96rem;
+	padding: 0 6px;
 	color: var(--color-heading, #032737);
 }
-.deed-hint { font-size: 0.85rem; color: var(--color-muted, #6E7D77); margin: 4px 0 12px; }
-.deed-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.deed-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.deed-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.deed-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
-.deed-field label { font-size: 0.86rem; font-weight: 600; color: var(--color-heading, #032737); }
+.deed-hint { font-size: 0.82rem; color: var(--color-muted, #6E7D77); margin: 4px 0 10px; }
+.deed-grid-2,
+.deed-grid-3,
+.deed-grid-4 {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 10px 12px;
+}
+.deed-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 2px; min-width: 0; }
+.deed-field label { font-size: 0.8rem; font-weight: 600; color: var(--color-heading, #032737); }
 .deed-field--checkbox { flex-direction: row; align-items: center; }
 .deed-field--checkbox label { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .deed-field input,
 .deed-field select,
 .deed-field textarea {
-	padding: 9px 11px;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	padding: 8px 10px;
 	border: 1px solid var(--color-border, #E3E1D6);
 	border-radius: var(--radius-sm, 6px);
 	font-family: inherit;
-	font-size: 0.96rem;
+	font-size: 0.9rem;
 }
+.deed-add-link-row { display: flex; gap: 14px; flex-wrap: wrap; }
 .deed-add-link {
 	align-self: flex-start;
 	background: none;
 	border: none;
 	color: var(--color-green, #198030);
-	font-size: 0.82rem;
+	font-size: 0.78rem;
 	font-weight: 600;
 	cursor: pointer;
-	padding: 2px 0;
+	padding: 4px 0;
 }
+.deed-add-link--danger { color: #b3401f; }
 .deed-repeat-row {
 	position: relative;
 	border: 1px dashed var(--color-border, #E3E1D6);
 	border-radius: var(--radius-sm, 6px);
-	padding: 14px 40px 14px 14px;
-	margin-bottom: 12px;
+	padding: 12px 44px 12px 12px;
+	margin-bottom: 10px;
 }
 .deed-remove-row {
 	position: absolute;
-	top: 8px;
-	right: 8px;
-	width: 26px;
-	height: 26px;
-	border-radius: 50%;
-	border: 1px solid var(--color-border, #E3E1D6);
-	background: #fff;
+	top: 6px;
+	right: 6px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	height: 30px;
+	padding: 0 10px 0 8px;
+	border-radius: 999px;
+	border: 1px solid #f3c6ba;
+	background: #fdecea;
 	color: #b3401f;
-	font-size: 1rem;
+	font-size: 0.78rem;
+	font-weight: 600;
 	line-height: 1;
 	cursor: pointer;
 }
+.deed-remove-row::before { content: "✕"; font-size: 0.85rem; }
 .deed-add-row {
 	background: var(--color-soft-green, #F2F8F2);
 	border: 1px solid var(--color-border, #E3E1D6);

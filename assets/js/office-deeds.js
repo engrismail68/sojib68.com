@@ -38,7 +38,7 @@
 			fieldHtml( nameLabel, '<input type="text" name="' + group + '[' + i + '][name]">' ) +
 			fieldHtml( 'ঠিকানা', '<input type="text" name="' + group + '[' + i + '][address]">' ) +
 			fieldHtml( 'মোবাইল নং', '<input type="text" name="' + group + '[' + i + '][mobile]">' ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">&times;</button></div>'
+			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
 		);
 	}
 
@@ -63,7 +63,7 @@
 			fieldHtml( 'খতিয়ান নং', '<input type="text" name="lands[' + i + '][khatian_no]">' ) +
 			fieldHtml( 'জমির পরিমাণ', '<input type="text" inputmode="decimal" name="lands[' + i + '][quantity]">' ) +
 			fieldHtml( 'একক', selectHtml( 'lands[' + i + '][unit]', landUnits ) ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">&times;</button></div>'
+			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
 		);
 	}
 
@@ -74,7 +74,7 @@
 			fieldHtml( 'জমার পরিমাণ', '<input type="text" inputmode="decimal" name="receipts[' + i + '][amount]">' ) +
 			fieldHtml( 'মাধ্যম', selectHtml( 'receipts[' + i + '][method]', paymentMethods ) ) +
 			fieldHtml( 'মন্তব্য', '<input type="text" name="receipts[' + i + '][note]">' ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">&times;</button></div>'
+			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
 		);
 	}
 
@@ -87,7 +87,7 @@
 			fieldHtml( 'পরিশোধের তারিখ', '<input type="date" name="expenses[' + i + '][paid_date]">' ) +
 			fieldHtml( 'পরিশোধের অবস্থা', selectHtml( 'expenses[' + i + '][paid_status]', expenseStatuses ) ) +
 			fieldHtml( 'কে পরিশোধ করেছেন', selectHtml( 'expenses[' + i + '][paid_by]', expensePaidBy ) ) +
-			'</div><button type="button" class="deed-remove-row" aria-label="সরান">&times;</button></div>'
+			'</div><button type="button" class="deed-remove-row" aria-label="সরান">মুছুন</button></div>'
 		);
 	}
 
@@ -143,6 +143,44 @@
 						select.appendChild( opt );
 					} else if ( ! res.success ) {
 						window.alert( res.data && res.data.message ? res.data.message : 'যোগ করা যায়নি।' );
+					}
+				} )
+				.catch( function () {
+					window.alert( 'নেটওয়ার্ক সমস্যা হয়েছে।' );
+				} );
+		} );
+	} );
+
+	/* ---------------- Delete a mistakenly-added office / deed type ---------------- */
+
+	document.querySelectorAll( '[data-delete]' ).forEach( function ( btn ) {
+		btn.addEventListener( 'click', function () {
+			var kind = btn.getAttribute( 'data-delete' ); // 'office' or 'deed_type'
+			var select = document.getElementById( btn.getAttribute( 'data-select' ) );
+			if ( ! select || ! select.value ) {
+				window.alert( 'আগে dropdown থেকে যেটা মুছতে চান সেটা নির্বাচন করুন।' );
+				return;
+			}
+			var name = select.value;
+			if ( ! window.confirm( '"' + name + '" তালিকা থেকে মুছে ফেলতে চান? আগের দলিলে এর প্রভাব পড়বে না।' ) ) {
+				return;
+			}
+
+			var action = 'office' === kind ? 'sojib68_delete_office' : 'sojib68_delete_deed_type';
+			var fd = new FormData();
+			fd.append( 'action', action );
+			fd.append( 'nonce', form.querySelector( '[name="nonce"]' ).value );
+			fd.append( 'name', name );
+
+			fetch( window.sojib68DeedAjax.ajaxUrl, { method: 'POST', credentials: 'same-origin', body: fd } )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( res ) {
+					if ( res.success ) {
+						var opt = select.querySelector( 'option[value="' + CSS.escape( name ) + '"]' );
+						if ( opt ) { opt.remove(); }
+						select.value = '';
+					} else {
+						window.alert( res.data && res.data.message ? res.data.message : 'মুছা যায়নি।' );
 					}
 				} )
 				.catch( function () {

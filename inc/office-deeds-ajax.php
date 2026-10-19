@@ -133,3 +133,29 @@ function sojib68_ajax_add_deed_type() {
 	$saved = sojib68_deed_type_add_custom( $name );
 	wp_send_json_success( array( 'name' => $saved ) );
 }
+
+add_action( 'wp_ajax_sojib68_delete_office', 'sojib68_ajax_delete_office' );
+function sojib68_ajax_delete_office() {
+	sojib68_deeds_ajax_guard();
+
+	$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	if ( '' === $name ) {
+		wp_send_json_error( array( 'message' => __( 'কোনো অফিস নির্বাচিত নেই।', 'sojib68' ) ) );
+	}
+
+	sojib68_office_delete_custom( $name );
+	wp_send_json_success();
+}
+
+add_action( 'wp_ajax_sojib68_delete_deed_type', 'sojib68_ajax_delete_deed_type' );
+function sojib68_ajax_delete_deed_type() {
+	sojib68_deeds_ajax_guard();
+
+	$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	if ( '' === $name ) {
+		wp_send_json_error( array( 'message' => __( 'কোনো ধরন নির্বাচিত নেই।', 'sojib68' ) ) );
+	}
+
+	sojib68_deed_type_delete_custom( $name );
+	wp_send_json_success();
+}
