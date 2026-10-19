@@ -669,9 +669,21 @@ function sojib68_office_render_all_deeds() {
 								?>
 							</td>
 							<td class="act">
+								<?php if ( $row->due_poysha > 0 ) : ?>
+									<button type="button" class="btn btn-primary btn-sm" data-toggle-collect data-collect-for="deed-<?php echo (int) $row->id; ?>"><?php echo sojib68_office_icon( 'wallet', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'পরিশোধ', 'sojib68' ); ?></button>
+								<?php endif; ?>
 								<a href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন / এডিট', 'sojib68' ); ?></a>
 							</td>
 						</tr>
+						<?php if ( $row->due_poysha > 0 ) : ?>
+							<tr class="deed-collect-row" data-collect-wrap="deed-<?php echo (int) $row->id; ?>">
+								<td colspan="7">
+									<div class="collect-panel" hidden>
+										<?php sojib68_render_collect_form( $row->id, $row->due_poysha ); ?>
+									</div>
+								</td>
+							</tr>
+						<?php endif; ?>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
@@ -696,6 +708,7 @@ function sojib68_office_render_all_deeds() {
 			</nav>
 		<?php endif; ?>
 	<?php endif; ?>
+	<?php sojib68_office_dues_script(); ?>
 	<?php
 }
 
@@ -840,7 +853,7 @@ function sojib68_office_render_dues() {
 				foreach ( $row->grantees as $p ) { $p->role = __( 'গ্রহীতা', 'sojib68' ); $people[] = $p; }
 				foreach ( $row->donors as $p ) { $p->role = __( 'দাতা', 'sojib68' ); $people[] = $p; }
 				?>
-				<article class="due-card">
+				<article class="due-card" data-collect-wrap>
 					<div class="due-card__top">
 						<div>
 							<h3 class="due-card__title">
@@ -882,7 +895,7 @@ function sojib68_office_render_dues() {
 						<a href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দলিল দেখুন', 'sojib68' ); ?></a>
 					</div>
 
-					<div class="due-card__collect" hidden>
+					<div class="due-card__collect collect-panel" hidden>
 						<?php sojib68_render_collect_form( $row->id, $row->due_poysha ); ?>
 					</div>
 

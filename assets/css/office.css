@@ -535,3 +535,11 @@
 .pay-list__meta { flex: 1; color: var(--o-muted); font-size: .82rem; }
 .pay-list__del { background: none; border: none; color: #b3261e; cursor: pointer; padding: 4px; border-radius: 8px; }
 .pay-list__del:hover { background: #fdecea; }
+
+/* ---------- Inline "পরিশোধ" panel inside the all-deeds table ---------- */
+.deed-collect-row td { padding: 0 16px 16px; background: #fafcf9; border-bottom: 1px solid #efede4; }
+.deed-collect-row .collect-panel { padding: 14px; background: #f1f8f2; border: 1px solid #cfe6d4; border-radius: 12px; }
+@media (max-width: 860px) {
+	.deed-collect-row td { display: block; padding: 0 0 10px; }
+	.deed-collect-row td::before { content: none; }
+}

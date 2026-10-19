@@ -33,11 +33,19 @@
 	document.addEventListener( 'click', function ( e ) {
 		var toggle = e.target.closest( '[data-toggle-collect]' );
 		if ( toggle ) {
-			var panel = toggle.closest( '.due-card' ).querySelector( '.due-card__collect' );
+			// The panel is usually inside the same wrapper, but in a table row
+			// it lives in a sibling row instead — data-collect-for links the two.
+			var forId = toggle.getAttribute( 'data-collect-for' );
+			var wrap = forId
+				? document.querySelector( '[data-collect-wrap="' + forId + '"]' )
+				: toggle.closest( '[data-collect-wrap]' );
+			var panel = wrap && wrap.querySelector( '.collect-panel' );
+			if ( ! panel ) { return; }
 			panel.hidden = ! panel.hidden;
 			if ( ! panel.hidden ) {
 				var amount = panel.querySelector( '[data-collect-field="amount"]' );
 				if ( amount ) { amount.focus(); }
+				panel.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
 			}
 			return;
 		}
