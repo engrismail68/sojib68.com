@@ -215,6 +215,9 @@ function sojib68_office_render_entry_form() {
 					<?php if ( $deed ) : ?>
 						<div class="office-notice office-notice--info">
 							<?php echo esc_html( sprintf( /* translators: %d: deed record id */ __( 'আপনি রেকর্ড #%d সম্পাদনা করছেন।', 'sojib68' ), $deed->id ) ); ?>
+							<?php if ( $deed->serial_no ) : ?>
+								<span class="deed-serial-badge"><?php echo esc_html( sprintf( /* translators: %s: serial number in Bangla digits */ __( 'ক্রমিক নং %s', 'sojib68' ), sojib68_bn_digits( $deed->serial_no ) ) ); ?></span>
+							<?php endif; ?>
 						</div>
 					<?php endif; ?>
 				</div>
@@ -618,6 +621,7 @@ function sojib68_office_render_all_deeds() {
 			<table class="deed-table">
 				<thead>
 					<tr>
+						<th><?php esc_html_e( 'ক্রমিক', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'ধরন ও অফিস', 'sojib68' ); ?></th>
@@ -630,6 +634,9 @@ function sojib68_office_render_all_deeds() {
 				<tbody>
 					<?php foreach ( $result['rows'] as $row ) : ?>
 						<tr>
+							<td data-label="<?php esc_attr_e( 'ক্রমিক', 'sojib68' ); ?>">
+								<span class="deed-serial"><?php echo esc_html( $row->serial_no ? sojib68_bn_digits( $row->serial_no ) : '—' ); ?></span>
+							</td>
 							<td data-label="<?php esc_attr_e( 'দলিল', 'sojib68' ); ?>">
 								<strong class="deed-cell-main"><?php echo esc_html( $row->deed_no ? '#' . $row->deed_no : '—' ); ?></strong>
 								<span class="deed-cell-sub"><?php echo esc_html( $row->reg_date ? $row->reg_date : ( $row->reg_year ? $row->reg_year : __( 'সাল অজানা', 'sojib68' ) ) ); ?></span>
@@ -682,7 +689,7 @@ function sojib68_office_render_all_deeds() {
 						</tr>
 						<?php if ( $row->due_poysha > 0 ) : ?>
 							<tr class="deed-collect-row" data-collect-wrap="deed-<?php echo (int) $row->id; ?>">
-								<td colspan="7">
+								<td colspan="8">
 									<div class="collect-panel" hidden>
 										<?php sojib68_render_collect_form( $row->id, $row->due_poysha ); ?>
 									</div>
@@ -977,7 +984,12 @@ function sojib68_office_render_print( $deed_id ) {
 				<?php esc_html_e( 'দলিল সারসংক্ষেপ', 'sojib68' ); ?>
 				<span><?php echo esc_html( $deed->deed_no ? '#' . $deed->deed_no : '#' . $deed->id ); ?></span>
 			</h1>
-			<p class="print-meta"><?php echo esc_html( sprintf( /* translators: 1: date, 2: printed-by name */ __( 'প্রিন্ট করা হয়েছে: %1$s, %2$s কর্তৃক', 'sojib68' ), date_i18n( 'd-m-Y h:i A' ), $user->display_name ) ); ?></p>
+			<p class="print-meta">
+				<?php echo esc_html( sprintf( /* translators: 1: date, 2: printed-by name */ __( 'প্রিন্ট করা হয়েছে: %1$s, %2$s কর্তৃক', 'sojib68' ), date_i18n( 'd-m-Y h:i A' ), $user->display_name ) ); ?>
+				<?php if ( $deed->serial_no ) : ?>
+					— <?php echo esc_html( sprintf( /* translators: %s: serial number in Bangla digits */ __( 'ক্রমিক নং %s', 'sojib68' ), sojib68_bn_digits( $deed->serial_no ) ) ); ?>
+				<?php endif; ?>
+			</p>
 
 			<section class="print-section">
 				<h2><?php esc_html_e( 'দলিলের পরিচয়', 'sojib68' ); ?></h2>

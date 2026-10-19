@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_DEEDS_DB_VERSION', '1.0.0' );
+define( 'SOJIB68_DEEDS_DB_VERSION', '1.1.0' ); // 1.1.0: + deeds.serial_no (chronological serial, see sojib68_deeds_resequence())
 
 function sojib68_deeds_table( $name ) {
 	global $wpdb;
@@ -45,6 +45,7 @@ function sojib68_deeds_install() {
 
 	$sql[] = "CREATE TABLE $deeds (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		serial_no bigint(20) unsigned DEFAULT NULL,
 		sub_registry_office varchar(190) DEFAULT NULL,
 		reg_date date DEFAULT NULL,
 		reg_year smallint(5) DEFAULT NULL,
@@ -64,6 +65,7 @@ function sojib68_deeds_install() {
 		deleted_at datetime DEFAULT NULL,
 		PRIMARY KEY  (id),
 		KEY deed_no_normalized (deed_no_normalized),
+		KEY serial_no (serial_no),
 		KEY reg_year (reg_year),
 		KEY reg_date (reg_date),
 		KEY deleted_at (deleted_at)
@@ -175,6 +177,10 @@ function sojib68_deeds_install() {
 	}
 
 	sojib68_deeds_seed_defaults();
+
+	// Backfills serial_no for every existing deed — covers both a fresh
+	// install and any version bump that changes how deeds are ordered.
+	sojib68_deeds_resequence();
 
 	update_option( 'sojib68_deeds_db_version', SOJIB68_DEEDS_DB_VERSION );
 }

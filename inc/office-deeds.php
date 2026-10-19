@@ -297,7 +297,66 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 
 	sojib68_deed_audit_log( $deed_id, $user_id, $is_update ? 'update' : 'create' );
 
+	// Re-derive every deed's chronological "ক্রমিক নং" (serial number)
+	// from its date, not from save order — staff enter old and new
+	// deeds out of order from several notebooks at once, so a plain
+	// auto-increment would mix years together.
+	sojib68_deeds_resequence();
+
 	return $deed_id;
+}
+
+/**
+ * Assigns deeds.serial_no = 1, 2, 3... in date order (reg_date, or
+ * reg_year when only the year is known, or last when neither is known)
+ * — never by when the row was saved. Safe to re-run any time; it's a
+ * full re-derivation, not an increment.
+ */
+function sojib68_deeds_resequence() {
+	global $wpdb;
+
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+	$rows        = $wpdb->get_results( "SELECT id, reg_date, reg_year FROM $deeds_table WHERE deleted_at IS NULL" );
+
+	if ( ! $rows ) {
+		return;
+	}
+
+	usort( $rows, function ( $a, $b ) {
+		$key_a = sojib68_deed_sort_key( $a );
+		$key_b = sojib68_deed_sort_key( $b );
+		if ( $key_a !== $key_b ) {
+			return $key_a <=> $key_b;
+		}
+		return (int) $a->id <=> (int) $b->id; // stable tie-break for same-date entries.
+	} );
+
+	$pairs = array();
+	foreach ( $rows as $i => $row ) {
+		$pairs[ (int) $row->id ] = $i + 1;
+	}
+
+	foreach ( array_chunk( $pairs, 400, true ) as $chunk ) {
+		$cases = array();
+		$ids   = array();
+		foreach ( $chunk as $id => $serial ) {
+			$cases[] = $wpdb->prepare( 'WHEN %d THEN %d', $id, $serial );
+			$ids[]   = (int) $id;
+		}
+		$sql = "UPDATE $deeds_table SET serial_no = CASE id " . implode( ' ', $cases ) . ' END WHERE id IN (' . implode( ',', $ids ) . ')';
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- each WHEN/id piece above is already prepared.
+	}
+}
+
+/** A sortable date key for one deed: exact date, else year-end, else "unknown" (sorts last). */
+function sojib68_deed_sort_key( $row ) {
+	if ( ! empty( $row->reg_date ) ) {
+		return $row->reg_date;
+	}
+	if ( ! empty( $row->reg_year ) ) {
+		return $row->reg_year . '-12-31';
+	}
+	return '9999-99-99';
 }
 
 function sojib68_deed_replace_children( $table_key, $deed_id, $rows, $text_fields ) {
