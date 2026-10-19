@@ -51,6 +51,51 @@ function sojib68_land_unit_options() {
 }
 
 /* ---------------------------------------------------------------------
+ * Dashboard home — summary stat tiles
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_render_dashboard_home() {
+	$stats = sojib68_office_dashboard_stats();
+	?>
+	<div class="office-stats-grid">
+		<div class="office-stat-tile">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট দলিল এন্ট্রি', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( number_format( $stats['total_deeds'] ) ); ?></span>
+		</div>
+		<div class="office-stat-tile">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট দলিলের মূল্য', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( sojib68_poysha_to_display( $stats['total_deed_value'] ) ?: '0' ); ?></span>
+		</div>
+		<div class="office-stat-tile">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'গ্রাহক থেকে মোট টাকা আদায়', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( sojib68_poysha_to_display( $stats['total_collected'] ) ?: '0' ); ?></span>
+		</div>
+		<div class="office-stat-tile">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'অফিস, ফি ও অন্যান্য মোট ব্যয়', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( sojib68_poysha_to_display( $stats['total_expenses'] ) ?: '0' ); ?></span>
+		</div>
+		<div class="office-stat-tile office-stat-tile--accent">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট প্রফিট (আদায়কৃত পারিশ্রমিক − নিজ খরচ)', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( sojib68_poysha_to_display( $stats['total_profit'] ) ?: '0' ); ?></span>
+		</div>
+		<div class="office-stat-tile <?php echo $stats['total_due'] > 0 ? 'office-stat-tile--due' : ''; ?>">
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট বকেয়া', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo esc_html( sojib68_poysha_to_display( $stats['total_due'] ) ?: '0' ); ?></span>
+		</div>
+	</div>
+
+	<p class="deed-hint">
+		<?php esc_html_e( 'প্রফিট হিসাবে গ্রাহকের জমা দেওয়া টাকা বা গ্রাহক নিজে পরিশোধ করা খরচ ধরা হয় না — শুধু আদায়কৃত পারিশ্রমিক থেকে নিজের পরিশোধিত খরচ বাদ দিয়ে দেখানো হয়েছে।', 'sojib68' ); ?>
+	</p>
+
+	<div class="office-dashboard-actions">
+		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ); ?>" class="btn btn-primary"><?php esc_html_e( '+ নতুন দলিল এন্ট্রি', 'sojib68' ); ?></a>
+		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'সকল দলিল দেখুন', 'sojib68' ); ?></a>
+	</div>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
  * Entry / edit form
  * ------------------------------------------------------------------ */
 

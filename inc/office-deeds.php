@@ -600,3 +600,75 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		'total_pages' => (int) ceil( $total / $per_page ),
 	);
 }
+
+/* ---------------------------------------------------------------------
+ * Dashboard summary stats.
+ *
+ * "Profit" here is intentionally narrow and non-speculative: my
+ * collected fee (money that is actually mine) minus expenses I paid
+ * out of pocket myself (paid_by = 'me' AND paid_status = 'paid').
+ * Client payments received and client-paid expenses never enter this
+ * number — they're the client's money passing through, not my income
+ * or my cost (see the "গ্রাহকের হিসাব" / "ব্যয়ের হিসাব" sections).
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_dashboard_stats() {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+
+	$total_deeds = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $deeds WHERE deleted_at IS NULL" );
+
+	$total_deed_value = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(deed_value_poysha),0) FROM $deeds WHERE deleted_at IS NULL"
+	);
+
+	$total_collected = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(r.amount_poysha),0) FROM $receipts r
+		 INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL"
+	);
+
+	$total_expenses = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(e.amount_poysha),0) FROM $expenses e
+		 INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL"
+	);
+
+	$total_fee_collected = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(fee_collected_poysha),0) FROM $deeds WHERE deleted_at IS NULL"
+	);
+
+	$my_paid_expenses = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(e.amount_poysha),0) FROM $expenses e
+		 INNER JOIN $deeds d ON d.id = e.deed_id
+		 WHERE d.deleted_at IS NULL AND e.paid_by = 'me' AND e.paid_status = 'paid'"
+	);
+
+	$total_profit = $total_fee_collected - $my_paid_expenses;
+
+	// Total outstanding due: per deed, max(0, due) — so an advance on
+	// one deed never offsets a due on another when summed.
+	$due_rows = $wpdb->get_results(
+		"SELECT d.client_total_due_poysha,
+			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
+		 FROM $deeds d
+		 WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
+	);
+	$total_due = 0;
+	foreach ( $due_rows as $row ) {
+		$due = (int) $row->client_total_due_poysha - (int) $row->received;
+		if ( $due > 0 ) {
+			$total_due += $due;
+		}
+	}
+
+	return array(
+		'total_deeds'       => $total_deeds,
+		'total_deed_value'  => $total_deed_value,
+		'total_collected'   => $total_collected,
+		'total_expenses'    => $total_expenses,
+		'total_profit'      => $total_profit,
+		'total_due'         => $total_due,
+	);
+}

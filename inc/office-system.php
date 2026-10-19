@@ -407,12 +407,9 @@ function sojib68_office_render_dashboard( $page_key ) {
 function sojib68_office_render_section( $page_key ) {
 	switch ( $page_key ) {
 		case 'dashboard':
-			$total = function_exists( 'sojib68_deed_search' ) ? sojib68_deed_search( array(), 1, 1 )['total'] : 0;
-			return '<p>' . esc_html( sprintf(
-				/* translators: %d: deed count */
-				__( 'এই মুহূর্তে মোট %d টি দলিল সংরক্ষিত আছে।', 'sojib68' ),
-				$total
-			) ) . '</p>';
+			ob_start();
+			sojib68_office_render_dashboard_home();
+			return ob_get_clean();
 
 		case 'entry-new':
 			ob_start();
@@ -675,6 +672,46 @@ function sojib68_office_inline_css() {
 	.deed-table tr { border-bottom: 2px solid var(--color-border, #E3E1D6); padding: 8px 0; }
 	.deed-table td { white-space: normal; border: none; padding: 4px 14px; }
 	.deed-table td[data-label]:not([data-label=""])::before { content: attr(data-label) ": "; font-weight: 700; }
+}
+
+/* ---- Dashboard stat tiles ---- */
+.office-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+	margin-bottom: 8px;
+}
+.office-stat-tile {
+	background: #fff;
+	border: 1px solid var(--color-border, #E3E1D6);
+	border-left: 4px solid var(--color-border, #E3E1D6);
+	border-radius: var(--radius-md, 12px);
+	padding: 18px 20px;
+}
+.office-stat-tile--accent { border-left-color: var(--color-green, #198030); }
+.office-stat-tile--due { border-left-color: #b3401f; background: #fdecea; }
+.office-stat-tile__label {
+	display: block;
+	font-size: 0.82rem;
+	color: var(--color-muted, #6E7D77);
+	margin-bottom: 8px;
+}
+.office-stat-tile__value {
+	display: block;
+	font-family: var(--font-en, 'Figtree', sans-serif);
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: var(--color-heading, #032737);
+	font-variant-numeric: tabular-nums;
+}
+.office-stat-tile--due .office-stat-tile__value { color: #b3401f; }
+.office-dashboard-actions { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+
+@media (max-width: 860px) {
+	.office-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+	.office-stats-grid { grid-template-columns: 1fr; }
 }
 CSS;
 }
