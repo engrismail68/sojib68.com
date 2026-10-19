@@ -97,7 +97,41 @@ function sojib68_render_sync_page() {
 	}
 
 	$update_available = $latest && $current_commit !== $latest['sha'];
+	$in_sync          = $latest && $current_commit === $latest['sha'];
 	?>
+	<style>
+		.sojib68-commit-badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 12px;
+			border-radius: 999px;
+			font-family: Consolas, Monaco, monospace;
+			font-weight: 600;
+			font-size: 0.92em;
+			line-height: 1.6;
+		}
+		.sojib68-commit-badge::before {
+			content: "";
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: currentColor;
+			flex-shrink: 0;
+		}
+		.sojib68-commit-badge.is-match {
+			background: #e6f4ea;
+			color: #1c6b3e;
+		}
+		.sojib68-commit-badge.is-mismatch {
+			background: #fdecea;
+			color: #b3401f;
+		}
+		.sojib68-commit-badge.is-unknown {
+			background: #f0f0f1;
+			color: #646970;
+		}
+	</style>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Sojib68 Theme Sync', 'sojib68' ); ?></h1>
 		<p>
@@ -127,14 +161,21 @@ function sojib68_render_sync_page() {
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Currently installed commit', 'sojib68' ); ?></th>
 				<td>
-					<code><?php echo $current_commit ? esc_html( substr( $current_commit, 0, 7 ) ) : esc_html__( 'Unknown', 'sojib68' ); ?></code>
+					<?php
+					$installed_class = ! $current_commit ? 'is-unknown' : ( $in_sync ? 'is-match' : 'is-mismatch' );
+					?>
+					<span class="sojib68-commit-badge <?php echo esc_attr( $installed_class ); ?>">
+						<?php echo $current_commit ? esc_html( substr( $current_commit, 0, 7 ) ) : esc_html__( 'Unknown', 'sojib68' ); ?>
+					</span>
 				</td>
 			</tr>
 			<?php if ( $latest ) : ?>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Latest commit on GitHub', 'sojib68' ); ?></th>
 				<td>
-					<code><?php echo esc_html( substr( $latest['sha'], 0, 7 ) ); ?></code>
+					<span class="sojib68-commit-badge <?php echo esc_attr( $in_sync ? 'is-match' : 'is-mismatch' ); ?>">
+						<?php echo esc_html( substr( $latest['sha'], 0, 7 ) ); ?>
+					</span>
 					&mdash; <?php echo esc_html( $latest['message'] ); ?>
 					<br>
 					<small><?php echo esc_html( $latest['author'] ); ?>, <?php echo esc_html( $latest['date'] ); ?></small>
@@ -157,7 +198,7 @@ function sojib68_render_sync_page() {
 					</button>
 				</form>
 			<?php elseif ( $latest ) : ?>
-				<span style="margin-left:8px;color:#46b450;"><?php esc_html_e( 'Theme is up to date.', 'sojib68' ); ?></span>
+				<span style="margin-left:8px;color:#1c6b3e;font-weight:600;"><?php esc_html_e( 'Theme is up to date.', 'sojib68' ); ?></span>
 			<?php endif; ?>
 		</p>
 	</div>
