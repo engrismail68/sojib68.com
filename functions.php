@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once get_theme_file_path( 'inc/github-sync.php' );
 require_once get_theme_file_path( 'inc/contact-form.php' );
+require_once get_theme_file_path( 'inc/office-system.php' );
 
 /**
  * Business contact details.
