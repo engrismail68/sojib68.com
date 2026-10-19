@@ -639,12 +639,8 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 /* ---------------------------------------------------------------------
  * Dashboard summary stats.
  *
- * "Profit" here is intentionally narrow and non-speculative: my
- * collected fee (money that is actually mine) minus expenses I paid
- * out of pocket myself (paid_by = 'me' AND paid_status = 'paid').
- * Client payments received and client-paid expenses never enter this
- * number — they're the client's money passing through, not my income
- * or my cost (see the "গ্রাহকের হিসাব" / "ব্যয়ের হিসাব" sections).
+ * "Profit" = the amount agreed with the client minus the expenses
+ * recorded on the deed (bank challan, office fee, stamp, other).
  * ------------------------------------------------------------------ */
 
 function sojib68_office_dashboard_stats() {
@@ -670,17 +666,12 @@ function sojib68_office_dashboard_stats() {
 		 INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL"
 	);
 
-	$total_fee_collected = (int) $wpdb->get_var(
-		"SELECT COALESCE(SUM(fee_collected_poysha),0) FROM $deeds WHERE deleted_at IS NULL"
+	// Per-deed profit = agreed amount from the client minus all recorded
+	// expenses; deeds with no agreed amount are skipped (unknown, not zero).
+	$total_profit = (int) $wpdb->get_var(
+		"SELECT COALESCE(SUM(d.client_total_due_poysha - COALESCE((SELECT SUM(e.amount_poysha) FROM $expenses e WHERE e.deed_id = d.id), 0)), 0)
+		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
 	);
-
-	$my_paid_expenses = (int) $wpdb->get_var(
-		"SELECT COALESCE(SUM(e.amount_poysha),0) FROM $expenses e
-		 INNER JOIN $deeds d ON d.id = e.deed_id
-		 WHERE d.deleted_at IS NULL AND e.paid_by = 'me' AND e.paid_status = 'paid'"
-	);
-
-	$total_profit = $total_fee_collected - $my_paid_expenses;
 
 	// Total outstanding due: per deed, max(0, due) — so an advance on
 	// one deed never offsets a due on another when summed.

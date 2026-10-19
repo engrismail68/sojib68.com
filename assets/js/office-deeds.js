@@ -43,6 +43,11 @@
 			var index = parseInt( container.getAttribute( 'data-next' ), 10 ) || 0;
 			container.setAttribute( 'data-next', index + 1 );
 			container.insertAdjacentHTML( 'beforeend', tpl.innerHTML.replace( /__INDEX__/g, index ) );
+			var preset = btn.getAttribute( 'data-preset' );
+			if ( preset ) {
+				var cat = container.lastElementChild.querySelector( '[name$="[category]"]' );
+				if ( cat ) { cat.value = preset; }
+			}
 			syncEmpty( group );
 			updateSummary();
 			var first = container.lastElementChild && container.lastElementChild.querySelector( 'input,select' );
@@ -76,8 +81,7 @@
 	/* ---------------- Live summary ---------------- */
 
 	function setSum( key, text ) {
-		var el = form.querySelector( '[data-sum="' + key + '"]' );
-		if ( el ) { el.textContent = text; }
+		form.querySelectorAll( '[data-sum="' + key + '"]' ).forEach( function ( el ) { el.textContent = text; } );
 	}
 
 	function updateSummary() {
@@ -90,27 +94,22 @@
 		} );
 
 		var expenses = 0;
-		var mine = 0;
 		form.querySelectorAll( '[data-repeat="expenses"] .deed-row' ).forEach( function ( row ) {
 			var amt = toNumber( ( row.querySelector( '[data-money="expense"]' ) || {} ).value ) || 0;
 			expenses += amt;
-			var status = ( row.querySelector( '[data-expense="status"]' ) || {} ).value;
-			var by = ( row.querySelector( '[data-expense="paid_by"]' ) || {} ).value;
-			if ( 'paid' === status && 'me' === by ) { mine += amt; }
 		} );
 
 		setSum( 'value', null === value ? '—' : fmt( value ) );
 		setSum( 'total_due', null === totalDue ? '—' : fmt( totalDue ) );
 		setSum( 'received', fmt( received ) );
 		setSum( 'expenses', fmt( expenses ) );
-		setSum( 'my_expenses', fmt( mine ) );
+		setSum( 'profit', null === totalDue ? '—' : fmt( totalDue - expenses ) );
 
 		var chip = form.querySelector( '[data-sum="status"]' );
-		var label = form.querySelector( '[data-sum="due_label"]' );
 		var cls = 'deed-chip deed-chip--unknown';
 		var chipText = 'প্রাপ্য অজানা';
 		var dueText = '—';
-		var dueLabel = 'বকেয়া';
+		var dueLabel = 'বাকি';
 		if ( null !== totalDue ) {
 			var due = Math.round( ( totalDue - received ) * 100 ) / 100;
 			if ( due > 0 ) {
@@ -122,7 +121,7 @@
 			}
 		}
 		setSum( 'due', dueText );
-		if ( label ) { label.textContent = dueLabel; }
+		setSum( 'due_label', dueLabel );
 		if ( chip ) { chip.className = cls; chip.textContent = chipText; }
 	}
 

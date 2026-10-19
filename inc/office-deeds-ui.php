@@ -26,9 +26,12 @@ function sojib68_payment_method_options() {
 
 function sojib68_expense_category_options() {
 	return array(
+		'bank_challan'       => __( 'ব্যাংক চালান', 'sojib68' ),
+		'office_fee'         => __( 'অফিসের ফিস', 'sojib68' ),
+		'stamp'              => __( 'স্ট্যাম্প', 'sojib68' ),
 		'registration_fee'   => __( 'রেজিস্ট্রেশন ফি', 'sojib68' ),
 		'other_govt_fee_tax' => __( 'অন্যান্য সরকারি ফি ও কর', 'sojib68' ),
-		'other'              => __( 'অন্যান্য', 'sojib68' ),
+		'other'              => __( 'অন্যান্য খরচ', 'sojib68' ),
 	);
 }
 
@@ -141,7 +144,7 @@ function sojib68_office_render_dashboard_home() {
 		array( 'tone' => 'indigo', 'icon' => 'tag',      'label' => __( 'মোট দলিলের মূল্য', 'sojib68' ),                  'value' => sojib68_money_html( $stats['total_deed_value'] ), 'class' => '' ),
 		array( 'tone' => 'teal',   'icon' => 'wallet',   'label' => __( 'গ্রাহক থেকে মোট টাকা আদায়', 'sojib68' ),          'value' => sojib68_money_html( $stats['total_collected'] ), 'class' => '' ),
 		array( 'tone' => 'red',    'icon' => 'receipt',  'label' => __( 'অফিস, ফি ও অন্যান্য মোট ব্যয়', 'sojib68' ),      'value' => sojib68_money_html( $stats['total_expenses'] ), 'class' => '' ),
-		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => __( 'আদায়কৃত পারিশ্রমিক − নিজে পরিশোধ করা খরচ', 'sojib68' ) ),
+		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => __( 'নির্ধারিত আদায় − মোট খরচ', 'sojib68' ) ),
 		array( 'tone' => 'amber',  'icon' => 'clock',    'label' => __( 'মোট বকেয়া', 'sojib68' ),                         'value' => sojib68_money_html( $stats['total_due'] ), 'class' => $stats['total_due'] > 0 ? 'is-due' : '' ),
 	);
 	?>
@@ -160,7 +163,7 @@ function sojib68_office_render_dashboard_home() {
 
 	<p class="deed-note">
 		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
-		<span><?php esc_html_e( 'প্রফিট হিসাবে গ্রাহকের জমা দেওয়া টাকা বা গ্রাহক নিজে পরিশোধ করা খরচ ধরা হয় না — শুধু আদায়কৃত পারিশ্রমিক থেকে নিজের পরিশোধিত খরচ বাদ দিয়ে দেখানো হয়েছে।', 'sojib68' ); ?></span>
+		<span><?php esc_html_e( 'প্রফিট = গ্রাহকের কাছ থেকে নির্ধারিত মোট আদায় − দলিলে লেখা মোট খরচ (ব্যাংক চালান, অফিসের ফিস, স্ট্যাম্প ইত্যাদি)। যেসব দলিলে নির্ধারিত আদায় লেখা নেই সেগুলো ধরা হয়নি।', 'sojib68' ); ?></span>
 	</p>
 	<?php
 }
@@ -294,10 +297,10 @@ function sojib68_office_render_entry_form() {
 					</p>
 				<?php sojib68_deed_card_close(); ?>
 
-				<?php sojib68_deed_card_open( 'green', 'wallet', __( 'গ্রাহকের হিসাব', 'sojib68' ) ); ?>
+				<?php sojib68_deed_card_open( 'green', 'wallet', __( 'গ্রাহকের হিসাব', 'sojib68' ), __( 'আদায়, খরচ ও জমা লিখলে প্রফিট ও বাকি নিজে নিজেই বেরিয়ে আসবে', 'sojib68' ) ); ?>
 					<div class="deed-grid">
 						<div class="deed-field col-6">
-							<label for="f-total-due"><?php esc_html_e( 'গ্রাহকের কাছ থেকে নির্ধারিত মোট প্রাপ্য (টাকা)', 'sojib68' ); ?></label>
+							<label for="f-total-due"><?php esc_html_e( 'গ্রাহকের কাছ থেকে নির্ধারিত মোট আদায় (টাকা)', 'sojib68' ); ?></label>
 							<input type="text" id="f-total-due" inputmode="decimal" name="client_total_due" value="<?php echo esc_attr( $deed ? sojib68_poysha_to_display( $deed->client_total_due_poysha ) : '' ); ?>">
 						</div>
 						<div class="deed-field col-6 deed-field--end">
@@ -308,32 +311,31 @@ function sojib68_office_render_entry_form() {
 						</div>
 					</div>
 
-					<h3 class="deed-subhead"><?php esc_html_e( 'টাকা গ্রহণের এন্ট্রি', 'sojib68' ); ?></h3>
+					<h3 class="deed-subhead"><?php esc_html_e( 'খরচ — ব্যাংক চালান, অফিসের ফিস, স্ট্যাম্প ও অন্যান্য', 'sojib68' ); ?></h3>
+					<div class="deed-repeat" data-repeat="expenses" data-next="<?php echo count( $expenses ); ?>">
+						<?php foreach ( $expenses as $i => $e ) : sojib68_render_expense_row( $i, $e ); endforeach; ?>
+					</div>
+					<p class="deed-empty" data-empty-for="expenses" <?php echo $expenses ? 'hidden' : ''; ?>><?php esc_html_e( 'এখনো কোনো খরচ যোগ করা হয়নি। নিচের বাটন থেকে যোগ করুন।', 'sojib68' ); ?></p>
+					<div class="deed-quickadd">
+						<button type="button" class="deed-chipbtn" data-add-row="expenses" data-preset="bank_challan">+ <?php esc_html_e( 'ব্যাংক চালান', 'sojib68' ); ?></button>
+						<button type="button" class="deed-chipbtn" data-add-row="expenses" data-preset="office_fee">+ <?php esc_html_e( 'অফিসের ফিস', 'sojib68' ); ?></button>
+						<button type="button" class="deed-chipbtn" data-add-row="expenses" data-preset="stamp">+ <?php esc_html_e( 'স্ট্যাম্প', 'sojib68' ); ?></button>
+						<button type="button" class="deed-chipbtn" data-add-row="expenses" data-preset="other">+ <?php esc_html_e( 'অন্যান্য খরচ', 'sojib68' ); ?></button>
+					</div>
+
+					<h3 class="deed-subhead"><?php esc_html_e( 'টাকা গ্রহণের এন্ট্রি (গ্রাহকের জমা)', 'sojib68' ); ?></h3>
 					<div class="deed-repeat" data-repeat="receipts" data-next="<?php echo count( $receipts ); ?>">
 						<?php foreach ( $receipts as $i => $r ) : sojib68_render_receipt_row( $i, $r ); endforeach; ?>
 					</div>
 					<p class="deed-empty" data-empty-for="receipts" <?php echo $receipts ? 'hidden' : ''; ?>><?php esc_html_e( 'এখনো কোনো টাকা গ্রহণের এন্ট্রি নেই।', 'sojib68' ); ?></p>
 					<button type="button" class="deed-add" data-add-row="receipts"><?php echo sojib68_office_icon( 'plus', 18 ); // phpcs:ignore ?> <?php esc_html_e( 'টাকা গ্রহণ যোগ করুন', 'sojib68' ); ?></button>
-				<?php sojib68_deed_card_close(); ?>
 
-				<?php sojib68_deed_card_open( 'red', 'receipt', __( 'ব্যয়ের হিসাব', 'sojib68' ) ); ?>
-					<div class="deed-repeat" data-repeat="expenses" data-next="<?php echo count( $expenses ); ?>">
-						<?php foreach ( $expenses as $i => $e ) : sojib68_render_expense_row( $i, $e ); endforeach; ?>
-					</div>
-					<p class="deed-empty" data-empty-for="expenses" <?php echo $expenses ? 'hidden' : ''; ?>><?php esc_html_e( 'এখনো কোনো খরচের এন্ট্রি নেই।', 'sojib68' ); ?></p>
-					<button type="button" class="deed-add" data-add-row="expenses"><?php echo sojib68_office_icon( 'plus', 18 ); // phpcs:ignore ?> <?php esc_html_e( 'খরচ যোগ করুন', 'sojib68' ); ?></button>
-				<?php sojib68_deed_card_close(); ?>
-
-				<?php sojib68_deed_card_open( 'purple', 'briefcase', __( 'আমার পারিশ্রমিক', 'sojib68' ) ); ?>
-					<div class="deed-grid">
-						<div class="deed-field col-6">
-							<label for="f-fee-agreed"><?php esc_html_e( 'নির্ধারিত পারিশ্রমিক (টাকা)', 'sojib68' ); ?></label>
-							<input type="text" id="f-fee-agreed" inputmode="decimal" name="fee_agreed" value="<?php echo esc_attr( $deed ? sojib68_poysha_to_display( $deed->fee_agreed_poysha ) : '' ); ?>">
-						</div>
-						<div class="deed-field col-6">
-							<label for="f-fee-collected"><?php esc_html_e( 'আদায়কৃত পারিশ্রমিক (টাকা)', 'sojib68' ); ?></label>
-							<input type="text" id="f-fee-collected" inputmode="decimal" name="fee_collected" value="<?php echo esc_attr( $deed ? sojib68_poysha_to_display( $deed->fee_collected_poysha ) : '' ); ?>">
-						</div>
+					<div class="deed-result">
+						<div class="deed-result__item"><span><?php esc_html_e( 'মোট আদায় (নির্ধারিত)', 'sojib68' ); ?></span><strong data-sum="total_due">—</strong></div>
+						<div class="deed-result__item"><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
+						<div class="deed-result__item is-profit"><span><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
+						<div class="deed-result__item"><span><?php esc_html_e( 'মোট জমা', 'sojib68' ); ?></span><strong data-sum="received">0</strong></div>
+						<div class="deed-result__item is-due"><span data-sum="due_label"><?php esc_html_e( 'বাকি', 'sojib68' ); ?></span><strong data-sum="due">—</strong></div>
 					</div>
 				<?php sojib68_deed_card_close(); ?>
 
@@ -357,14 +359,14 @@ function sojib68_office_render_entry_form() {
 						<div class="deed-summary-row"><span><?php esc_html_e( 'গ্রাহকের মোট প্রাপ্য', 'sojib68' ); ?></span><strong data-sum="total_due">—</strong></div>
 						<div class="deed-summary-row"><span><?php esc_html_e( 'মোট জমা', 'sojib68' ); ?></span><strong data-sum="received">0</strong></div>
 						<div class="deed-summary-row deed-summary-row--big">
-							<span data-sum="due_label"><?php esc_html_e( 'বকেয়া', 'sojib68' ); ?></span>
+							<span data-sum="due_label"><?php esc_html_e( 'বাকি', 'sojib68' ); ?></span>
 							<strong data-sum="due">—</strong>
 						</div>
 						<div class="deed-summary-status"><span class="deed-chip deed-chip--unknown" data-sum="status"><?php esc_html_e( 'প্রাপ্য অজানা', 'sojib68' ); ?></span></div>
 						<div class="deed-summary-row"><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
-						<div class="deed-summary-row"><span><?php esc_html_e( '— এর মধ্যে নিজে পরিশোধ', 'sojib68' ); ?></span><strong data-sum="my_expenses">0</strong></div>
+						<div class="deed-summary-row deed-summary-row--big"><span><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
 					</div>
-					<p class="deed-summary-foot"><?php esc_html_e( 'দলিলের মূল্য ও আমার পারিশ্রমিক এই হিসাবে যোগ হয় না।', 'sojib68' ); ?></p>
+					<p class="deed-summary-foot"><?php esc_html_e( 'প্রফিট = নির্ধারিত আদায় − মোট খরচ। দলিলের মূল্য এই হিসাবে যোগ হয় না।', 'sojib68' ); ?></p>
 				</div>
 
 				<div class="deed-tips">
@@ -527,10 +529,15 @@ function sojib68_render_expense_row( $i, $row ) {
 				<label><?php esc_html_e( 'টাকার পরিমাণ', 'sojib68' ); ?></label>
 				<input type="text" inputmode="decimal" data-money="expense" name="<?php echo $prefix; // phpcs:ignore ?>[amount]" value="<?php echo esc_attr( isset( $row->amount_poysha ) ? sojib68_poysha_to_display( $row->amount_poysha ) : '' ); ?>">
 			</div>
+			</div>
+			<details class="deed-row__more">
+				<summary><?php esc_html_e( 'আরও তথ্য (তারিখ, পরিশোধের অবস্থা)', 'sojib68' ); ?></summary>
+				<div class="deed-grid">
 			<div class="deed-field col-4">
 				<label><?php esc_html_e( 'পরিশোধের তারিখ', 'sojib68' ); ?></label>
 				<input type="date" name="<?php echo $prefix; // phpcs:ignore ?>[paid_date]" value="<?php echo esc_attr( $row->paid_date ?? '' ); ?>">
-			</div>
+				</div>
+			</details>
 			<div class="deed-field col-4 m-6">
 				<label><?php esc_html_e( 'পরিশোধের অবস্থা', 'sojib68' ); ?></label>
 				<select name="<?php echo $prefix; // phpcs:ignore ?>[paid_status]" data-expense="status">

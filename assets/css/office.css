@@ -453,3 +453,25 @@
 	.deed-table td.act .btn { width: 100%; text-align: center; justify-content: center; }
 	.deed-table .num { text-align: right; }
 }
+
+/* ---------- Customer account: quick-add + auto result ---------- */
+.deed-quickadd { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.deed-chipbtn {
+	padding: 8px 14px; border-radius: 999px; cursor: pointer;
+	border: 1.5px dashed #c33; background: #fdecea; color: #a8271f;
+	font-family: inherit; font-size: .86rem; font-weight: 700;
+}
+.deed-chipbtn:hover { filter: brightness(.97); }
+.deed-result {
+	display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
+	margin-top: 22px; padding: 14px; border-radius: 14px;
+	background: linear-gradient(135deg, #f1f8f2, #e8f3ea); border: 1px solid #cfe6d4;
+}
+.deed-result__item { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; min-width: 0; }
+.deed-result__item span { font-size: .78rem; color: var(--o-muted); font-weight: 600; }
+.deed-result__item strong { font-family: 'Figtree', sans-serif; font-size: 1.1rem; color: var(--o-ink); font-variant-numeric: tabular-nums; word-break: break-word; }
+.deed-result__item.is-profit strong { color: #14672b; font-size: 1.3rem; }
+.deed-result__item.is-due strong { color: #b3261e; font-size: 1.3rem; }
+@media (max-width: 760px) { .deed-result { grid-template-columns: 1fr 1fr; } }
+.deed-row__more { margin-top: 10px; }
+.deed-row__more summary { cursor: pointer; font-size: .8rem; font-weight: 700; color: var(--o-muted); margin-bottom: 10px; }
