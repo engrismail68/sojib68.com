@@ -700,6 +700,173 @@ function sojib68_office_dashboard_stats() {
 }
 
 /* ---------------------------------------------------------------------
+ * Monthly / yearly report (ড্যাশবোর্ডের গ্রাফ)
+ *
+ * Aggregated in PHP rather than with SQL date-grouping so the same
+ * code runs the same way regardless of the database's SQL dialect —
+ * the raw rows are small in number for an office this size.
+ * ------------------------------------------------------------------ */
+
+function sojib68_bn_digits( $n ) {
+	static $map = array( '0' => '০', '1' => '১', '2' => '২', '3' => '৩', '4' => '৪', '5' => '৫', '6' => '৬', '7' => '৭', '8' => '৮', '9' => '৯' );
+	return strtr( (string) $n, $map );
+}
+
+function sojib68_bn_month_label( $month_num ) {
+	static $labels = array(
+		1 => 'জানু', 2 => 'ফেব্রু', 3 => 'মার্চ', 4 => 'এপ্রিল', 5 => 'মে', 6 => 'জুন',
+		7 => 'জুলাই', 8 => 'আগস্ট', 9 => 'সেপ্ট', 10 => 'অক্টো', 11 => 'নভে', 12 => 'ডিসে',
+	);
+	return isset( $labels[ $month_num ] ) ? $labels[ $month_num ] : (string) $month_num;
+}
+
+/** Deeds/receipts/expenses for one calendar year, as raw rows (one SQL round trip each). */
+function sojib68_office_report_raw_rows( $year ) {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+	$like     = $year . '-%';
+
+	return array(
+		'deeds'    => $wpdb->get_results( $wpdb->prepare( "SELECT reg_date, deed_value_poysha FROM $deeds WHERE deleted_at IS NULL AND reg_date LIKE %s", $like ) ),
+		'receipts' => $wpdb->get_results( $wpdb->prepare(
+			"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND r.received_date LIKE %s",
+			$like
+		) ),
+		'expenses' => $wpdb->get_results( $wpdb->prepare(
+			"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND e.paid_date LIKE %s",
+			$like
+		) ),
+	);
+}
+
+/**
+ * Month-by-month breakdown for one calendar year. Only rows with an
+ * exact date count here (a deed with only reg_year, or a payment with
+ * no date, can't be placed in a month) — the yearly view below counts
+ * those too.
+ */
+function sojib68_office_monthly_stats( $year = null ) {
+	$year = $year ? (int) $year : (int) current_time( 'Y' );
+	$raw  = sojib68_office_report_raw_rows( $year );
+
+	$months = array();
+	for ( $m = 1; $m <= 12; $m++ ) {
+		$months[ $m ] = array(
+			'key'         => str_pad( (string) $m, 2, '0', STR_PAD_LEFT ),
+			'label'       => sojib68_bn_month_label( $m ),
+			'deeds_count' => 0,
+			'deed_value'  => 0,
+			'collected'   => 0,
+			'expenses'    => 0,
+			'profit'      => 0,
+		);
+	}
+
+	foreach ( $raw['deeds'] as $row ) {
+		$m = (int) substr( (string) $row->reg_date, 5, 2 );
+		if ( isset( $months[ $m ] ) ) {
+			$months[ $m ]['deeds_count']++;
+			$months[ $m ]['deed_value'] += (int) $row->deed_value_poysha;
+		}
+	}
+	foreach ( $raw['receipts'] as $row ) {
+		$m = (int) substr( (string) $row->received_date, 5, 2 );
+		if ( isset( $months[ $m ] ) ) {
+			$months[ $m ]['collected'] += (int) $row->amount_poysha;
+		}
+	}
+	foreach ( $raw['expenses'] as $row ) {
+		$m = (int) substr( (string) $row->paid_date, 5, 2 );
+		if ( isset( $months[ $m ] ) ) {
+			$months[ $m ]['expenses'] += (int) $row->amount_poysha;
+		}
+	}
+	foreach ( $months as &$row ) {
+		$row['profit'] = $row['collected'] - $row['expenses'];
+	}
+	unset( $row );
+
+	return array(
+		'year'    => $year,
+		'periods' => array_values( $months ),
+	);
+}
+
+/**
+ * Year-by-year breakdown for the last $years_back calendar years. A
+ * deed with only reg_year (no exact date) is still counted here under
+ * that year — dated rows (receipts/expenses) need an exact date.
+ */
+function sojib68_office_yearly_stats( $years_back = 6 ) {
+	global $wpdb;
+
+	$current_year = (int) current_time( 'Y' );
+	$start_year   = $current_year - $years_back + 1;
+
+	$years = array();
+	for ( $y = $start_year; $y <= $current_year; $y++ ) {
+		$years[ $y ] = array(
+			'key'         => (string) $y,
+			'label'       => sojib68_bn_digits( $y ),
+			'deeds_count' => 0,
+			'deed_value'  => 0,
+			'collected'   => 0,
+			'expenses'    => 0,
+			'profit'      => 0,
+		);
+	}
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+
+	$deed_rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT reg_date, reg_year, deed_value_poysha FROM $deeds WHERE deleted_at IS NULL AND (reg_date >= %s OR ( reg_date IS NULL AND reg_year >= %d ))",
+		$start_year . '-01-01',
+		$start_year
+	) );
+	foreach ( $deed_rows as $row ) {
+		$y = $row->reg_date ? (int) substr( (string) $row->reg_date, 0, 4 ) : (int) $row->reg_year;
+		if ( isset( $years[ $y ] ) ) {
+			$years[ $y ]['deeds_count']++;
+			$years[ $y ]['deed_value'] += (int) $row->deed_value_poysha;
+		}
+	}
+
+	$receipt_rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND r.received_date >= %s",
+		$start_year . '-01-01'
+	) );
+	foreach ( $receipt_rows as $row ) {
+		$y = (int) substr( (string) $row->received_date, 0, 4 );
+		if ( isset( $years[ $y ] ) ) {
+			$years[ $y ]['collected'] += (int) $row->amount_poysha;
+		}
+	}
+
+	$expense_rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND e.paid_date >= %s",
+		$start_year . '-01-01'
+	) );
+	foreach ( $expense_rows as $row ) {
+		$y = (int) substr( (string) $row->paid_date, 0, 4 );
+		if ( isset( $years[ $y ] ) ) {
+			$years[ $y ]['expenses'] += (int) $row->amount_poysha;
+		}
+	}
+
+	foreach ( $years as &$row ) {
+		$row['profit'] = $row['collected'] - $row['expenses'];
+	}
+	unset( $row );
+
+	return array( 'periods' => array_values( $years ) );
+}
+
+/* ---------------------------------------------------------------------
  * Dues collection (বকেয়া আদায়)
  * ------------------------------------------------------------------ */
 

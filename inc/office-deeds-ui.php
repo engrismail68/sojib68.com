@@ -169,6 +169,8 @@ function sojib68_office_render_dashboard_home() {
 		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
 		<span><?php esc_html_e( 'প্রফিট = গ্রাহকের কাছ থেকে মোট আদায় − মোট খরচ (ব্যাংক চালান, অফিসের ফিস, স্ট্যাম্প ইত্যাদি)।', 'sojib68' ); ?></span>
 	</p>
+
+	<?php sojib68_office_render_report_section(); ?>
 	<?php
 }
 
@@ -1045,5 +1047,254 @@ function sojib68_office_render_print( $deed_id ) {
 		</article>
 	</body>
 	</html>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * Dashboard report charts (মাসিক / বার্ষিক)
+ * ------------------------------------------------------------------ */
+
+/** "৳ 1.2L" / "৳ 45k" / "৳ 300" — compact axis labels only; full figures stay in the tooltip and table. */
+function sojib68_compact_taka( $poysha ) {
+	$taka = $poysha / 100;
+	$neg  = $taka < 0;
+	$taka = abs( $taka );
+	if ( $taka >= 100000 ) {
+		$label = rtrim( rtrim( number_format( $taka / 100000, 1 ), '0' ), '.' ) . 'L';
+	} elseif ( $taka >= 1000 ) {
+		$label = round( $taka / 1000 ) . 'k';
+	} else {
+		$label = (string) round( $taka );
+	}
+	return ( $neg ? '-' : '' ) . '৳' . $label;
+}
+
+/** Round a max value up to a clean step (for axis gridlines), never 0. */
+function sojib68_chart_nice_max( $value ) {
+	$value = max( (int) $value, 100 ); // poysha; floor so an all-zero chart still draws a scale.
+	$magnitude = pow( 10, floor( log10( $value ) ) );
+	$steps     = array( 1, 2, 2.5, 5, 10 );
+	foreach ( $steps as $step ) {
+		$candidate = $step * $magnitude;
+		if ( $candidate >= $value ) {
+			return (int) $candidate;
+		}
+	}
+	return (int) ( 10 * $magnitude );
+}
+
+/**
+ * "আদায় ও খরচ" grouped column chart — two series sharing one taka
+ * axis (validated categorical pair: blue for আদায়, orange for খরচ;
+ * ΔE 24.7+ under deutan/protan simulation — see the dataviz palette
+ * validator). Direct labels + legend mean color is never the only cue.
+ */
+function sojib68_office_render_collect_expense_chart( $periods, $chart_id ) {
+	$w = 960;
+	$h = 280;
+	$pad_l = 48;
+	$pad_r = 10;
+	$pad_t = 14;
+	$pad_b = 34;
+	$plot_w = $w - $pad_l - $pad_r;
+	$plot_h = $h - $pad_t - $pad_b;
+
+	$count = max( 1, count( $periods ) );
+	$slot  = $plot_w / $count;
+	$bar_w = min( 22, $slot * 0.32 );
+	$gap   = 3;
+
+	$max_val = 0;
+	foreach ( $periods as $p ) {
+		$max_val = max( $max_val, $p['collected'], $p['expenses'] );
+	}
+	$scale_max = sojib68_chart_nice_max( $max_val );
+	?>
+	<div class="chart-card" data-chart="<?php echo esc_attr( $chart_id ); ?>">
+		<div class="chart-card__head">
+			<h3><?php esc_html_e( 'আদায় ও খরচ', 'sojib68' ); ?></h3>
+			<ul class="chart-legend">
+				<li><span class="chart-legend__swatch" style="background:#2a78d6"></span><?php esc_html_e( 'আদায়', 'sojib68' ); ?></li>
+				<li><span class="chart-legend__swatch" style="background:#eb6834"></span><?php esc_html_e( 'খরচ', 'sojib68' ); ?></li>
+			</ul>
+		</div>
+		<svg viewBox="0 0 <?php echo (int) $w; ?> <?php echo (int) $h; ?>" class="chart-svg" role="img" aria-label="<?php esc_attr_e( 'আদায় ও খরচের কলাম চার্ট', 'sojib68' ); ?>">
+			<?php for ( $g = 1; $g <= 4; $g++ ) : $gy = $pad_t + $plot_h - ( $plot_h * $g / 4 ); ?>
+				<line class="chart-grid" x1="<?php echo (int) $pad_l; ?>" y1="<?php echo esc_attr( $gy ); ?>" x2="<?php echo (int) ( $w - $pad_r ); ?>" y2="<?php echo esc_attr( $gy ); ?>"></line>
+				<text class="chart-axislabel" x="<?php echo (int) ( $pad_l - 8 ); ?>" y="<?php echo esc_attr( $gy + 3 ); ?>" text-anchor="end"><?php echo esc_html( sojib68_compact_taka( $scale_max * $g / 4 ) ); ?></text>
+			<?php endfor; ?>
+			<line class="chart-baseline" x1="<?php echo (int) $pad_l; ?>" y1="<?php echo (int) ( $pad_t + $plot_h ); ?>" x2="<?php echo (int) ( $w - $pad_r ); ?>" y2="<?php echo (int) ( $pad_t + $plot_h ); ?>"></line>
+
+			<?php foreach ( $periods as $i => $p ) :
+				$slot_x  = $pad_l + $i * $slot;
+				$cx      = $slot_x + $slot / 2 - $gap / 2 - $bar_w;
+				$ex      = $slot_x + $slot / 2 + $gap / 2;
+				$c_h     = $scale_max > 0 ? ( $p['collected'] / $scale_max ) * $plot_h : 0;
+				$e_h     = $scale_max > 0 ? ( $p['expenses'] / $scale_max ) * $plot_h : 0;
+				$base_y  = $pad_t + $plot_h;
+				?>
+				<g class="chart-group" tabindex="0"
+					data-label="<?php echo esc_attr( $p['label'] ); ?>"
+					data-collected="<?php echo esc_attr( round( $p['collected'] / 100 ) ); ?>"
+					data-expenses="<?php echo esc_attr( round( $p['expenses'] / 100 ) ); ?>">
+					<rect class="chart-bar chart-bar--blue" x="<?php echo esc_attr( $cx ); ?>" y="<?php echo esc_attr( $base_y - $c_h ); ?>" width="<?php echo esc_attr( $bar_w ); ?>" height="<?php echo esc_attr( max( 0, $c_h ) ); ?>" rx="3"></rect>
+					<rect class="chart-bar chart-bar--orange" x="<?php echo esc_attr( $ex ); ?>" y="<?php echo esc_attr( $base_y - $e_h ); ?>" width="<?php echo esc_attr( $bar_w ); ?>" height="<?php echo esc_attr( max( 0, $e_h ) ); ?>" rx="3"></rect>
+					<rect class="chart-hit" x="<?php echo esc_attr( $slot_x + 1 ); ?>" y="<?php echo (int) $pad_t; ?>" width="<?php echo esc_attr( $slot - 2 ); ?>" height="<?php echo (int) $plot_h; ?>" fill="transparent"></rect>
+					<text class="chart-axislabel chart-axislabel--x" x="<?php echo esc_attr( $slot_x + $slot / 2 ); ?>" y="<?php echo (int) ( $h - 12 ); ?>" text-anchor="middle"><?php echo esc_html( $p['label'] ); ?></text>
+				</g>
+			<?php endforeach; ?>
+		</svg>
+	</div>
+	<?php
+}
+
+/**
+ * "প্রফিট" diverging column chart — single measure, sign carries the
+ * meaning (green = profit, red = loss) around a zero baseline.
+ */
+function sojib68_office_render_profit_chart( $periods, $chart_id ) {
+	$w = 960;
+	$h = 280;
+	$pad_l = 48;
+	$pad_r = 10;
+	$pad_t = 14;
+	$pad_b = 34;
+	$plot_w = $w - $pad_l - $pad_r;
+	$plot_h = $h - $pad_t - $pad_b;
+
+	$count = max( 1, count( $periods ) );
+	$slot  = $plot_w / $count;
+	$bar_w = min( 24, $slot * 0.4 );
+
+	$max_abs = 1;
+	foreach ( $periods as $p ) {
+		$max_abs = max( $max_abs, abs( $p['profit'] ) );
+	}
+	$scale_max = sojib68_chart_nice_max( $max_abs );
+	$zero_y    = $pad_t + $plot_h / 2;
+	$half_h    = $plot_h / 2;
+	?>
+	<div class="chart-card" data-chart="<?php echo esc_attr( $chart_id ); ?>">
+		<div class="chart-card__head">
+			<h3><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></h3>
+			<ul class="chart-legend chart-legend--sign">
+				<li><span class="chart-legend__swatch" style="background:#198030"></span><?php esc_html_e( 'লাভ', 'sojib68' ); ?></li>
+				<li><span class="chart-legend__swatch" style="background:#b3261e"></span><?php esc_html_e( 'ক্ষতি', 'sojib68' ); ?></li>
+			</ul>
+		</div>
+		<svg viewBox="0 0 <?php echo (int) $w; ?> <?php echo (int) $h; ?>" class="chart-svg" role="img" aria-label="<?php esc_attr_e( 'প্রফিটের কলাম চার্ট', 'sojib68' ); ?>">
+			<?php for ( $g = -2; $g <= 2; $g++ ) :
+				if ( 0 === $g ) { continue; }
+				$gy = $zero_y - ( $half_h * $g / 2 );
+				?>
+				<line class="chart-grid" x1="<?php echo (int) $pad_l; ?>" y1="<?php echo esc_attr( $gy ); ?>" x2="<?php echo (int) ( $w - $pad_r ); ?>" y2="<?php echo esc_attr( $gy ); ?>"></line>
+				<text class="chart-axislabel" x="<?php echo (int) ( $pad_l - 8 ); ?>" y="<?php echo esc_attr( $gy + 3 ); ?>" text-anchor="end"><?php echo esc_html( sojib68_compact_taka( $scale_max * $g / 2 ) ); ?></text>
+			<?php endfor; ?>
+			<line class="chart-baseline" x1="<?php echo (int) $pad_l; ?>" y1="<?php echo esc_attr( $zero_y ); ?>" x2="<?php echo (int) ( $w - $pad_r ); ?>" y2="<?php echo esc_attr( $zero_y ); ?>"></line>
+
+			<?php foreach ( $periods as $i => $p ) :
+				$slot_x = $pad_l + $i * $slot;
+				$bx     = $slot_x + $slot / 2 - $bar_w / 2;
+				$bar_h  = $scale_max > 0 ? ( abs( $p['profit'] ) / $scale_max ) * $half_h : 0;
+				$neg    = $p['profit'] < 0;
+				$by     = $neg ? $zero_y : $zero_y - $bar_h;
+				?>
+				<g class="chart-group" tabindex="0"
+					data-label="<?php echo esc_attr( $p['label'] ); ?>"
+					data-profit="<?php echo esc_attr( round( abs( $p['profit'] ) / 100 ) ); ?>"
+					data-sign="<?php echo $neg ? 'neg' : 'pos'; ?>">
+					<rect class="chart-bar <?php echo $neg ? 'chart-bar--loss' : 'chart-bar--profit'; ?>" x="<?php echo esc_attr( $bx ); ?>" y="<?php echo esc_attr( $by ); ?>" width="<?php echo esc_attr( $bar_w ); ?>" height="<?php echo esc_attr( max( 0, $bar_h ) ); ?>" rx="3"></rect>
+					<rect class="chart-hit" x="<?php echo esc_attr( $slot_x + 1 ); ?>" y="<?php echo (int) $pad_t; ?>" width="<?php echo esc_attr( $slot - 2 ); ?>" height="<?php echo (int) $plot_h; ?>" fill="transparent"></rect>
+					<text class="chart-axislabel chart-axislabel--x" x="<?php echo esc_attr( $slot_x + $slot / 2 ); ?>" y="<?php echo (int) ( $h - 12 ); ?>" text-anchor="middle"><?php echo esc_html( $p['label'] ); ?></text>
+				</g>
+			<?php endforeach; ?>
+		</svg>
+	</div>
+	<?php
+}
+
+function sojib68_office_render_report_table( $periods ) {
+	?>
+	<details class="chart-table-wrap">
+		<summary><?php esc_html_e( 'টেবিল আকারে দেখুন', 'sojib68' ); ?></summary>
+		<div class="chart-table-scroll">
+			<table class="deed-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'সময়কাল', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'দলিলের মূল্য', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'আদায়', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'খরচ', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $periods as $p ) : ?>
+						<tr>
+							<td><?php echo esc_html( $p['label'] ); ?></td>
+							<td class="num"><?php echo esc_html( number_format( $p['deeds_count'] ) ); ?></td>
+							<td class="num"><?php echo sojib68_money_html( $p['deed_value'] ); // phpcs:ignore ?></td>
+							<td class="num"><?php echo sojib68_money_html( $p['collected'] ); // phpcs:ignore ?></td>
+							<td class="num"><?php echo sojib68_money_html( $p['expenses'] ); // phpcs:ignore ?></td>
+							<td class="num"><?php echo sojib68_money_html( $p['profit'] ); // phpcs:ignore ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+	</details>
+	<?php
+}
+
+function sojib68_office_render_report_section() {
+	$view = isset( $_GET['report_view'] ) && 'yearly' === $_GET['report_view'] ? 'yearly' : 'monthly';
+	$year = isset( $_GET['report_year'] ) ? (int) $_GET['report_year'] : (int) current_time( 'Y' );
+
+	$monthly = sojib68_office_monthly_stats( $year );
+	$yearly  = sojib68_office_yearly_stats( 6 );
+	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/' );
+	?>
+	<section class="report-section" data-report-view="<?php echo esc_attr( $view ); ?>">
+		<div class="report-head">
+			<h2><?php esc_html_e( 'রিপোর্ট', 'sojib68' ); ?></h2>
+			<div class="report-tabs">
+				<button type="button" class="report-tab <?php echo 'monthly' === $view ? 'is-active' : ''; ?>" data-report-tab="monthly"><?php esc_html_e( 'মাসিক', 'sojib68' ); ?></button>
+				<button type="button" class="report-tab <?php echo 'yearly' === $view ? 'is-active' : ''; ?>" data-report-tab="yearly"><?php esc_html_e( 'বার্ষিক', 'sojib68' ); ?></button>
+			</div>
+		</div>
+
+		<div class="report-view" data-report-panel="monthly" <?php echo 'monthly' !== $view ? 'hidden' : ''; ?>>
+			<div class="report-year-nav">
+				<a href="<?php echo esc_url( add_query_arg( array( 'report_view' => 'monthly', 'report_year' => $year - 1 ), $base . 'dashboard' ) ); ?>" class="report-year-nav__btn" aria-label="<?php esc_attr_e( 'আগের বছর', 'sojib68' ); ?>">‹</a>
+				<strong><?php echo esc_html( sojib68_bn_digits( $year ) ); ?></strong>
+				<?php if ( $year < (int) current_time( 'Y' ) ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( array( 'report_view' => 'monthly', 'report_year' => $year + 1 ), $base . 'dashboard' ) ); ?>" class="report-year-nav__btn" aria-label="<?php esc_attr_e( 'পরের বছর', 'sojib68' ); ?>">›</a>
+				<?php else : ?>
+					<span class="report-year-nav__btn is-disabled" aria-hidden="true">›</span>
+				<?php endif; ?>
+			</div>
+			<div class="report-charts">
+				<?php
+				sojib68_office_render_collect_expense_chart( $monthly['periods'], 'monthly-ce' );
+				sojib68_office_render_profit_chart( $monthly['periods'], 'monthly-profit' );
+				?>
+			</div>
+			<?php sojib68_office_render_report_table( $monthly['periods'] ); ?>
+		</div>
+
+		<div class="report-view" data-report-panel="yearly" <?php echo 'yearly' !== $view ? 'hidden' : ''; ?>>
+			<div class="report-charts">
+				<?php
+				sojib68_office_render_collect_expense_chart( $yearly['periods'], 'yearly-ce' );
+				sojib68_office_render_profit_chart( $yearly['periods'], 'yearly-profit' );
+				?>
+			</div>
+			<?php sojib68_office_render_report_table( $yearly['periods'] ); ?>
+		</div>
+	</section>
+
+	<div class="chart-tooltip" id="chart-tooltip" hidden></div>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-dashboard.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-dashboard.js' ) ); // phpcs:ignore ?>"></script>
 	<?php
 }

@@ -546,3 +546,75 @@
 
 /* ---------- Icon-only small button (e.g. print link in a table row) ---------- */
 .btn-icon { display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }
+
+/* ---------- Dashboard report (মাসিক/বার্ষিক charts) ---------- */
+.report-section { margin-top: 28px; }
+.report-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.report-head h2 { margin: 0; font-size: 1.15rem; color: var(--o-ink); }
+.report-tabs { display: inline-flex; background: #ecebe0; border-radius: 999px; padding: 3px; gap: 2px; }
+.report-tab {
+	border: none; background: none; cursor: pointer; font-family: inherit;
+	padding: 7px 18px; border-radius: 999px; font-size: .86rem; font-weight: 700; color: var(--o-muted);
+}
+.report-tab.is-active { background: #fff; color: var(--o-green-deep); box-shadow: var(--o-shadow); }
+
+.report-year-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.report-year-nav strong { font-family: 'Figtree', sans-serif; font-size: 1.05rem; color: var(--o-ink); min-width: 56px; text-align: center; }
+.report-year-nav__btn {
+	width: 32px; height: 32px; display: inline-grid; place-items: center;
+	border: 1px solid var(--o-line); border-radius: 50%; background: #fff; color: var(--o-green-deep);
+	text-decoration: none; font-size: 1.1rem; line-height: 1;
+}
+.report-year-nav__btn:hover { border-color: var(--o-green); }
+.report-year-nav__btn.is-disabled { opacity: .35; pointer-events: none; }
+
+.report-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1100px) { .report-charts { grid-template-columns: 1fr; } }
+
+.chart-card { background: #fff; border: 1px solid var(--o-line); border-radius: var(--o-radius); box-shadow: var(--o-shadow); padding: 16px 18px 10px; }
+.chart-card__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.chart-card__head h3 { margin: 0; font-size: .92rem; color: var(--o-ink); }
+.chart-legend { list-style: none; margin: 0; padding: 0; display: flex; gap: 14px; font-size: .78rem; color: var(--o-muted); }
+.chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend__swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.chart-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-grid { stroke: #ebe9dd; stroke-width: 1; }
+.chart-baseline { stroke: #c9c7ba; stroke-width: 1; }
+.chart-axislabel { fill: var(--o-muted); font-size: 11px; font-family: 'Figtree', sans-serif; }
+.chart-axislabel--x { fill: var(--o-muted); }
+.chart-bar { transition: opacity .12s; }
+.chart-bar--blue { fill: #2a78d6; }
+.chart-bar--orange { fill: #eb6834; }
+.chart-bar--profit { fill: #198030; }
+.chart-bar--loss { fill: #b3261e; }
+.chart-group { cursor: pointer; outline: none; }
+.chart-group:hover .chart-bar,
+.chart-group.is-active .chart-bar,
+.chart-group:focus-visible .chart-bar { opacity: .78; }
+.chart-group:focus-visible .chart-hit { outline: 2px solid var(--o-green); outline-offset: -2px; }
+
+.chart-tooltip {
+	position: absolute; z-index: 20; pointer-events: none;
+	background: var(--o-ink); color: #fff; border-radius: 10px;
+	padding: 9px 12px; font-size: .8rem; box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+	min-width: 140px;
+}
+.chart-tooltip__title { font-weight: 700; margin-bottom: 5px; font-family: 'Figtree', sans-serif; }
+.chart-tooltip__row { display: flex; align-items: center; gap: 7px; padding: 2px 0; }
+.chart-tooltip__key { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.chart-tooltip__label { flex: 1; color: rgba(255, 255, 255, .75); }
+.chart-tooltip__row strong { font-family: 'Figtree', sans-serif; font-variant-numeric: tabular-nums; }
+
+.chart-table-wrap { margin-top: 14px; }
+.chart-table-wrap summary { cursor: pointer; font-size: .86rem; font-weight: 700; color: var(--o-green-deep); list-style: none; }
+.chart-table-wrap summary::-webkit-details-marker { display: none; }
+.chart-table-wrap summary::before { content: "▸ "; }
+.chart-table-wrap[open] summary::before { content: "▾ "; }
+.chart-table-scroll { margin-top: 10px; overflow-x: auto; border: 1px solid var(--o-line); border-radius: 12px; background: #fff; }
+.chart-table-scroll .deed-table th, .chart-table-scroll .deed-table td { white-space: nowrap; }
+
+@media (max-width: 560px) {
+	.chart-svg { min-width: 560px; }
+	.chart-card { overflow-x: auto; }
+}
