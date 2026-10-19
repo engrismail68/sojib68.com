@@ -529,15 +529,14 @@ function sojib68_render_expense_row( $i, $row ) {
 				<label><?php esc_html_e( 'টাকার পরিমাণ', 'sojib68' ); ?></label>
 				<input type="text" inputmode="decimal" data-money="expense" name="<?php echo $prefix; // phpcs:ignore ?>[amount]" value="<?php echo esc_attr( isset( $row->amount_poysha ) ? sojib68_poysha_to_display( $row->amount_poysha ) : '' ); ?>">
 			</div>
-			</div>
-			<details class="deed-row__more">
-				<summary><?php esc_html_e( 'আরও তথ্য (তারিখ, পরিশোধের অবস্থা)', 'sojib68' ); ?></summary>
-				<div class="deed-grid">
+		</div>
+		<details class="deed-row__more">
+			<summary><?php esc_html_e( 'আরও তথ্য (তারিখ, পরিশোধের অবস্থা)', 'sojib68' ); ?></summary>
+			<div class="deed-grid">
 			<div class="deed-field col-4">
 				<label><?php esc_html_e( 'পরিশোধের তারিখ', 'sojib68' ); ?></label>
 				<input type="date" name="<?php echo $prefix; // phpcs:ignore ?>[paid_date]" value="<?php echo esc_attr( $row->paid_date ?? '' ); ?>">
-				</div>
-			</details>
+			</div>
 			<div class="deed-field col-4 m-6">
 				<label><?php esc_html_e( 'পরিশোধের অবস্থা', 'sojib68' ); ?></label>
 				<select name="<?php echo $prefix; // phpcs:ignore ?>[paid_status]" data-expense="status">
@@ -556,7 +555,8 @@ function sojib68_render_expense_row( $i, $row ) {
 					<?php endforeach; ?>
 				</select>
 			</div>
-		</div>
+			</div>
+		</details>
 	</div>
 	<?php
 }
