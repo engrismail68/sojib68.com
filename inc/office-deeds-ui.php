@@ -430,6 +430,7 @@ function sojib68_office_render_entry_form() {
 	<script>window.sojib68DeedAjax = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?> };</script>
 	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deeds.js' ) ); ?>"></script>
 	<?php sojib68_office_dues_script(); ?>
+	<?php sojib68_office_deed_actions_script(); ?>
 	<?php
 }
 
@@ -685,6 +686,7 @@ function sojib68_office_render_all_deeds() {
 								<?php endif; ?>
 								<a href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন / এডিট', 'sojib68' ); ?></a>
 								<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . $row->id ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm btn-icon" title="<?php esc_attr_e( 'প্রিন্ট সারসংক্ষেপ', 'sojib68' ); ?>"><?php echo sojib68_office_icon( 'file', 15 ); // phpcs:ignore ?></a>
+							<button type="button" class="btn btn-outline btn-sm btn-icon btn-danger-outline" data-delete-deed="<?php echo (int) $row->id; ?>" title="<?php esc_attr_e( 'মুছুন', 'sojib68' ); ?>"><?php echo sojib68_office_icon( 'trash', 15 ); // phpcs:ignore ?></button>
 							</td>
 						</tr>
 						<?php if ( $row->due_poysha > 0 ) : ?>
@@ -721,6 +723,7 @@ function sojib68_office_render_all_deeds() {
 		<?php endif; ?>
 	<?php endif; ?>
 	<?php sojib68_office_dues_script(); ?>
+	<?php sojib68_office_deed_actions_script(); ?>
 	<?php
 }
 
@@ -734,6 +737,14 @@ function sojib68_office_dues_script() {
 	?>
 	<script>window.sojib68Dues = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_deed_form' ) ); ?> };</script>
 	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-dues.js' ) ); ?>"></script>
+	<?php
+}
+
+/** Delete / restore / purge button behaviour — see assets/js/office-deed-actions.js. */
+function sojib68_office_deed_actions_script() {
+	?>
+	<script>window.sojib68DeedActions = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_deed_form' ) ); ?> };</script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deed-actions.js' ) ); ?>"></script>
 	<?php
 }
 
@@ -932,6 +943,77 @@ function sojib68_office_render_dues() {
 	<?php endif; ?>
 
 	<?php sojib68_office_dues_script(); ?>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * রিসাইকেল বিন (recycle bin) — soft-deleted deeds, restorable until
+ * they auto-purge (see SOJIB68_DEEDS_TRASH_DAYS).
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_render_recycle_bin() {
+	$rows = sojib68_recycle_bin_list();
+	?>
+	<div class="dues-flash" id="office-flash" hidden></div>
+
+	<?php if ( empty( $rows ) ) : ?>
+		<div class="deed-empty-state">
+			<?php echo sojib68_office_icon( 'trash', 34 ); // phpcs:ignore ?>
+			<p><?php esc_html_e( 'রিসাইকেল বিন খালি।', 'sojib68' ); ?></p>
+		</div>
+	<?php else : ?>
+		<p class="deed-result-count">
+			<?php echo esc_html( sprintf( /* translators: %d: count */ __( 'মোট %d টি দলিল রিসাইকেল বিনে আছে', 'sojib68' ), count( $rows ) ) ); ?>
+		</p>
+		<div class="deed-table-card">
+			<table class="deed-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'মুছে ফেলার তারিখ', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'স্থায়ীভাবে মোছার বাকি', 'sojib68' ); ?></th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $rows as $row ) : ?>
+						<tr>
+							<td data-label="<?php esc_attr_e( 'দলিল', 'sojib68' ); ?>">
+								<strong class="deed-cell-main"><?php echo esc_html( $row->deed_no ? '#' . $row->deed_no : '#' . $row->id ); ?></strong>
+								<span class="deed-cell-sub"><?php echo esc_html( $row->reg_date ? $row->reg_date : ( $row->reg_year ? $row->reg_year : __( 'সাল অজানা', 'sojib68' ) ) ); ?></span>
+							</td>
+							<td data-label="<?php esc_attr_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?>">
+								<?php if ( ! empty( $row->donor_names ) || ! empty( $row->grantee_names ) ) : ?>
+									<span class="deed-party"><?php echo esc_html( implode( ', ', $row->donor_names ) ?: '—' ); ?></span>
+									<span class="deed-party-arrow" aria-hidden="true">→</span>
+									<span class="deed-party"><?php echo esc_html( implode( ', ', $row->grantee_names ) ?: '—' ); ?></span>
+								<?php else : ?>
+									<span class="deed-cell-sub">—</span>
+								<?php endif; ?>
+							</td>
+							<td data-label="<?php esc_attr_e( 'মুছে ফেলার তারিখ', 'sojib68' ); ?>">
+								<?php echo esc_html( substr( (string) $row->deleted_at, 0, 10 ) ); ?>
+							</td>
+							<td data-label="<?php esc_attr_e( 'বাকি', 'sojib68' ); ?>">
+								<?php if ( $row->days_left > 0 ) : ?>
+									<span class="deed-chip deed-chip--due"><?php echo esc_html( sprintf( /* translators: %s: days left in Bangla digits */ __( '%s দিন', 'sojib68' ), sojib68_bn_digits( $row->days_left ) ) ); ?></span>
+								<?php else : ?>
+									<span class="deed-chip deed-chip--unknown"><?php esc_html_e( 'আজই মুছে যাবে', 'sojib68' ); ?></span>
+								<?php endif; ?>
+							</td>
+							<td class="act">
+								<button type="button" class="btn btn-primary btn-sm" data-restore-deed="<?php echo (int) $row->id; ?>"><?php echo sojib68_office_icon( 'check', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'ফিরিয়ে আনুন', 'sojib68' ); ?></button>
+								<button type="button" class="btn btn-outline btn-sm btn-danger-outline" data-purge-deed="<?php echo (int) $row->id; ?>"><?php echo sojib68_office_icon( 'trash', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'এখনই স্থায়ীভাবে মুছুন', 'sojib68' ); ?></button>
+							</td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+	<?php endif; ?>
+
+	<?php sojib68_office_deed_actions_script(); ?>
 	<?php
 }
 

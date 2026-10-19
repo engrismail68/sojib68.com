@@ -547,6 +547,107 @@ function sojib68_deed_get( $deed_id ) {
 }
 
 /* ---------------------------------------------------------------------
+ * Delete / recycle bin — soft delete first, permanent after 7 days
+ * (or sooner, if someone empties it by hand from the recycle bin page).
+ * ------------------------------------------------------------------ */
+
+define( 'SOJIB68_DEEDS_TRASH_DAYS', 7 );
+
+/** Every child table a deed owns, for the restore/purge sweeps below. */
+function sojib68_deed_child_tables() {
+	return array( 'deed_donors', 'deed_grantees', 'deed_lands', 'deed_receipts', 'deed_expenses', 'deed_audit', 'submission_tokens' );
+}
+
+function sojib68_deed_soft_delete( $deed_id, $user_id ) {
+	global $wpdb;
+
+	$deed_id     = (int) $deed_id;
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM $deeds_table WHERE id = %d AND deleted_at IS NULL", $deed_id ) );
+	if ( ! $row ) {
+		return new WP_Error( 'no_deed', __( 'দলিলটি খুঁজে পাওয়া যায়নি।', 'sojib68' ) );
+	}
+
+	$ok = $wpdb->update( $deeds_table, array( 'deleted_at' => current_time( 'mysql' ) ), array( 'id' => $deed_id ) );
+	if ( false === $ok ) {
+		return new WP_Error( 'delete_failed', __( 'মুছে ফেলা যায়নি। আবার চেষ্টা করুন।', 'sojib68' ) );
+	}
+
+	sojib68_deed_audit_log( $deed_id, $user_id, 'delete', __( 'রিসাইকেল বিনে পাঠানো হয়েছে', 'sojib68' ) );
+	sojib68_deeds_resequence();
+
+	return true;
+}
+
+function sojib68_deed_restore( $deed_id, $user_id ) {
+	global $wpdb;
+
+	$deed_id     = (int) $deed_id;
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT id FROM $deeds_table WHERE id = %d AND deleted_at IS NOT NULL", $deed_id ) );
+	if ( ! $row ) {
+		return new WP_Error( 'no_deed', __( 'দলিলটি রিসাইকেল বিনে পাওয়া যায়নি — হয়তো আগেই স্থায়ীভাবে মুছে গেছে।', 'sojib68' ) );
+	}
+
+	$ok = $wpdb->update( $deeds_table, array( 'deleted_at' => null ), array( 'id' => $deed_id ) );
+	if ( false === $ok ) {
+		return new WP_Error( 'restore_failed', __( 'ফিরিয়ে আনা যায়নি। আবার চেষ্টা করুন।', 'sojib68' ) );
+	}
+
+	sojib68_deed_audit_log( $deed_id, $user_id, 'restore', __( 'রিসাইকেল বিন থেকে ফিরিয়ে আনা হয়েছে', 'sojib68' ) );
+	sojib68_deeds_resequence();
+
+	return true;
+}
+
+/** Permanently erases one deed and everything under it. Cannot be undone. */
+function sojib68_deed_purge( $deed_id ) {
+	global $wpdb;
+
+	$deed_id = (int) $deed_id;
+	foreach ( sojib68_deed_child_tables() as $child ) {
+		$wpdb->delete( sojib68_deeds_table( $child ), array( 'deed_id' => $deed_id ) );
+	}
+	$wpdb->delete( sojib68_deeds_table( 'deeds' ), array( 'id' => $deed_id ) );
+}
+
+/** Auto-purge: anything that has sat in the bin past SOJIB68_DEEDS_TRASH_DAYS. Safe to call often. */
+function sojib68_deeds_purge_expired() {
+	global $wpdb;
+
+	$deeds_table = sojib68_deeds_table( 'deeds' );
+	$cutoff      = gmdate( 'Y-m-d H:i:s', strtotime( current_time( 'mysql' ) ) - SOJIB68_DEEDS_TRASH_DAYS * DAY_IN_SECONDS );
+	$expired_ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM $deeds_table WHERE deleted_at IS NOT NULL AND deleted_at < %s", $cutoff ) );
+
+	foreach ( $expired_ids as $id ) {
+		sojib68_deed_purge( $id );
+	}
+}
+
+/** Everything currently in the bin, newest-deleted first, with days left before auto-purge. */
+function sojib68_recycle_bin_list() {
+	global $wpdb;
+
+	$deeds_table   = sojib68_deeds_table( 'deeds' );
+	$donors_table  = sojib68_deeds_table( 'deed_donors' );
+	$grantee_table = sojib68_deeds_table( 'deed_grantees' );
+
+	$rows = $wpdb->get_results( "SELECT * FROM $deeds_table WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC" );
+
+	$now = strtotime( current_time( 'mysql' ) );
+	foreach ( $rows as $row ) {
+		$deleted_at           = strtotime( $row->deleted_at );
+		$row->days_left       = max( 0, (int) ceil( ( SOJIB68_DEEDS_TRASH_DAYS * DAY_IN_SECONDS - ( $now - $deleted_at ) ) / DAY_IN_SECONDS ) );
+		$row->donor_names     = $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $donors_table WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) );
+		$row->grantee_names   = $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $grantee_table WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) );
+	}
+
+	return $rows;
+}
+
+/* ---------------------------------------------------------------------
  * Search / "সকল দলিল" listing
  * ------------------------------------------------------------------ */
 

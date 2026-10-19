@@ -122,6 +122,19 @@ function sojib68_office_clear_rate_limit() {
  * flush. Every matched route exits — nothing falls through to the
  * normal theme templates.
  */
+/**
+ * Empties expired recycle-bin entries at most once an hour — cheap
+ * enough to check on every office page load, never heavy enough to
+ * run the actual sweep more than that.
+ */
+function sojib68_office_maybe_purge_trash() {
+	if ( get_transient( 'sojib68_trash_swept' ) ) {
+		return;
+	}
+	set_transient( 'sojib68_trash_swept', 1, HOUR_IN_SECONDS );
+	sojib68_deeds_purge_expired();
+}
+
 function sojib68_office_router() {
 	$request_path = (string) wp_parse_url( add_query_arg( array() ), PHP_URL_PATH );
 	$home_path    = rtrim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
@@ -151,6 +164,8 @@ function sojib68_office_router() {
 			wp_safe_redirect( add_query_arg( 'redirect_to', urlencode( home_url( $_SERVER['REQUEST_URI'] ) ), SOJIB68_OFFICE_LOGIN_URL ) );
 			exit;
 		}
+
+		sojib68_office_maybe_purge_trash();
 
 		if ( isset( $segments[1] ) && 'logout' === $segments[1] ) {
 			sojib68_office_handle_logout();
@@ -318,6 +333,7 @@ function sojib68_office_menu_items() {
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
+		'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ),
 	);
 }
 
@@ -328,12 +344,13 @@ function sojib68_office_render_dashboard( $page_key ) {
 	}
 
 	$user  = wp_get_current_user();
-	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock' );
+	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'recycle-bin' => 'trash' );
 	$subs  = array(
-		'dashboard' => __( 'আপনার সব দলিল ও হিসাবের এক নজরে সারসংক্ষেপ', 'sojib68' ),
-		'entry-new' => __( 'যতটুকু তথ্য জানেন ততটুকুই লিখুন — সব ঘর ঐচ্ছিক', 'sojib68' ),
-		'all-deeds' => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
-		'dues'      => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
+		'dashboard'    => __( 'আপনার সব দলিল ও হিসাবের এক নজরে সারসংক্ষেপ', 'sojib68' ),
+		'entry-new'    => __( 'যতটুকু তথ্য জানেন ততটুকুই লিখুন — সব ঘর ঐচ্ছিক', 'sojib68' ),
+		'all-deeds'    => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
+		'dues'         => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
+		'recycle-bin'  => __( 'মুছে ফেলা দলিল ৭ দিন পর্যন্ত এখানে থাকে, চাইলে ফিরিয়ে আনুন', 'sojib68' ),
 	);
 
 	$page_title = $menu[ $page_key ];
@@ -400,11 +417,15 @@ function sojib68_office_render_dashboard( $page_key ) {
 							<?php if ( ! empty( $subs[ $page_key ] ) ) : ?><p><?php echo esc_html( $subs[ $page_key ] ); ?></p><?php endif; ?>
 						</div>
 						<?php if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) : ?>
-							<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . (int) $_GET['id'] ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'file', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রিন্ট সারসংক্ষেপ', 'sojib68' ); ?></a>
+							<span class="office-pagehead__actions">
+								<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . (int) $_GET['id'] ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'file', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রিন্ট সারসংক্ষেপ', 'sojib68' ); ?></a>
+								<button type="button" class="btn btn-outline btn-sm btn-danger-outline" data-delete-deed="<?php echo (int) $_GET['id']; ?>" data-after="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' ) ); ?>"><?php echo sojib68_office_icon( 'trash', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
+							</span>
 						<?php elseif ( 'entry-new' !== $page_key ) : ?>
 							<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ); ?>" class="btn btn-primary btn-sm"><?php echo sojib68_office_icon( 'plus', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'নতুন দলিল', 'sojib68' ); ?></a>
 						<?php endif; ?>
 					</div>
+					<div class="dues-flash" id="office-flash" hidden></div>
 					<?php echo sojib68_office_render_section( $page_key ); // phpcs:ignore ?>
 				</main>
 			</div>
@@ -449,6 +470,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'dues':
 			ob_start();
 			sojib68_office_render_dues();
+			return ob_get_clean();
+
+		case 'recycle-bin':
+			ob_start();
+			sojib68_office_render_recycle_bin();
 			return ob_get_clean();
 
 		default:

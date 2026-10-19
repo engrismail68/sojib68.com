@@ -196,3 +196,40 @@ function sojib68_ajax_delete_payment() {
 
 	wp_send_json_success( array( 'message' => __( 'এন্ট্রি মুছে ফেলা হয়েছে।', 'sojib68' ) ) );
 }
+
+add_action( 'wp_ajax_sojib68_delete_deed', 'sojib68_ajax_delete_deed' );
+function sojib68_ajax_delete_deed() {
+	sojib68_deeds_ajax_guard();
+
+	$result = sojib68_deed_soft_delete( isset( $_POST['deed_id'] ) ? (int) $_POST['deed_id'] : 0, get_current_user_id() );
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	}
+
+	wp_send_json_success( array( 'message' => __( 'দলিলটি রিসাইকেল বিনে পাঠানো হয়েছে। ৭ দিনের মধ্যে ফিরিয়ে আনা যাবে।', 'sojib68' ) ) );
+}
+
+add_action( 'wp_ajax_sojib68_restore_deed', 'sojib68_ajax_restore_deed' );
+function sojib68_ajax_restore_deed() {
+	sojib68_deeds_ajax_guard();
+
+	$result = sojib68_deed_restore( isset( $_POST['deed_id'] ) ? (int) $_POST['deed_id'] : 0, get_current_user_id() );
+	if ( is_wp_error( $result ) ) {
+		wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+	}
+
+	wp_send_json_success( array( 'message' => __( 'দলিলটি ফিরিয়ে আনা হয়েছে।', 'sojib68' ) ) );
+}
+
+add_action( 'wp_ajax_sojib68_purge_deed', 'sojib68_ajax_purge_deed' );
+function sojib68_ajax_purge_deed() {
+	sojib68_deeds_ajax_guard();
+
+	$deed_id = isset( $_POST['deed_id'] ) ? (int) $_POST['deed_id'] : 0;
+	if ( ! $deed_id ) {
+		wp_send_json_error( array( 'message' => __( 'দলিলটি পাওয়া যায়নি।', 'sojib68' ) ) );
+	}
+
+	sojib68_deed_purge( $deed_id );
+	wp_send_json_success( array( 'message' => __( 'দলিলটি স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'sojib68' ) ) );
+}
