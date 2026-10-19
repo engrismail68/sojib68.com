@@ -55,13 +55,18 @@ function sojib68_enqueue_assets() {
 		array(),
 		null
 	);
-	wp_enqueue_style( 'sojib68-style', get_stylesheet_uri(), array( 'sojib68-fonts' ), '1.0.0' );
+	$style_version = file_exists( get_stylesheet_directory() . '/style.css' )
+		? filemtime( get_stylesheet_directory() . '/style.css' )
+		: '1.0.0';
+	wp_enqueue_style( 'sojib68-style', get_stylesheet_uri(), array( 'sojib68-fonts' ), $style_version );
 
+	$script_path = get_theme_file_path( 'assets/js/main.js' );
+	$script_version = file_exists( $script_path ) ? filemtime( $script_path ) : '1.0.0';
 	wp_enqueue_script(
 		'sojib68-main',
 		get_theme_file_uri( 'assets/js/main.js' ),
 		array(),
-		'1.0.0',
+		$script_version,
 		true
 	);
 
