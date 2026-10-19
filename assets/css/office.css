@@ -618,3 +618,29 @@
 	.chart-svg { min-width: 560px; }
 	.chart-card { overflow-x: auto; }
 }
+
+/* ---------- Filterable period totals (top of dashboard) ---------- */
+.period-section { margin-bottom: 26px; }
+.period-head { margin-bottom: 10px; }
+.period-head h2 { margin: 0; font-size: 1.05rem; color: var(--o-ink); }
+.period-filters { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-bottom: 14px; }
+.period-filter { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.period-filter__label { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; font-weight: 700; color: var(--o-muted); }
+.period-filter select {
+	min-height: 38px; padding: 0 10px; border: 1px solid var(--o-line); border-radius: 9px;
+	font-family: inherit; font-size: .86rem; background: #fff; color: var(--o-ink);
+}
+.period-filter .btn { min-height: 38px; padding: 0 14px; }
+
+.period-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .period-cards { grid-template-columns: 1fr; } }
+
+.period-card { background: #fff; border: 1px solid var(--o-line); border-top: 3px solid var(--tone, var(--o-line)); border-radius: var(--o-radius); box-shadow: var(--o-shadow); padding: 14px 18px 16px; }
+.period-card__head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.period-card__icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--tone-bg, #eee); color: var(--tone, #333); }
+.period-card__head h3 { margin: 0; font-size: .96rem; color: var(--o-ink); }
+.period-card__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.period-card__grid > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.period-card__grid span { font-size: .72rem; color: var(--o-muted); font-weight: 600; }
+.period-card__grid strong { font-family: 'Figtree', sans-serif; font-size: 1rem; color: var(--o-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 420px) { .period-card__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

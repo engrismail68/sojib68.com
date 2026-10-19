@@ -1041,3 +1041,62 @@ function sojib68_dues_list( array $filters, $paged = 1, $per_page = 15 ) {
 		'total_pages' => (int) ceil( $total / $per_page ),
 	);
 }
+
+/**
+ * Totals for one filterable period: a single month of a year (when
+ * $month is given) or a whole year (when it's null — also includes
+ * deeds that only have a reg_year and no exact reg_date, the way the
+ * yearly chart does).
+ */
+function sojib68_office_period_stats( $year, $month = null ) {
+	global $wpdb;
+
+	$raw = sojib68_office_report_raw_rows( $year );
+
+	$deeds_count = 0;
+	$deed_value  = 0;
+	$collected   = 0;
+	$expenses    = 0;
+
+	foreach ( $raw['deeds'] as $row ) {
+		if ( $month && (int) substr( (string) $row->reg_date, 5, 2 ) !== (int) $month ) {
+			continue;
+		}
+		$deeds_count++;
+		$deed_value += (int) $row->deed_value_poysha;
+	}
+	foreach ( $raw['receipts'] as $row ) {
+		if ( $month && (int) substr( (string) $row->received_date, 5, 2 ) !== (int) $month ) {
+			continue;
+		}
+		$collected += (int) $row->amount_poysha;
+	}
+	foreach ( $raw['expenses'] as $row ) {
+		if ( $month && (int) substr( (string) $row->paid_date, 5, 2 ) !== (int) $month ) {
+			continue;
+		}
+		$expenses += (int) $row->amount_poysha;
+	}
+
+	// Whole-year view only: also count deeds that were only ever given a
+	// reg_year (no exact date), so they aren't invisible from every report.
+	if ( ! $month ) {
+		$deeds_table = sojib68_deeds_table( 'deeds' );
+		$extra       = $wpdb->get_results( $wpdb->prepare(
+			"SELECT deed_value_poysha FROM $deeds_table WHERE deleted_at IS NULL AND reg_date IS NULL AND reg_year = %d",
+			$year
+		) );
+		foreach ( $extra as $row ) {
+			$deeds_count++;
+			$deed_value += (int) $row->deed_value_poysha;
+		}
+	}
+
+	return array(
+		'deeds_count' => $deeds_count,
+		'deed_value'  => $deed_value,
+		'collected'   => $collected,
+		'expenses'    => $expenses,
+		'profit'      => $collected - $expenses,
+	);
+}

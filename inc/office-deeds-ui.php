@@ -137,6 +137,8 @@ function sojib68_deed_card_close() {
  * ------------------------------------------------------------------ */
 
 function sojib68_office_render_dashboard_home() {
+	sojib68_office_render_period_stats();
+
 	$stats = sojib68_office_dashboard_stats();
 
 	$tiles = array(
@@ -1296,5 +1298,104 @@ function sojib68_office_render_report_section() {
 
 	<div class="chart-tooltip" id="chart-tooltip" hidden></div>
 	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-dashboard.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-dashboard.js' ) ); // phpcs:ignore ?>"></script>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * Filterable period totals (এই মাসে / এই বছরে, or any month/year)
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_hidden_get_fields( array $skip ) {
+	foreach ( $_GET as $key => $val ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( in_array( $key, $skip, true ) || ! is_scalar( $val ) ) {
+			continue;
+		}
+		echo '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( sanitize_text_field( wp_unslash( $val ) ) ) . '">';
+	}
+}
+
+function sojib68_office_render_period_card( $tone, $icon, $title, $stats ) {
+	?>
+	<div class="period-card tone-<?php echo esc_attr( $tone ); ?>">
+		<div class="period-card__head">
+			<span class="period-card__icon"><?php echo sojib68_office_icon( $icon, 18 ); // phpcs:ignore ?></span>
+			<h3><?php echo esc_html( $title ); ?></h3>
+		</div>
+		<div class="period-card__grid">
+			<div><span><?php esc_html_e( 'দলিল', 'sojib68' ); ?></span><strong><?php echo esc_html( number_format( $stats['deeds_count'] ) ); ?></strong></div>
+			<div><span><?php esc_html_e( 'মূল্য', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['deed_value'] ); // phpcs:ignore ?></strong></div>
+			<div><span><?php esc_html_e( 'আয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['collected'] ); // phpcs:ignore ?></strong></div>
+			<div><span><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['expenses'] ); // phpcs:ignore ?></strong></div>
+		</div>
+	</div>
+	<?php
+}
+
+function sojib68_office_render_period_stats() {
+	$now_year  = (int) current_time( 'Y' );
+	$now_month = (int) current_time( 'n' );
+
+	$m_month = isset( $_GET['period_month'] ) ? max( 1, min( 12, (int) $_GET['period_month'] ) ) : $now_month;
+	$m_year  = isset( $_GET['period_month_year'] ) ? (int) $_GET['period_month_year'] : $now_year;
+	$y_year  = isset( $_GET['period_year'] ) ? (int) $_GET['period_year'] : $now_year;
+
+	$monthly = sojib68_office_period_stats( $m_year, $m_month );
+	$yearly  = sojib68_office_period_stats( $y_year, null );
+
+	$base        = home_url( '/' . SOJIB68_OFFICE_BASE . '/dashboard' );
+	$year_choices = range( $now_year, $now_year - 9 );
+	$is_current_month = ( $m_month === $now_month && $m_year === $now_year );
+	$is_current_year  = ( $y_year === $now_year );
+	?>
+	<section class="period-section">
+		<div class="period-head">
+			<h2><?php esc_html_e( 'নির্দিষ্ট সময়ের হিসাব', 'sojib68' ); ?></h2>
+		</div>
+		<div class="period-filters">
+			<form method="get" action="<?php echo esc_url( $base ); ?>" class="period-filter">
+				<span class="period-filter__label"><?php echo sojib68_office_icon( 'filter', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'মাসিক হিসাব', 'sojib68' ); ?></span>
+				<?php sojib68_office_hidden_get_fields( array( 'period_month', 'period_month_year' ) ); ?>
+				<select name="period_month">
+					<?php for ( $mn = 1; $mn <= 12; $mn++ ) : ?>
+						<option value="<?php echo (int) $mn; ?>" <?php selected( $m_month, $mn ); ?>><?php echo esc_html( sojib68_bn_month_label( $mn ) ); ?></option>
+					<?php endfor; ?>
+				</select>
+				<select name="period_month_year">
+					<?php foreach ( $year_choices as $yr ) : ?>
+						<option value="<?php echo (int) $yr; ?>" <?php selected( $m_year, $yr ); ?>><?php echo esc_html( sojib68_bn_digits( $yr ) ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখান', 'sojib68' ); ?></button>
+			</form>
+
+			<form method="get" action="<?php echo esc_url( $base ); ?>" class="period-filter">
+				<span class="period-filter__label"><?php echo sojib68_office_icon( 'filter', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'বার্ষিক হিসাব', 'sojib68' ); ?></span>
+				<?php sojib68_office_hidden_get_fields( array( 'period_year' ) ); ?>
+				<select name="period_year">
+					<?php foreach ( $year_choices as $yr ) : ?>
+						<option value="<?php echo (int) $yr; ?>" <?php selected( $y_year, $yr ); ?>><?php echo esc_html( sojib68_bn_digits( $yr ) ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখান', 'sojib68' ); ?></button>
+			</form>
+		</div>
+
+		<div class="period-cards">
+			<?php
+			sojib68_office_render_period_card(
+				'blue',
+				'clock',
+				$is_current_month ? __( 'এই মাসে', 'sojib68' ) : sojib68_bn_month_label( $m_month ) . ' ' . sojib68_bn_digits( $m_year ),
+				$monthly
+			);
+			sojib68_office_render_period_card(
+				'green',
+				'trending',
+				$is_current_year ? __( 'এই বছরে', 'sojib68' ) : sojib68_bn_digits( $y_year ),
+				$yearly
+			);
+			?>
+		</div>
+	</section>
 	<?php
 }
