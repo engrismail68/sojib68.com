@@ -639,8 +639,8 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 /* ---------------------------------------------------------------------
  * Dashboard summary stats.
  *
- * "Profit" = the amount agreed with the client minus the expenses
- * recorded on the deed (bank challan, office fee, stamp, other).
+ * "Profit" = amount collected from clients minus recorded expenses
+ * (bank challan, office fee, stamp, other).
  * ------------------------------------------------------------------ */
 
 function sojib68_office_dashboard_stats() {
@@ -666,12 +666,8 @@ function sojib68_office_dashboard_stats() {
 		 INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL"
 	);
 
-	// Per-deed profit = agreed amount from the client minus all recorded
-	// expenses; deeds with no agreed amount are skipped (unknown, not zero).
-	$total_profit = (int) $wpdb->get_var(
-		"SELECT COALESCE(SUM(d.client_total_due_poysha - COALESCE((SELECT SUM(e.amount_poysha) FROM $expenses e WHERE e.deed_id = d.id), 0)), 0)
-		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
-	);
+	// Profit = money actually collected from clients minus recorded expenses.
+	$total_profit = $total_collected - $total_expenses;
 
 	// Total outstanding due: per deed, max(0, due) — so an advance on
 	// one deed never offsets a due on another when summed.

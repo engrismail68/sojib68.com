@@ -79,6 +79,10 @@ function sojib68_deed_collect_post_data() {
 			return $out;
 		}
 		foreach ( wp_unslash( $_POST[ $key ] ) as $row ) {
+			// Money rows with no amount typed are simply not recorded.
+			if ( in_array( $key, array( 'receipts', 'expenses' ), true ) && '' === trim( (string) ( $row['amount'] ?? '' ) ) ) {
+				continue;
+			}
 			$clean = array();
 			foreach ( $fields as $field ) {
 				$clean[ $field ] = isset( $row[ $field ] ) ? $row[ $field ] : '';

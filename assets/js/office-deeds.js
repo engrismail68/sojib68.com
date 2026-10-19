@@ -94,16 +94,15 @@
 		} );
 
 		var expenses = 0;
-		form.querySelectorAll( '[data-repeat="expenses"] .deed-row' ).forEach( function ( row ) {
-			var amt = toNumber( ( row.querySelector( '[data-money="expense"]' ) || {} ).value ) || 0;
-			expenses += amt;
+		form.querySelectorAll( '[data-money="expense"]' ).forEach( function ( el ) {
+			expenses += toNumber( el.value ) || 0;
 		} );
 
 		setSum( 'value', null === value ? '—' : fmt( value ) );
 		setSum( 'total_due', null === totalDue ? '—' : fmt( totalDue ) );
 		setSum( 'received', fmt( received ) );
 		setSum( 'expenses', fmt( expenses ) );
-		setSum( 'profit', null === totalDue ? '—' : fmt( totalDue - expenses ) );
+		setSum( 'profit', fmt( received - expenses ) );
 
 		var chip = form.querySelector( '[data-sum="status"]' );
 		var cls = 'deed-chip deed-chip--unknown';
@@ -128,6 +127,8 @@
 	form.addEventListener( 'input', updateSummary );
 	form.addEventListener( 'change', updateSummary );
 	updateSummary();
+	window.addEventListener( 'pageshow', updateSummary );
+	setTimeout( updateSummary, 300 );
 
 	/* ---------------- Add custom office / deed type (AJAX, form data preserved) ---------------- */
 
