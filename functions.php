@@ -78,32 +78,102 @@ add_action( 'wp_enqueue_scripts', 'sojib68_enqueue_assets' );
  */
 function sojib68_get_services() {
 	return array(
-		'buy-sell-registration' => array(
-			'number' => '০১',
-			'title'  => 'জমি কেনাবেচা ও রেজিস্ট্রেশন',
-			'text'   => 'কেনাবেচার প্রস্তুতি, প্রয়োজনীয় কাগজপত্র এবং দলিল রেজিস্ট্রেশনের ধাপে সহায়তা।',
+		'registration'     => array(
+			'title' => 'জমি রেজিস্ট্রেশন',
+			'text'  => 'প্রয়োজনীয় কাগজপত্র ও দলিল রেজিস্ট্রেশনের বিভিন্ন ধাপে সহায়তা।',
+			'icon'  => 'document',
 		),
-		'mutation-tax'          => array(
-			'number' => '০২',
-			'title'  => 'নামজারি ও ভূমি উন্নয়ন কর',
-			'text'   => 'নামজারি আবেদন ও ভূমি উন্নয়ন করসংক্রান্ত প্রয়োজনীয় কাজে সহায়তা।',
+		'buy-sell'         => array(
+			'title' => 'জমি কেনাবেচা',
+			'text'  => 'জমি কেনা বা বিক্রির প্রস্তুতি ও প্রয়োজনীয় প্রক্রিয়ায় পরামর্শ এবং সহায়তা।',
+			'icon'  => 'handshake',
 		),
-		'document-search'       => array(
-			'number' => '০৩',
-			'title'  => 'দলিল অনুসন্ধান ও সার্টিফাইড কপি',
-			'text'   => 'হারানো বা পুরোনো দলিলের তথ্য অনুসন্ধান এবং সার্টিফাইড কপি সংগ্রহে সহায়তা।',
+		'mutation'         => array(
+			'title' => 'নামজারি',
+			'text'  => 'নামজারি আবেদন ও সংশ্লিষ্ট প্রক্রিয়ায় প্রয়োজনীয় সহায়তা।',
+			'icon'  => 'stamp',
 		),
-		'document-issue'        => array(
-			'number' => '০৪',
-			'title'  => 'কাগজপত্রের জটিলতা ও পরামর্শ',
-			'text'   => 'দলিল ও সংশ্লিষ্ট কাগজপত্র নিয়ে সমস্যায় প্রয়োজনীয় করণীয় বুঝতে সহায়তা।',
+		'land-tax'         => array(
+			'title' => 'ভূমি উন্নয়ন কর',
+			'text'  => 'ভূমি উন্নয়ন করসংক্রান্ত অনলাইন ও প্রয়োজনীয় অন্যান্য কাজে সহায়তা।',
+			'icon'  => 'receipt',
 		),
-		'measurement'           => array(
-			'number' => '০৫',
-			'title'  => 'জমি পরিমাপ',
-			'text'   => 'জমির পরিমাণ নির্ণয় ও পরিমাপসংক্রান্ত সেবার ব্যবস্থা।',
+		'lost-deed'        => array(
+			'title' => 'হারানো দলিল অনুসন্ধান',
+			'text'  => 'উপলব্ধ তথ্যের ভিত্তিতে হারানো বা পুরোনো দলিল অনুসন্ধানে সহায়তা।',
+			'icon'  => 'search',
+		),
+		'certified-copy'   => array(
+			'title' => 'দলিলের সার্টিফাইড কপি',
+			'text'  => 'সংশ্লিষ্ট অফিস থেকে দলিলের সার্টিফাইড কপি সংগ্রহে সহায়তা।',
+			'icon'  => 'certificate',
+		),
+		'document-issue'   => array(
+			'title' => 'জমির কাগজপত্রের জটিলতা',
+			'text'  => 'দলিল ও সংশ্লিষ্ট কাগজপত্র নিয়ে সমস্যায় করণীয় সম্পর্কে পরামর্শ।',
+			'icon'  => 'alert',
+		),
+		'consultation'     => array(
+			'title' => 'ভূমিবিষয়ক পরামর্শ',
+			'text'  => 'জমিসংক্রান্ত বিষয় বুঝে প্রয়োজনীয় পদক্ষেপ ও প্রাসঙ্গিক বিশেষজ্ঞের সহায়তা সম্পর্কে নির্দেশনা।',
+			'icon'  => 'compass',
+		),
+		'measurement'      => array(
+			'title' => 'জমি পরিমাপ',
+			'text'  => 'জমি পরিমাপ ও পরিমাণ নির্ণয়সংক্রান্ত সেবার ব্যবস্থা।',
+			'icon'  => 'ruler',
 		),
 	);
+}
+
+/**
+ * Inline line icons used as the service card "media" area, in place of
+ * stock photography we don't have real/licensed images for.
+ */
+function sojib68_service_icon( $name ) {
+	$icons = array(
+		'document'    => '<path d="M14 4h14l10 10v26a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M28 4v10h10"/><path d="M18 26h12M18 33h12"/>',
+		'handshake'   => '<path d="M6 24l8-8 8 8 4-4 4 4 8-8 4 4"/><path d="M6 24v8a4 4 0 0 0 4 4h4"/><path d="M38 24v8a4 4 0 0 1-4 4h-4"/>',
+		'stamp'       => '<circle cx="24" cy="16" r="8"/><path d="M14 40l4-10h12l4 10"/><path d="M24 24v6"/>',
+		'receipt'     => '<path d="M12 6h24v36l-6-4-6 4-6-4-6 4z"/><path d="M18 16h12M18 24h12"/>',
+		'search'      => '<circle cx="21" cy="21" r="13"/><path d="M40 40l-8-8"/>',
+		'certificate' => '<rect x="8" y="8" width="32" height="24" rx="2"/><circle cx="24" cy="34" r="6"/><path d="M20 38l-2 6 6-3 6 3-2-6"/>',
+		'alert'       => '<path d="M24 6L4 40h40L24 6z"/><path d="M24 20v10"/><circle cx="24" cy="34" r="1" fill="currentColor"/>',
+		'compass'     => '<circle cx="24" cy="24" r="16"/><path d="M30 18l-4 10-10 4 4-10z"/>',
+		'ruler'       => '<path d="M6 30l24-24 12 12-24 24z"/><path d="M20 16l4 4M14 22l4 4M26 10l4 4"/>',
+	);
+
+	if ( ! isset( $icons[ $name ] ) ) {
+		$name = 'document';
+	}
+
+	return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icons[ $name ] . '</svg>';
+}
+
+/**
+ * Inline icons for the "যেভাবে কাজ করি" row.
+ */
+function sojib68_work_icon( $name ) {
+	$icons = array(
+		'discuss' => '<path d="M6 8h24v16H14l-5 5v-5H6z"/><path d="M18 28h18l5 5v-5h5V12H24"/>',
+		'folder'  => '<path d="M4 10h11l3 4h18v20H4z"/>',
+		'clarity' => '<circle cx="18" cy="15" r="9"/><path d="M18 24v5M14 32h8M15 29h6"/>',
+		'update'  => '<path d="M6 18a12 12 0 0 1 20-9l4-4v10H20l4-4a8 8 0 0 0-13 6"/><path d="M30 18a12 12 0 0 1-20 9l-4 4V21h10l-4 4a8 8 0 0 0 13-6"/>',
+	);
+
+	if ( ! isset( $icons[ $name ] ) ) {
+		$name = 'discuss';
+	}
+
+	return '<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icons[ $name ] . '</svg>';
+}
+
+/**
+ * Verified stat counters (e.g. years of experience). Hidden entirely
+ * while empty — no estimated or invented numbers are ever shown.
+ */
+function sojib68_get_stats() {
+	return array();
 }
 
 /**

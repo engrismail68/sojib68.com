@@ -33,7 +33,7 @@
 					<img
 						src="<?php echo esc_url( get_theme_file_uri( 'assets/images/logo.webp' ) ); ?>"
 						alt="<?php echo esc_attr( get_bloginfo( 'name' ) . ' — Land & IT Consultant' ); ?>"
-						class="site-logo-img"
+						class="site-logo-img logo-on-dark"
 						width="220"
 						height="73"
 					>
@@ -56,7 +56,7 @@
 				<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
-			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-primary nav-cta"><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>
+			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-outline-light nav-cta"><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>
 		</nav>
 	</div>
 </header>

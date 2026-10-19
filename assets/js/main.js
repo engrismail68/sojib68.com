@@ -21,34 +21,8 @@
 		} );
 	}
 
-	// Numbered service rows: click/Enter toggles the panel; only one open at a time.
-	document.querySelectorAll( '[data-service-row]' ).forEach( function ( row ) {
-		var header = row.querySelector( '.service-row__header' );
-		var panel = row.querySelector( '.service-row__panel' );
-		if ( ! header || ! panel ) {
-			return;
-		}
-
-		header.addEventListener( 'click', function () {
-			var willOpen = ! row.classList.contains( 'is-open' );
-
-			document.querySelectorAll( '[data-service-row].is-open' ).forEach( function ( openRow ) {
-				if ( openRow !== row ) {
-					openRow.classList.remove( 'is-open' );
-					var openHeader = openRow.querySelector( '.service-row__header' );
-					if ( openHeader ) {
-						openHeader.setAttribute( 'aria-expanded', 'false' );
-					}
-				}
-			} );
-
-			row.classList.toggle( 'is-open', willOpen );
-			header.setAttribute( 'aria-expanded', willOpen ? 'true' : 'false' );
-		} );
-	} );
-
-	// Pre-select a service when its "এই বিষয়ে কথা বলুন" link is used.
-	document.querySelectorAll( '.service-row__link[data-service]' ).forEach( function ( link ) {
+	// Pre-select a service when a service card's "বিস্তারিত জানুন" is used.
+	document.querySelectorAll( '.service-card__cta[data-service]' ).forEach( function ( link ) {
 		link.addEventListener( 'click', function () {
 			var select = document.getElementById( 'field-service' );
 			if ( select ) {
