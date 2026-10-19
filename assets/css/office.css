@@ -543,3 +543,6 @@
 	.deed-collect-row td { display: block; padding: 0 0 10px; }
 	.deed-collect-row td::before { content: none; }
 }
+
+/* ---------- Icon-only small button (e.g. print link in a table row) ---------- */
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }

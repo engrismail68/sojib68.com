@@ -157,6 +157,11 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'print' === $segments[1] ) {
+			sojib68_office_render_print( isset( $segments[2] ) ? (int) $segments[2] : 0 );
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_office_render_dashboard( $page_key );
 		exit;
@@ -394,7 +399,9 @@ function sojib68_office_render_dashboard( $page_key ) {
 							<h1><?php echo esc_html( $page_title ); ?></h1>
 							<?php if ( ! empty( $subs[ $page_key ] ) ) : ?><p><?php echo esc_html( $subs[ $page_key ] ); ?></p><?php endif; ?>
 						</div>
-						<?php if ( 'entry-new' !== $page_key ) : ?>
+						<?php if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) : ?>
+							<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . (int) $_GET['id'] ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'file', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রিন্ট সারসংক্ষেপ', 'sojib68' ); ?></a>
+						<?php elseif ( 'entry-new' !== $page_key ) : ?>
 							<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ); ?>" class="btn btn-primary btn-sm"><?php echo sojib68_office_icon( 'plus', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'নতুন দলিল', 'sojib68' ); ?></a>
 						<?php endif; ?>
 					</div>

@@ -673,6 +673,7 @@ function sojib68_office_render_all_deeds() {
 									<button type="button" class="btn btn-primary btn-sm" data-toggle-collect data-collect-for="deed-<?php echo (int) $row->id; ?>"><?php echo sojib68_office_icon( 'wallet', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'পরিশোধ', 'sojib68' ); ?></button>
 								<?php endif; ?>
 								<a href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন / এডিট', 'sojib68' ); ?></a>
+								<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . $row->id ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm btn-icon" title="<?php esc_attr_e( 'প্রিন্ট সারসংক্ষেপ', 'sojib68' ); ?>"><?php echo sojib68_office_icon( 'file', 15 ); // phpcs:ignore ?></a>
 							</td>
 						</tr>
 						<?php if ( $row->due_poysha > 0 ) : ?>
@@ -893,6 +894,7 @@ function sojib68_office_render_dues() {
 					<div class="due-card__actions">
 						<button type="button" class="btn btn-primary btn-sm" data-toggle-collect><?php echo sojib68_office_icon( 'wallet', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'টাকা আদায় করুন', 'sojib68' ); ?></button>
 						<a href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দলিল দেখুন', 'sojib68' ); ?></a>
+						<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/print/' . $row->id ) ); ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'file', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রিন্ট', 'sojib68' ); ?></a>
 					</div>
 
 					<div class="due-card__collect collect-panel" hidden>
@@ -919,5 +921,189 @@ function sojib68_office_render_dues() {
 	<?php endif; ?>
 
 	<?php sojib68_office_dues_script(); ?>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * Print summary (একক দলিলের প্রিন্ট-যোগ্য সারসংক্ষেপ)
+ *
+ * A standalone page — no sidebar/topbar — so it prints cleanly and a
+ * browser's "Save as PDF" turns it straight into a PDF. Still behind
+ * the same office login as everything else in this file.
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_render_print( $deed_id ) {
+	$deed = $deed_id ? sojib68_deed_get( $deed_id ) : null;
+
+	if ( ! $deed ) {
+		wp_die( esc_html__( 'দলিলটি খুঁজে পাওয়া যায়নি।', 'sojib68' ), '', array( 'response' => 404 ) );
+	}
+
+	$user = wp_get_current_user();
+
+	$categories = sojib68_expense_category_options();
+	$exp_sums   = array_fill_keys( array_keys( $categories ), 0 );
+	foreach ( $deed->expenses as $e ) {
+		$key = isset( $exp_sums[ $e->category ] ) ? $e->category : 'other';
+		$exp_sums[ $key ] += (int) $e->amount_poysha;
+	}
+	$total_expenses = array_sum( $exp_sums );
+
+	$total_due = (int) $deed->client_total_due_poysha;
+	$collected = (int) $deed->total_received_poysha;
+	$methods   = sojib68_payment_method_options();
+	?>
+	<!DOCTYPE html>
+	<html <?php language_attributes(); ?>>
+	<head>
+		<meta charset="<?php bloginfo( 'charset' ); ?>">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="robots" content="noindex, nofollow">
+		<title><?php echo esc_html( sprintf( /* translators: %s: deed number or id */ __( 'দলিল সারসংক্ষেপ — %s', 'sojib68' ), $deed->deed_no ? $deed->deed_no : '#' . $deed->id ) ); ?></title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap">
+		<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/office-print.css' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/css/office-print.css' ) ); // phpcs:ignore ?>">
+	</head>
+	<body class="print-body">
+		<div class="print-bar no-print">
+			<a href="<?php echo esc_url( add_query_arg( 'id', $deed->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'arrow-left', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'দলিলে ফিরুন', 'sojib68' ); ?></a>
+			<button type="button" class="btn btn-primary btn-sm" onclick="window.print()"><?php echo sojib68_office_icon( 'file', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রিন্ট করুন / PDF সেভ করুন', 'sojib68' ); ?></button>
+		</div>
+
+		<article class="print-page">
+			<header class="print-head">
+				<?php if ( get_theme_file_path( 'assets/images/logo.webp' ) && file_exists( get_theme_file_path( 'assets/images/logo.webp' ) ) ) : ?>
+					<img src="<?php echo esc_url( get_theme_file_uri( 'assets/images/logo.webp' ) ); ?>" alt="" class="print-head__logo" width="150" height="41">
+				<?php endif; ?>
+				<div class="print-head__biz">
+					<strong><?php bloginfo( 'name' ); ?></strong>
+					<?php if ( SOJIB68_ADDRESS ) : ?><span><?php echo esc_html( SOJIB68_ADDRESS ); ?></span><?php endif; ?>
+					<?php if ( SOJIB68_PHONE ) : ?><span><?php esc_html_e( 'ফোন', 'sojib68' ); ?>: <?php echo esc_html( SOJIB68_PHONE ); ?></span><?php endif; ?>
+				</div>
+			</header>
+
+			<h1 class="print-title">
+				<?php esc_html_e( 'দলিল সারসংক্ষেপ', 'sojib68' ); ?>
+				<span><?php echo esc_html( $deed->deed_no ? '#' . $deed->deed_no : '#' . $deed->id ); ?></span>
+			</h1>
+			<p class="print-meta"><?php echo esc_html( sprintf( /* translators: 1: date, 2: printed-by name */ __( 'প্রিন্ট করা হয়েছে: %1$s, %2$s কর্তৃক', 'sojib68' ), date_i18n( 'd-m-Y h:i A' ), $user->display_name ) ); ?></p>
+
+			<section class="print-section">
+				<h2><?php esc_html_e( 'দলিলের পরিচয়', 'sojib68' ); ?></h2>
+				<table class="print-kv">
+					<tr><th><?php esc_html_e( 'সাব-রেজিস্ট্রেশন অফিস', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->sub_registry_office ?: '—' ); ?></td></tr>
+					<tr><th><?php esc_html_e( 'দলিলের ধরন', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->deed_type ?: '—' ); ?></td></tr>
+					<tr><th><?php esc_html_e( 'রেজিস্ট্রেশনের তারিখ', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->reg_date ? $deed->reg_date : ( $deed->reg_year ? $deed->reg_year : '—' ) ); ?></td></tr>
+					<tr><th><?php esc_html_e( 'দলিলের মূল্য', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $deed->deed_value_poysha ); // phpcs:ignore ?></td></tr>
+				</table>
+			</section>
+
+			<?php if ( array_filter( $deed->donors, fn( $d ) => '' !== trim( (string) ( $d->name ?? '' ) ) ) ) : ?>
+				<section class="print-section">
+					<h2><?php esc_html_e( 'দাতার তথ্য', 'sojib68' ); ?></h2>
+					<table class="print-table">
+						<thead><tr><th><?php esc_html_e( 'নাম', 'sojib68' ); ?></th><th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th><th><?php esc_html_e( 'ঠিকানা', 'sojib68' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( $deed->donors as $p ) : if ( '' === trim( (string) ( $p->name ?? '' ) ) ) { continue; } ?>
+							<tr><td><?php echo esc_html( $p->name ); ?></td><td><?php echo esc_html( $p->mobile ?: '—' ); ?></td><td><?php echo esc_html( $p->address ?: '—' ); ?></td></tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</section>
+			<?php endif; ?>
+
+			<?php if ( array_filter( $deed->grantees, fn( $d ) => '' !== trim( (string) ( $d->name ?? '' ) ) ) ) : ?>
+				<section class="print-section">
+					<h2><?php esc_html_e( 'গ্রহীতার তথ্য', 'sojib68' ); ?></h2>
+					<table class="print-table">
+						<thead><tr><th><?php esc_html_e( 'নাম', 'sojib68' ); ?></th><th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th><th><?php esc_html_e( 'ঠিকানা', 'sojib68' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( $deed->grantees as $p ) : if ( '' === trim( (string) ( $p->name ?? '' ) ) ) { continue; } ?>
+							<tr><td><?php echo esc_html( $p->name ); ?></td><td><?php echo esc_html( $p->mobile ?: '—' ); ?></td><td><?php echo esc_html( $p->address ?: '—' ); ?></td></tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</section>
+			<?php endif; ?>
+
+			<?php if ( array_filter( $deed->lands, fn( $l ) => '' !== trim( (string) ( $l->mouza ?? '' ) ) ) ) : ?>
+				<section class="print-section">
+					<h2><?php esc_html_e( 'জমির তথ্য', 'sojib68' ); ?></h2>
+					<table class="print-table">
+						<thead><tr><th><?php esc_html_e( 'মৌজা', 'sojib68' ); ?></th><th><?php esc_html_e( 'খতিয়ান নং', 'sojib68' ); ?></th><th><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( $deed->lands as $l ) : if ( '' === trim( (string) ( $l->mouza ?? '' ) ) ) { continue; } ?>
+							<tr>
+								<td><?php echo esc_html( $l->mouza ); ?></td>
+								<td><?php echo esc_html( $l->khatian_no ?: '—' ); ?></td>
+								<td><?php echo esc_html( null !== $l->quantity ? rtrim( rtrim( (string) $l->quantity, '0' ), '.' ) . ' ' . $l->unit : '—' ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				</section>
+			<?php endif; ?>
+
+			<section class="print-section">
+				<h2><?php esc_html_e( 'গ্রাহকের হিসাব', 'sojib68' ); ?></h2>
+				<table class="print-kv">
+					<tr><th><?php esc_html_e( 'মোট টাকা (গ্রাহকের কাছে প্রাপ্য)', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $deed->client_total_due_poysha ); // phpcs:ignore ?></td></tr>
+					<tr><th><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $collected ); // phpcs:ignore ?></td></tr>
+					<tr class="print-kv--total">
+						<th><?php echo esc_html( null !== $deed->due_poysha && $deed->due_poysha < 0 ? __( 'অগ্রিম জমা', 'sojib68' ) : __( 'বাকি', 'sojib68' ) ); ?></th>
+						<td>
+							<?php if ( null === $deed->due_poysha ) : ?>
+								—
+							<?php else : ?>
+								<?php echo sojib68_money_html( abs( $deed->due_poysha ) ); // phpcs:ignore ?>
+							<?php endif; ?>
+						</td>
+					</tr>
+				</table>
+
+				<?php if ( ! empty( $deed->receipts ) ) : ?>
+					<h3><?php esc_html_e( 'আদায়ের ইতিহাস', 'sojib68' ); ?></h3>
+					<table class="print-table">
+						<thead><tr><th><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></th><th><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></th><th><?php esc_html_e( 'মাধ্যম', 'sojib68' ); ?></th><th><?php esc_html_e( 'মন্তব্য', 'sojib68' ); ?></th></tr></thead>
+						<tbody>
+						<?php foreach ( $deed->receipts as $r ) : ?>
+							<tr>
+								<td><?php echo esc_html( $r->received_date ?: '—' ); ?></td>
+								<td><?php echo sojib68_money_html( $r->amount_poysha ); // phpcs:ignore ?></td>
+								<td><?php echo esc_html( isset( $methods[ $r->method ] ) ? $methods[ $r->method ] : '—' ); ?></td>
+								<td><?php echo esc_html( $r->note ?: '—' ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						</tbody>
+					</table>
+				<?php endif; ?>
+			</section>
+
+			<?php if ( $total_expenses > 0 ) : ?>
+				<section class="print-section print-section--internal">
+					<h2><?php esc_html_e( 'খরচ (অভ্যন্তরীণ)', 'sojib68' ); ?></h2>
+					<table class="print-kv">
+						<?php foreach ( $categories as $key => $label ) : if ( ! $exp_sums[ $key ] ) { continue; } ?>
+							<tr><th><?php echo esc_html( $label ); ?></th><td><?php echo sojib68_money_html( $exp_sums[ $key ] ); // phpcs:ignore ?></td></tr>
+						<?php endforeach; ?>
+						<tr class="print-kv--total"><th><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $total_expenses ); // phpcs:ignore ?></td></tr>
+					</table>
+					<p class="print-hint"><?php esc_html_e( 'এই অংশ শুধু অফিসের নিজস্ব হিসাবের জন্য — গ্রাহককে দেওয়ার আগে বাদ দিন।', 'sojib68' ); ?></p>
+				</section>
+			<?php endif; ?>
+
+			<?php if ( $deed->notes ) : ?>
+				<section class="print-section">
+					<h2><?php esc_html_e( 'মন্তব্য', 'sojib68' ); ?></h2>
+					<p class="print-note"><?php echo nl2br( esc_html( $deed->notes ) ); // phpcs:ignore ?></p>
+				</section>
+			<?php endif; ?>
+
+			<footer class="print-sign">
+				<div><span></span><p><?php esc_html_e( 'গ্রাহকের স্বাক্ষর', 'sojib68' ); ?></p></div>
+				<div><span></span><p><?php esc_html_e( 'অফিসের স্বাক্ষর / সীল', 'sojib68' ); ?></p></div>
+			</footer>
+		</article>
+	</body>
+	</html>
 	<?php
 }
