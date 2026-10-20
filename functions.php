@@ -16,6 +16,11 @@ require_once get_theme_file_path( 'inc/office-deeds-ui.php' );
 require_once get_theme_file_path( 'inc/office-export.php' );
 require_once get_theme_file_path( 'inc/office-gdrive-backup.php' );
 require_once get_theme_file_path( 'inc/office-system.php' );
+require_once get_theme_file_path( 'inc/crm-db.php' );
+require_once get_theme_file_path( 'inc/crm-leads.php' );
+require_once get_theme_file_path( 'inc/crm-ajax.php' );
+require_once get_theme_file_path( 'inc/crm-ui.php' );
+require_once get_theme_file_path( 'inc/crm-system.php' );
 
 /**
  * Business contact details.
@@ -36,7 +41,7 @@ if ( ! defined( 'SOJIB68_ADDRESS' ) ) {
 	define( 'SOJIB68_ADDRESS', '' );
 }
 if ( ! defined( 'SOJIB68_CRM_URL' ) ) {
-	define( 'SOJIB68_CRM_URL', 'https://crm.sojib68.com' );
+	define( 'SOJIB68_CRM_URL', home_url( '/crm/' ) );
 }
 
 function sojib68_setup() {
