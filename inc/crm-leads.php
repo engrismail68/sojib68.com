@@ -557,6 +557,116 @@ function sojib68_crm_works_search( $args = array() ) {
 	);
 }
 
+/* ---------------------------------------------------------------------
+ * Cash ledger — category-wise money in/out, since taka collected for
+ * one service is often spent on another (e.g. নামজারির টাকা দিয়ে দলিল
+ * রেজিস্ট্রেশন করা). Each entry is tagged with the category the money
+ * belongs to, independent of which work it was actually spent on, so
+ * "কোন ক্যাটাগরির কত আদায়, কত জমা আছে" stays answerable.
+ * ------------------------------------------------------------------ */
+
+function sojib68_crm_cash_categories() {
+	$categories = sojib68_crm_service_types();
+	$categories['general'] = __( 'সাধারণ (নির্দিষ্ট ক্যাটাগরি নয়)', 'sojib68' );
+	return $categories;
+}
+
+function sojib68_crm_cash_directions() {
+	return array(
+		'in'  => __( 'আদায় / জমা', 'sojib68' ),
+		'out' => __( 'খরচ / উত্তোলন', 'sojib68' ),
+	);
+}
+
+function sojib68_crm_taka_to_poysha( $taka ) {
+	$taka = (float) str_replace( ',', '', (string) $taka );
+	return (int) round( $taka * 100 );
+}
+
+function sojib68_crm_poysha_to_taka_display( $poysha ) {
+	return number_format( ( (int) $poysha ) / 100, 2 );
+}
+
+/**
+ * $data: category, direction ('in'/'out'), amount (taka), note,
+ * txn_date (Y-m-d), work_id (optional).
+ *
+ * @return int|WP_Error
+ */
+function sojib68_crm_cash_add( $data ) {
+	global $wpdb;
+
+	$amount_poysha = sojib68_crm_taka_to_poysha( isset( $data['amount'] ) ? $data['amount'] : 0 );
+	if ( $amount_poysha <= 0 ) {
+		return new WP_Error( 'crm_cash_invalid_amount', __( 'সঠিক পরিমাণ টাকা দিন।', 'sojib68' ) );
+	}
+
+	$txn_date = ! empty( $data['txn_date'] ) && strtotime( $data['txn_date'] ) ? gmdate( 'Y-m-d', strtotime( $data['txn_date'] ) ) : current_time( 'Y-m-d' );
+
+	$row = array(
+		'category'      => sojib68_crm_sanitize_from_list( isset( $data['category'] ) ? $data['category'] : '', sojib68_crm_cash_categories(), 'general' ),
+		'direction'     => sojib68_crm_sanitize_from_list( isset( $data['direction'] ) ? $data['direction'] : '', sojib68_crm_cash_directions(), 'in' ),
+		'amount_poysha' => $amount_poysha,
+		'note'          => isset( $data['note'] ) ? sanitize_text_field( $data['note'] ) : '',
+		'txn_date'      => $txn_date,
+		'work_id'       => ! empty( $data['work_id'] ) ? (int) $data['work_id'] : null,
+		'created_by'    => get_current_user_id(),
+		'created_at'    => current_time( 'mysql' ),
+	);
+
+	$wpdb->insert( sojib68_crm_cash_table(), $row );
+	return (int) $wpdb->insert_id;
+}
+
+function sojib68_crm_cash_delete( $id ) {
+	global $wpdb;
+	return $wpdb->delete( sojib68_crm_cash_table(), array( 'id' => (int) $id ) );
+}
+
+/**
+ * Per-category in/out/balance (poysha), plus an 'all' total row.
+ */
+function sojib68_crm_cash_summary() {
+	global $wpdb;
+	$table = sojib68_crm_cash_table();
+
+	$summary      = array();
+	$total_in     = 0;
+	$total_out    = 0;
+
+	foreach ( array_keys( sojib68_crm_cash_categories() ) as $cat ) {
+		$in  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE category = %s AND direction = 'in'", $cat ) );
+		$out = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE category = %s AND direction = 'out'", $cat ) );
+
+		$summary[ $cat ] = array(
+			'in'      => $in,
+			'out'     => $out,
+			'balance' => $in - $out,
+		);
+
+		$total_in  += $in;
+		$total_out += $out;
+	}
+
+	$summary['__total__'] = array(
+		'in'      => $total_in,
+		'out'     => $total_out,
+		'balance' => $total_in - $total_out,
+	);
+
+	return $summary;
+}
+
+function sojib68_crm_cash_entries( $category = '', $limit = 30 ) {
+	global $wpdb;
+	$table = sojib68_crm_cash_table();
+
+	if ( $category ) {
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE category = %s ORDER BY txn_date DESC, id DESC LIMIT %d", $category, (int) $limit ), ARRAY_A );
+	}
+	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY txn_date DESC, id DESC LIMIT %d", (int) $limit ), ARRAY_A );
+}
+
 function sojib68_crm_work_update( $id, $data ) {
 	global $wpdb;
 	$table = sojib68_crm_works_table();

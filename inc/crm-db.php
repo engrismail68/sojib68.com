@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.0.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '2.1.0' );
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -31,6 +31,11 @@ function sojib68_crm_activity_table() {
 function sojib68_crm_works_table() {
 	global $wpdb;
 	return $wpdb->prefix . 'crm_works';
+}
+
+function sojib68_crm_cash_table() {
+	global $wpdb;
+	return $wpdb->prefix . 'crm_cash_ledger';
 }
 
 function sojib68_crm_install() {
@@ -128,6 +133,23 @@ function sojib68_crm_install() {
 		KEY assigned_to (assigned_to)
 	) {$charset_collate};";
 	dbDelta( $sql_works );
+
+	$cash_table = sojib68_crm_cash_table();
+	$sql_cash    = "CREATE TABLE {$cash_table} (
+		id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+		category VARCHAR(30) NOT NULL DEFAULT 'general',
+		direction VARCHAR(10) NOT NULL DEFAULT 'in',
+		amount_poysha BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+		note VARCHAR(255) NOT NULL DEFAULT '',
+		txn_date DATE NOT NULL,
+		work_id BIGINT(20) UNSIGNED NULL,
+		created_by BIGINT(20) UNSIGNED NULL,
+		created_at DATETIME NOT NULL,
+		PRIMARY KEY  (id),
+		KEY category (category),
+		KEY txn_date (txn_date)
+	) {$charset_collate};";
+	dbDelta( $sql_cash );
 
 	update_option( 'sojib68_crm_db_version', SOJIB68_CRM_DB_VERSION );
 }

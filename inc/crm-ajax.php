@@ -152,3 +152,19 @@ function sojib68_crm_ajax_create_work() {
 	wp_send_json_success( array( 'work_code' => $work ? $work['work_code'] : '', 'work_id' => $work_id ) );
 }
 add_action( 'wp_ajax_sojib68_crm_create_work', 'sojib68_crm_ajax_create_work' );
+
+function sojib68_crm_ajax_delete_cash() {
+	sojib68_crm_ajax_guard();
+	if ( ! sojib68_crm_can_view_finance() ) {
+		wp_send_json_error( array( 'message' => __( 'অনুমতি নেই।', 'sojib68' ) ), 403 );
+	}
+
+	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	if ( ! $id ) {
+		wp_send_json_error();
+	}
+
+	sojib68_crm_cash_delete( $id );
+	wp_send_json_success();
+}
+add_action( 'wp_ajax_sojib68_crm_delete_cash', 'sojib68_crm_ajax_delete_cash' );

@@ -112,6 +112,20 @@
 		});
 	});
 
+	document.querySelectorAll('.crm-delete-cash').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			if (!window.confirm('এই এন্ট্রিটি মুছে ফেলতে চান?')) { return; }
+			var id = btn.getAttribute('data-cash-id');
+			post('sojib68_crm_delete_cash', { id: id }).then(function (res) {
+				if (res && res.success) {
+					window.location.reload();
+				} else {
+					flash('মুছে ফেলা যায়নি।', true);
+				}
+			});
+		});
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {

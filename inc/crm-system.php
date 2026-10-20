@@ -154,6 +154,11 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'cash-add' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			sojib68_crm_handle_cash_add();
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_crm_render_dashboard( $page_key );
 		exit;
@@ -435,6 +440,34 @@ function sojib68_crm_handle_save_lead() {
 	}
 
 	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . $saved_id ) );
+}
+
+/* ---------------------------------------------------------------------
+ * Authenticated: add cash ledger entry (admin/finance only)
+ * ------------------------------------------------------------------ */
+
+function sojib68_crm_handle_cash_add() {
+	if ( ! sojib68_crm_can_view_finance() ) {
+		wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
+		return;
+	}
+
+	if ( ! isset( $_POST['sojib68_crm_cash_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_cash_nonce'] ), 'sojib68_crm_cash_add' ) ) {
+		wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
+		return;
+	}
+
+	sojib68_crm_cash_add(
+		array(
+			'category'  => isset( $_POST['category'] ) ? wp_unslash( $_POST['category'] ) : '',
+			'direction' => isset( $_POST['direction'] ) ? wp_unslash( $_POST['direction'] ) : '',
+			'amount'    => isset( $_POST['amount'] ) ? wp_unslash( $_POST['amount'] ) : 0,
+			'note'      => isset( $_POST['note'] ) ? wp_unslash( $_POST['note'] ) : '',
+			'txn_date'  => isset( $_POST['txn_date'] ) ? wp_unslash( $_POST['txn_date'] ) : '',
+		)
+	);
+
+	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
 }
 
 /* ---------------------------------------------------------------------

@@ -79,6 +79,7 @@ function sojib68_crm_render_dashboard_home() {
 		<?php endforeach; ?>
 	</div>
 
+	<?php $cash = sojib68_crm_can_view_finance() ? sojib68_crm_cash_summary() : array(); ?>
 	<h2 class="crm-section-title"><?php esc_html_e( 'কাজের ধরন অনুযায়ী', 'sojib68' ); ?></h2>
 	<div class="crm-work-grid">
 		<?php foreach ( $services as $key => $label ) :
@@ -98,20 +99,127 @@ function sojib68_crm_render_dashboard_home() {
 					<span><?php esc_html_e( 'ডেলিভারির জন্য প্রস্তুত', 'sojib68' ); ?></span>
 					<strong><?php echo esc_html( number_format_i18n( $w['ready'] ) ); ?></strong>
 				</div>
+				<?php if ( isset( $cash[ $key ] ) ) : ?>
+					<div class="crm-work-card__cash">
+						<span><?php esc_html_e( 'আদায়', 'sojib68' ); ?> <strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash[ $key ]['in'] ) ); ?></strong></span>
+						<span><?php esc_html_e( 'জমা আছে', 'sojib68' ); ?> <strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash[ $key ]['balance'] ) ); ?></strong></span>
+					</div>
+				<?php endif; ?>
 			</a>
 		<?php endforeach; ?>
 	</div>
 
 	<?php if ( sojib68_crm_can_view_finance() ) : ?>
-		<h2 class="crm-section-title"><?php esc_html_e( 'হিসাব', 'sojib68' ); ?></h2>
-		<div class="crm-finance-placeholder">
-			<?php echo sojib68_crm_icon( 'briefcase', 22 ); // phpcs:ignore ?>
-			<p><?php esc_html_e( 'হিসাব মডিউল এখনো যুক্ত হয়নি।', 'sojib68' ); ?></p>
-		</div>
+		<h2 class="crm-section-title"><?php esc_html_e( 'হিসাব — ক্যাটাগরি অনুযায়ী ক্যাশ', 'sojib68' ); ?></h2>
+		<?php sojib68_crm_render_cash_ledger( $cash ); ?>
 	<?php endif; ?>
 
 	<h2 class="crm-section-title"><?php esc_html_e( 'সব লিড', 'sojib68' ); ?></h2>
 	<?php sojib68_crm_render_leads_table(); ?>
+	<?php
+}
+
+function sojib68_crm_render_cash_ledger( $cash ) {
+	$categories = sojib68_crm_cash_categories();
+	$entries    = sojib68_crm_cash_entries();
+	?>
+	<div class="crm-cash-grid">
+		<div class="crm-table-wrap">
+			<table class="crm-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'ক্যাটাগরি', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'আদায়', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'খরচ', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'জমা আছে', 'sojib68' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $categories as $key => $label ) :
+						$c = $cash[ $key ];
+						?>
+						<tr>
+							<td><?php echo esc_html( $label ); ?></td>
+							<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $c['in'] ) ); ?></td>
+							<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $c['out'] ) ); ?></td>
+							<td><strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $c['balance'] ) ); ?></strong></td>
+						</tr>
+					<?php endforeach; ?>
+					<tr class="crm-cash-total-row">
+						<td><?php esc_html_e( 'সর্বমোট', 'sojib68' ); ?></td>
+						<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash['__total__']['in'] ) ); ?></td>
+						<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash['__total__']['out'] ) ); ?></td>
+						<td><strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash['__total__']['balance'] ) ); ?></strong></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+
+		<div class="crm-cash-add">
+			<h3><?php esc_html_e( 'নতুন এন্ট্রি', 'sojib68' ); ?></h3>
+			<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/cash-add' ) ); ?>">
+				<?php wp_nonce_field( 'sojib68_crm_cash_add', 'sojib68_crm_cash_nonce' ); ?>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'ক্যাটাগরি', 'sojib68' ); ?></label>
+					<select name="category">
+						<?php foreach ( $categories as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'ধরন', 'sojib68' ); ?></label>
+					<select name="direction">
+						<?php foreach ( sojib68_crm_cash_directions() as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'পরিমাণ (৳)', 'sojib68' ); ?></label>
+					<input type="number" step="0.01" min="0.01" name="amount" required>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></label>
+					<input type="date" name="txn_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
+				</div>
+				<div class="crm-field crm-field--full">
+					<label><?php esc_html_e( 'নোট', 'sojib68' ); ?></label>
+					<input type="text" name="note" placeholder="<?php esc_attr_e( 'যেমনঃ নামজারির টাকা দিয়ে দলিল রেজিস্ট্রেশনের খরচ', 'sojib68' ); ?>">
+				</div>
+				<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( 'যোগ করুন', 'sojib68' ); ?></button>
+			</form>
+		</div>
+	</div>
+
+	<?php if ( $entries ) : ?>
+		<div class="crm-table-wrap crm-cash-log">
+			<table class="crm-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'ক্যাটাগরি', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'ধরন', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'নোট', 'sojib68' ); ?></th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $entries as $e ) : ?>
+						<tr>
+							<td><?php echo esc_html( mysql2date( 'd M, Y', $e['txn_date'] ) ); ?></td>
+							<td><?php echo esc_html( $categories[ $e['category'] ] ?? $e['category'] ); ?></td>
+							<td><span class="crm-chip <?php echo 'in' === $e['direction'] ? 'crm-chip--confirmed' : 'crm-chip--unreachable'; ?>"><?php echo esc_html( sojib68_crm_cash_directions()[ $e['direction'] ] ?? $e['direction'] ); ?></span></td>
+							<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $e['amount_poysha'] ) ); ?></td>
+							<td class="crm-table__notes"><?php echo esc_html( $e['note'] ); ?></td>
+							<td><button type="button" class="btn btn-outline btn-sm btn-danger-outline crm-delete-cash" data-cash-id="<?php echo (int) $e['id']; ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+	<?php endif; ?>
 	<?php
 }
 
