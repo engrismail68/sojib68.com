@@ -13,6 +13,7 @@ require_once get_theme_file_path( 'inc/office-db.php' );
 require_once get_theme_file_path( 'inc/office-deeds.php' );
 require_once get_theme_file_path( 'inc/office-deeds-ajax.php' );
 require_once get_theme_file_path( 'inc/office-deeds-ui.php' );
+require_once get_theme_file_path( 'inc/office-export.php' );
 require_once get_theme_file_path( 'inc/office-system.php' );
 
 /**

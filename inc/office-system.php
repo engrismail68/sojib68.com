@@ -177,6 +177,11 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'export-download' === $segments[1] ) {
+			sojib68_office_stream_export( isset( $segments[2] ) ? sanitize_key( $segments[2] ) : '' );
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_office_render_dashboard( $page_key );
 		exit;
@@ -327,14 +332,25 @@ function sojib68_office_handle_logout() {
  * Dashboard shell
  * ------------------------------------------------------------------ */
 
+/** Only administrators export/back up all data — staff accounts don't need that much data leaving the office in one file. */
+function sojib68_office_can_export() {
+	return current_user_can( 'manage_options' );
+}
+
 function sojib68_office_menu_items() {
-	return array(
+	$menu = array(
 		'dashboard'  => __( 'ড্যাশবোর্ড', 'sojib68' ),
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
 		'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ),
 	);
+
+	if ( sojib68_office_can_export() ) {
+		$menu['export'] = __( 'এক্সপোর্ট / ব্যাকআপ', 'sojib68' );
+	}
+
+	return $menu;
 }
 
 function sojib68_office_render_dashboard( $page_key ) {
@@ -344,13 +360,14 @@ function sojib68_office_render_dashboard( $page_key ) {
 	}
 
 	$user  = wp_get_current_user();
-	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'recycle-bin' => 'trash' );
+	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'recycle-bin' => 'trash', 'export' => 'receipt' );
 	$subs  = array(
 		'dashboard'    => __( 'আপনার সব দলিল ও হিসাবের এক নজরে সারসংক্ষেপ', 'sojib68' ),
 		'entry-new'    => __( 'যতটুকু তথ্য জানেন ততটুকুই লিখুন — সব ঘর ঐচ্ছিক', 'sojib68' ),
 		'all-deeds'    => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
 		'dues'         => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
 		'recycle-bin'  => __( 'মুছে ফেলা দলিল ৭ দিন পর্যন্ত এখানে থাকে, চাইলে ফিরিয়ে আনুন', 'sojib68' ),
+		'export'       => __( 'সব দলিল ও হিসাবের ডাউনলোডযোগ্য কপি রাখুন — শুধু প্রশাসকের জন্য', 'sojib68' ),
 	);
 
 	$page_title = $menu[ $page_key ];
@@ -475,6 +492,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'recycle-bin':
 			ob_start();
 			sojib68_office_render_recycle_bin();
+			return ob_get_clean();
+
+		case 'export':
+			ob_start();
+			sojib68_office_render_export();
 			return ob_get_clean();
 
 		default:
