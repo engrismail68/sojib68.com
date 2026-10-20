@@ -212,7 +212,7 @@ function sojib68_crm_render_cash_ledger( $cash ) {
 							<td><?php echo esc_html( $categories[ $e['category'] ] ?? $e['category'] ); ?></td>
 							<td><span class="crm-chip <?php echo 'in' === $e['direction'] ? 'crm-chip--confirmed' : 'crm-chip--unreachable'; ?>"><?php echo esc_html( sojib68_crm_cash_directions()[ $e['direction'] ] ?? $e['direction'] ); ?></span></td>
 							<td>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $e['amount_poysha'] ) ); ?></td>
-							<td class="crm-table__notes"><?php echo esc_html( $e['note'] ); ?></td>
+							<td class="crm-table__notes"><?php echo esc_html( trim( ( ! empty( $e['work_code'] ) ? $e['work_code'] . ' · ' : '' ) . ( $e['party'] ? $e['party'] . ' — ' : '' ) . $e['note'], ' —·' ) ); ?></td>
 							<td><button type="button" class="btn btn-outline btn-sm btn-danger-outline crm-delete-cash" data-cash-id="<?php echo (int) $e['id']; ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button></td>
 						</tr>
 					<?php endforeach; ?>
@@ -614,6 +614,12 @@ function sojib68_crm_render_category_entry( $type ) {
 				<?php endforeach; ?>
 			</select>
 		</div>
+		<?php if ( sojib68_crm_can_view_finance() ) : ?>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'গ্রাহকের সাথে চুক্তির মোট টাকা (৳)', 'sojib68' ); ?></label>
+				<input type="number" step="0.01" min="0" name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( number_format( $work['agreed_poysha'] / 100, 2, '.', '' ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
+			</div>
+		<?php endif; ?>
 		<?php if ( $stage_cfg ) : ?>
 			<div class="crm-field">
 				<label><?php esc_html_e( 'কাজের অবস্থা', 'sojib68' ); ?></label>
@@ -685,6 +691,10 @@ function sojib68_crm_render_category_entry( $type ) {
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
 	</form>
 
+	<?php if ( $work && sojib68_crm_can_view_finance() ) : ?>
+		<?php sojib68_crm_render_work_accounts( $work, $type ); ?>
+	<?php endif; ?>
+
 	<h2 class="crm-section-title"><?php echo esc_html( $types[ $type ] ); ?> — <?php esc_html_e( 'সব কাজ', 'sojib68' ); ?></h2>
 	<?php
 	$result = sojib68_crm_works_search( array(
@@ -724,6 +734,82 @@ function sojib68_crm_render_category_entry( $type ) {
 			</table>
 		</div>
 	<?php endif; ?>
+	<?php
+}
+
+function sojib68_crm_render_work_accounts( $work, $type ) {
+	$acc        = sojib68_crm_work_accounts( $work['id'] );
+	$entries    = sojib68_crm_work_cash_entries( $work['id'] );
+	$categories = sojib68_crm_cash_categories();
+	$money      = function ( $poysha ) {
+		return '৳' . sojib68_crm_poysha_to_taka_display( $poysha );
+	};
+	?>
+	<div class="crm-works-box crm-work-accounts">
+		<h3><?php esc_html_e( 'এই কাজের হিসাব', 'sojib68' ); ?> — <?php echo esc_html( $work['work_code'] ); ?></h3>
+
+		<div class="crm-acc-summary">
+			<div><span><?php esc_html_e( 'চুক্তির মোট', 'sojib68' ); ?></span><strong><?php echo null === $acc['agreed'] ? esc_html__( 'ঠিক হয়নি', 'sojib68' ) : esc_html( $money( $acc['agreed'] ) ); ?></strong></div>
+			<div><span><?php esc_html_e( 'মোট আদায়', 'sojib68' ); ?></span><strong><?php echo esc_html( $money( $acc['collected'] ) ); ?></strong></div>
+			<div class="<?php echo null !== $acc['due'] && $acc['due'] > 0 ? 'is-due' : ''; ?>">
+				<span><?php echo null !== $acc['due'] && $acc['due'] < 0 ? esc_html__( 'অতিরিক্ত জমা', 'sojib68' ) : esc_html__( 'বকেয়া', 'sojib68' ); ?></span>
+				<strong><?php echo null === $acc['due'] ? esc_html__( 'হিসাব অসম্পূর্ণ', 'sojib68' ) : esc_html( $money( abs( $acc['due'] ) ) ); ?></strong>
+			</div>
+			<div><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong><?php echo esc_html( $money( $acc['spent'] ) ); ?></strong></div>
+			<div><span><?php esc_html_e( 'হাতে আছে (আদায় − খরচ)', 'sojib68' ); ?></span><strong><?php echo esc_html( $money( $acc['balance'] ) ); ?></strong></div>
+		</div>
+
+		<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-txn' ) ); ?>" class="crm-txn-form">
+			<?php wp_nonce_field( 'sojib68_crm_work_txn', 'sojib68_crm_txn_nonce' ); ?>
+			<input type="hidden" name="work_id" value="<?php echo (int) $work['id']; ?>">
+			<select name="direction">
+				<?php foreach ( sojib68_crm_cash_directions() as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( 'in' === $key ? __( 'আদায় (গ্রাহক দিলেন)', 'sojib68' ) : __( 'খরচ (কাউকে দিলাম)', 'sojib68' ) ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<input type="number" step="0.01" min="0.01" name="amount" placeholder="<?php esc_attr_e( 'টাকা', 'sojib68' ); ?>" required>
+			<input type="date" name="txn_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
+			<input type="text" name="party" placeholder="<?php esc_attr_e( 'কার কাছ থেকে / কাকে', 'sojib68' ); ?>">
+			<input type="text" name="note" placeholder="<?php esc_attr_e( 'নোট (যেমন: ভূমি অফিস ফি)', 'sojib68' ); ?>">
+			<select name="category" title="<?php esc_attr_e( 'কোন ক্যাটাগরির টাকা', 'sojib68' ); ?>">
+				<?php foreach ( $categories as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $type, $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+			<button type="submit" class="btn btn-primary btn-sm"><?php echo sojib68_crm_icon( 'plus', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'যোগ করুন', 'sojib68' ); ?></button>
+		</form>
+
+		<?php if ( $entries ) : ?>
+			<div class="crm-table-wrap">
+				<table class="crm-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'ধরন', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'কার সাথে', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'টাকা', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'নোট', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'টাকার ক্যাটাগরি', 'sojib68' ); ?></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $entries as $e ) : ?>
+							<tr>
+								<td><?php echo esc_html( mysql2date( 'd M, Y', $e['txn_date'] ) ); ?></td>
+								<td><span class="crm-chip <?php echo 'in' === $e['direction'] ? 'crm-chip--confirmed' : 'crm-chip--unreachable'; ?>"><?php echo esc_html( 'in' === $e['direction'] ? __( 'আদায়', 'sojib68' ) : __( 'খরচ', 'sojib68' ) ); ?></span></td>
+								<td><?php echo esc_html( $e['party'] ? $e['party'] : '—' ); ?></td>
+								<td><?php echo esc_html( $money( $e['amount_poysha'] ) ); ?></td>
+								<td class="crm-table__notes"><?php echo esc_html( $e['note'] ); ?></td>
+								<td><?php echo esc_html( $categories[ $e['category'] ] ?? $e['category'] ); ?></td>
+								<td><button type="button" class="btn btn-outline btn-sm btn-danger-outline crm-delete-cash" data-cash-id="<?php echo (int) $e['id']; ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		<?php endif; ?>
+	</div>
 	<?php
 }
 

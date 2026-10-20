@@ -632,13 +632,23 @@ function sojib68_crm_cash_add( $data ) {
 
 	$txn_date = ! empty( $data['txn_date'] ) && strtotime( $data['txn_date'] ) ? gmdate( 'Y-m-d', strtotime( $data['txn_date'] ) ) : current_time( 'Y-m-d' );
 
+	$work_id = ! empty( $data['work_id'] ) ? (int) $data['work_id'] : 0;
+	$work    = $work_id ? sojib68_crm_work_get( $work_id ) : null;
+	if ( $work_id && ! $work ) {
+		return new WP_Error( 'crm_cash_bad_work', __( 'কাজ পাওয়া যায়নি।', 'sojib68' ) );
+	}
+	// A work-linked entry defaults to that work's own category; the caller may override it
+	// (e.g. paying a deed expense out of the নামজারি pool).
+	$default_category = $work ? $work['work_type'] : 'general';
+
 	$row = array(
-		'category'      => sojib68_crm_sanitize_from_list( isset( $data['category'] ) ? $data['category'] : '', sojib68_crm_cash_categories(), 'general' ),
+		'category'      => sojib68_crm_sanitize_from_list( ! empty( $data['category'] ) ? $data['category'] : $default_category, sojib68_crm_cash_categories(), 'general' ),
 		'direction'     => sojib68_crm_sanitize_from_list( isset( $data['direction'] ) ? $data['direction'] : '', sojib68_crm_cash_directions(), 'in' ),
 		'amount_poysha' => $amount_poysha,
+		'party'         => isset( $data['party'] ) ? sanitize_text_field( $data['party'] ) : '',
 		'note'          => isset( $data['note'] ) ? sanitize_text_field( $data['note'] ) : '',
 		'txn_date'      => $txn_date,
-		'work_id'       => ! empty( $data['work_id'] ) ? (int) $data['work_id'] : null,
+		'work_id'       => $work_id ? $work_id : null,
 		'created_by'    => get_current_user_id(),
 		'created_at'    => current_time( 'mysql' ),
 	);
@@ -688,12 +698,44 @@ function sojib68_crm_cash_summary() {
 
 function sojib68_crm_cash_entries( $category = '', $limit = 30 ) {
 	global $wpdb;
-	$table = sojib68_crm_cash_table();
+	$table  = sojib68_crm_cash_table();
+	$wtable = sojib68_crm_works_table();
+	$select = "SELECT l.*, w.work_code, w.customer_name FROM {$table} l LEFT JOIN {$wtable} w ON w.id = l.work_id";
 
 	if ( $category ) {
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE category = %s ORDER BY txn_date DESC, id DESC LIMIT %d", $category, (int) $limit ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( "{$select} WHERE l.category = %s ORDER BY l.txn_date DESC, l.id DESC LIMIT %d", $category, (int) $limit ), ARRAY_A );
 	}
-	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY txn_date DESC, id DESC LIMIT %d", (int) $limit ), ARRAY_A );
+	return $wpdb->get_results( $wpdb->prepare( "{$select} ORDER BY l.txn_date DESC, l.id DESC LIMIT %d", (int) $limit ), ARRAY_A );
+}
+
+function sojib68_crm_work_cash_entries( $work_id ) {
+	global $wpdb;
+	$table = sojib68_crm_cash_table();
+	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE work_id = %d ORDER BY txn_date DESC, id DESC", (int) $work_id ), ARRAY_A );
+}
+
+/**
+ * Money picture for one work. Amounts in poysha. 'agreed' and 'due'
+ * are null when no agreed amount was entered — unknown is never
+ * shown as zero. 'balance' (collected - spent) is cash in hand for
+ * this work, not profit.
+ */
+function sojib68_crm_work_accounts( $work_id ) {
+	global $wpdb;
+	$table = sojib68_crm_cash_table();
+	$work  = sojib68_crm_work_get( $work_id );
+
+	$collected = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE work_id = %d AND direction = 'in'", (int) $work_id ) );
+	$spent     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE work_id = %d AND direction = 'out'", (int) $work_id ) );
+	$agreed    = ( $work && null !== $work['agreed_poysha'] && '' !== $work['agreed_poysha'] ) ? (int) $work['agreed_poysha'] : null;
+
+	return array(
+		'agreed'    => $agreed,
+		'collected' => $collected,
+		'due'       => null === $agreed ? null : $agreed - $collected,
+		'spent'     => $spent,
+		'balance'   => $collected - $spent,
+	);
 }
 
 function sojib68_crm_work_clean_date( $value ) {
@@ -765,6 +807,12 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		'delivery_recipient' => isset( $data['delivery_recipient'] ) ? sanitize_text_field( $data['delivery_recipient'] ) : '',
 		'updated_at'         => current_time( 'mysql' ),
 	);
+
+	// Only touched when the form actually sent it (finance users); staff saves leave it alone.
+	if ( array_key_exists( 'agreed_amount', $data ) ) {
+		$agreed = trim( (string) $data['agreed_amount'] );
+		$row['agreed_poysha'] = '' === $agreed ? null : max( 0, sojib68_crm_taka_to_poysha( $agreed ) );
+	}
 
 	if ( $id > 0 ) {
 		$wpdb->update( $table, $row, array( 'id' => (int) $id ) );

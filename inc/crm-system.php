@@ -159,6 +159,11 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'work-txn' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			sojib68_crm_handle_work_txn();
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'cash-add' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			sojib68_crm_handle_cash_add();
 			exit;
@@ -471,6 +476,11 @@ function sojib68_crm_handle_save_work( $type ) {
 		$data[ $f ] = isset( $_POST[ $f ] ) ? wp_unslash( $_POST[ $f ] ) : '';
 	}
 
+	// Money fields are finance-permission only; for everyone else the key is left out so a staff save never touches it.
+	if ( sojib68_crm_can_view_finance() && isset( $_POST['agreed_amount'] ) ) {
+		$data['agreed_amount'] = wp_unslash( $_POST['agreed_amount'] );
+	}
+
 	$saved = sojib68_crm_work_save( $data, $id, $type );
 	if ( is_wp_error( $saved ) ) {
 		wp_safe_redirect( $id ? add_query_arg( 'id', $id, $back ) : $back );
@@ -478,6 +488,38 @@ function sojib68_crm_handle_save_work( $type ) {
 	}
 
 	wp_safe_redirect( add_query_arg( 'id', $saved, $back ) );
+}
+
+function sojib68_crm_handle_work_txn() {
+	if ( ! sojib68_crm_can_view_finance() ) {
+		wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
+		return;
+	}
+	if ( ! isset( $_POST['sojib68_crm_txn_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_txn_nonce'] ), 'sojib68_crm_work_txn' ) ) {
+		wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
+		return;
+	}
+
+	$work_id = isset( $_POST['work_id'] ) ? (int) $_POST['work_id'] : 0;
+	$work    = $work_id ? sojib68_crm_work_get( $work_id ) : null;
+	if ( ! $work ) {
+		wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/' ) );
+		return;
+	}
+
+	sojib68_crm_cash_add(
+		array(
+			'work_id'   => $work_id,
+			'category'  => isset( $_POST['category'] ) ? wp_unslash( $_POST['category'] ) : '',
+			'direction' => isset( $_POST['direction'] ) ? wp_unslash( $_POST['direction'] ) : '',
+			'amount'    => isset( $_POST['amount'] ) ? wp_unslash( $_POST['amount'] ) : 0,
+			'txn_date'  => isset( $_POST['txn_date'] ) ? wp_unslash( $_POST['txn_date'] ) : '',
+			'party'     => isset( $_POST['party'] ) ? wp_unslash( $_POST['party'] ) : '',
+			'note'      => isset( $_POST['note'] ) ? wp_unslash( $_POST['note'] ) : '',
+		)
+	);
+
+	wp_safe_redirect( add_query_arg( 'id', $work_id, home_url( '/' . SOJIB68_CRM_BASE . '/' . $work['work_type'] . '-entry' ) ) );
 }
 
 /* ---------------------------------------------------------------------

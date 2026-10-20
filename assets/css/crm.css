@@ -530,6 +530,42 @@
 
 .crm-cash-log { margin-top: 16px; }
 
+/* ---------- Per-work accounts ---------- */
+
+.crm-work-accounts { max-width: 1000px; }
+.crm-acc-summary {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.crm-acc-summary > div {
+	background: var(--crm-bg);
+	border-radius: 8px;
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.crm-acc-summary span { font-size: 11.5px; color: var(--crm-muted); }
+.crm-acc-summary strong { font-size: 15px; color: var(--crm-navy); }
+.crm-acc-summary .is-due strong { color: #B3261E; }
+
+.crm-txn-form {
+	display: grid;
+	grid-template-columns: 1.3fr 1fr 1fr 1.2fr 1.6fr 1.3fr auto;
+	gap: 6px;
+	margin-bottom: 14px;
+}
+.crm-txn-form input, .crm-txn-form select {
+	padding: 8px 10px;
+	border: 1px solid var(--crm-border);
+	border-radius: 7px;
+	font-family: inherit;
+	font-size: 13px;
+	min-width: 0;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1100px) {
@@ -546,6 +582,8 @@
 	.crm-detail-grid { grid-template-columns: 1fr; }
 	.crm-cash-grid { grid-template-columns: 1fr; }
 	.crm-cash-add form { grid-template-columns: 1fr; }
+	.crm-acc-summary { grid-template-columns: repeat(2, 1fr); }
+	.crm-txn-form { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 760px) {
