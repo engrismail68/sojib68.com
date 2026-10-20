@@ -327,20 +327,14 @@ function sojib68_office_render_entry_form() {
 				sojib68_deed_card_open( 'green', 'wallet', __( 'গ্রাহকের হিসাব', 'sojib68' ), __( 'টাকা লিখলেই প্রফিট ও বাকি নিজে নিজেই বেরিয়ে আসবে', 'sojib68' ) );
 				?>
 					<div class="deed-grid">
-						<div class="deed-field col-4">
+						<div class="deed-field col-6">
 							<label for="f-total-due"><?php esc_html_e( 'মোট টাকা (গ্রাহকের কাছে প্রাপ্য)', 'sojib68' ); ?></label>
 							<input type="text" id="f-total-due" inputmode="decimal" name="client_total_due" value="<?php echo esc_attr( $deed ? sojib68_poysha_to_display( $deed->client_total_due_poysha ) : '' ); ?>">
 						</div>
-						<div class="deed-field col-4">
+						<div class="deed-field col-6">
 							<label for="f-collected"><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></label>
 							<input type="text" id="f-collected" inputmode="decimal" data-money="receipt" <?php echo $deed ? 'readonly' : 'name="receipts[0][amount]"'; ?> value="<?php echo esc_attr( $collected_poysha ? sojib68_poysha_to_display( $collected_poysha ) : '' ); ?>">
 							<?php if ( $deed ) : ?><small class="deed-fieldnote"><?php esc_html_e( 'নিচের "আদায়ের ইতিহাস" থেকে বাড়ান', 'sojib68' ); ?></small><?php endif; ?>
-						</div>
-						<div class="deed-field col-4 deed-field--end">
-							<label class="deed-check">
-								<input type="checkbox" name="dues_verified" value="1" <?php checked( $deed ? (bool) $deed->dues_verified : false ); ?>>
-								<span><?php esc_html_e( 'বকেয়া যাচাইকৃত', 'sojib68' ); ?></span>
-							</label>
 						</div>
 					</div>
 
