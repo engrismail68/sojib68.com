@@ -65,6 +65,35 @@ function sojib68_crm_delivery_statuses() {
 	);
 }
 
+/**
+ * Category-specific work stages (finer-grained than the generic work
+ * status). Only categories listed here get a stage dropdown; others
+ * keep the generic status. 'ready' and 'cancelled' name the stages that
+ * map to the generic ready/cancelled statuses so dashboard counts stay
+ * meaningful; every other stage counts as running (or pending when a
+ * pending reason is filled in).
+ */
+function sojib68_crm_category_stage_config( $type ) {
+	$configs = array(
+		'namjari' => array(
+			'stages'    => array(
+				'not_applied'       => __( 'আবেদন হয় নি', 'sojib68' ),
+				'applied'           => __( 'আবেদন সম্পূর্ণ', 'sojib68' ),
+				'land_office_sent'  => __( 'ভূমি অফিসে প্রেরণ', 'sojib68' ),
+				'ac_land_surveyor'  => __( 'এসি ল্যান্ড অফিসে সার্ভেয়ারের নিকট', 'sojib68' ),
+				'ac_land_id'        => __( 'এসি ল্যান্ড স্যারের আইডিতে', 'sojib68' ),
+				'khotian_ready'     => __( 'খতিয়ান প্রস্তুত', 'sojib68' ),
+				'cancelled'         => __( 'বাতিল', 'sojib68' ),
+			),
+			'default'   => 'not_applied',
+			'ready'     => 'khotian_ready',
+			'cancelled' => 'cancelled',
+		),
+	);
+
+	return isset( $configs[ $type ] ) ? $configs[ $type ] : null;
+}
+
 function sojib68_crm_sanitize_from_list( $value, $list, $default ) {
 	return isset( $list[ $value ] ) ? $value : $default;
 }
@@ -693,14 +722,38 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	$assignable  = sojib68_crm_assignable_users();
 	$assigned_to = isset( $data['assigned_to'] ) ? (int) $data['assigned_to'] : 0;
 
+	$stage_cfg      = sojib68_crm_category_stage_config( $work_type );
+	$stage          = '';
+	$cancel_reason  = '';
+	$pending_reason = isset( $data['pending_reason'] ) ? sanitize_text_field( $data['pending_reason'] ) : '';
+	$status         = sojib68_crm_sanitize_from_list( isset( $data['status'] ) ? $data['status'] : '', sojib68_crm_work_statuses(), 'running' );
+
+	if ( $stage_cfg ) {
+		$stage = sojib68_crm_sanitize_from_list( isset( $data['stage'] ) ? $data['stage'] : '', $stage_cfg['stages'], $stage_cfg['default'] );
+
+		if ( $stage === $stage_cfg['cancelled'] ) {
+			$cancel_reason = isset( $data['cancel_reason'] ) ? sanitize_textarea_field( $data['cancel_reason'] ) : '';
+			if ( '' === trim( $cancel_reason ) ) {
+				return new WP_Error( 'crm_work_cancel_reason', __( 'বাতিল করলে কারণ লিখতে হবে।', 'sojib68' ) );
+			}
+			$status = 'cancelled';
+		} elseif ( $stage === $stage_cfg['ready'] ) {
+			$status = 'ready';
+		} else {
+			$status = '' !== $pending_reason ? 'pending' : 'running';
+		}
+	}
+
 	$row = array(
+		'stage'              => $stage,
+		'cancel_reason'      => $cancel_reason,
 		'customer_name'      => $name,
 		'customer_phone'     => $phone,
 		'received_date'      => sojib68_crm_work_clean_date( isset( $data['received_date'] ) ? $data['received_date'] : '' ),
 		'referred_by'        => isset( $data['referred_by'] ) ? sanitize_text_field( $data['referred_by'] ) : '',
 		'assigned_to'        => isset( $assignable[ $assigned_to ] ) ? $assigned_to : null,
-		'status'             => sojib68_crm_sanitize_from_list( isset( $data['status'] ) ? $data['status'] : '', sojib68_crm_work_statuses(), 'running' ),
-		'pending_reason'     => isset( $data['pending_reason'] ) ? sanitize_text_field( $data['pending_reason'] ) : '',
+		'status'             => $status,
+		'pending_reason'     => $pending_reason,
 		'next_action'        => isset( $data['next_action'] ) ? sanitize_text_field( $data['next_action'] ) : '',
 		'next_action_date'   => sojib68_crm_work_clean_date( isset( $data['next_action_date'] ) ? $data['next_action_date'] : '' ),
 		'docs_needed'        => isset( $data['docs_needed'] ) ? sanitize_textarea_field( $data['docs_needed'] ) : '',

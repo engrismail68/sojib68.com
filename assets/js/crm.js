@@ -126,6 +126,19 @@
 		});
 	});
 
+	document.querySelectorAll('[data-stage-select]').forEach(function (select) {
+		var box = document.querySelector('[data-cancel-reason]');
+		if (!box) { return; }
+		var field = box.querySelector('textarea');
+		function sync() {
+			var cancelled = select.value === select.getAttribute('data-cancel-stage');
+			box.hidden = !cancelled;
+			field.required = cancelled;
+		}
+		select.addEventListener('change', sync);
+		sync();
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {

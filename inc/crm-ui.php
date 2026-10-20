@@ -567,6 +567,7 @@ function sojib68_crm_render_category_entry( $type ) {
 	$staff    = sojib68_crm_assignable_users();
 	$slug     = $type . '-entry';
 	$action   = home_url( '/' . SOJIB68_CRM_BASE . '/' . $slug );
+	$stage_cfg = sojib68_crm_category_stage_config( $type );
 
 	$id   = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 	$work = $id ? sojib68_crm_work_get( $id ) : null;
@@ -613,14 +614,29 @@ function sojib68_crm_render_category_entry( $type ) {
 				<?php endforeach; ?>
 			</select>
 		</div>
-		<div class="crm-field">
-			<label><?php esc_html_e( 'কাজের অবস্থা', 'sojib68' ); ?></label>
-			<select name="status">
-				<?php foreach ( $statuses as $key => $label ) : ?>
-					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['status'] : 'running', $key ); ?>><?php echo esc_html( $label ); ?></option>
-				<?php endforeach; ?>
-			</select>
-		</div>
+		<?php if ( $stage_cfg ) : ?>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'কাজের অবস্থা', 'sojib68' ); ?></label>
+				<select name="stage" data-stage-select data-cancel-stage="<?php echo esc_attr( $stage_cfg['cancelled'] ); ?>">
+					<?php foreach ( $stage_cfg['stages'] as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work && $work['stage'] ? $work['stage'] : $stage_cfg['default'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="crm-field crm-field--full" data-cancel-reason hidden>
+				<label><?php esc_html_e( 'বাতিলের কারণ (ব্যাখ্যা)', 'sojib68' ); ?></label>
+				<textarea name="cancel_reason" rows="2"><?php echo $work ? esc_textarea( (string) $work['cancel_reason'] ) : ''; ?></textarea>
+			</div>
+		<?php else : ?>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'কাজের অবস্থা', 'sojib68' ); ?></label>
+				<select name="status">
+					<?php foreach ( $statuses as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['status'] : 'running', $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+		<?php endif; ?>
 		<div class="crm-field">
 			<label><?php esc_html_e( 'পেন্ডিং থাকার কারণ', 'sojib68' ); ?></label>
 			<input type="text" name="pending_reason" value="<?php echo $v( 'pending_reason' ); ?>">
@@ -699,7 +715,7 @@ function sojib68_crm_render_category_entry( $type ) {
 							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['customer_phone'] ? $w['customer_phone'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
-							<td><span class="crm-chip"><?php echo esc_html( $statuses[ $w['status'] ] ?? $w['status'] ); ?></span></td>
+							<td><span class="crm-chip"><?php echo esc_html( ( $stage_cfg && $w['stage'] && isset( $stage_cfg['stages'][ $w['stage'] ] ) ) ? $stage_cfg['stages'][ $w['stage'] ] : ( $statuses[ $w['status'] ] ?? $w['status'] ) ); ?></span></td>
 							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
 							<td><a href="<?php echo esc_url( add_query_arg( 'id', (int) $w['id'], $action ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'eye', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
 						</tr>

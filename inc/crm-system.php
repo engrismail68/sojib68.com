@@ -465,7 +465,7 @@ function sojib68_crm_handle_save_work( $type ) {
 		}
 	}
 
-	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'referred_by', 'assigned_to', 'status', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_recipient' );
+	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'referred_by', 'assigned_to', 'status', 'stage', 'cancel_reason', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_recipient' );
 	$data   = array();
 	foreach ( $fields as $f ) {
 		$data[ $f ] = isset( $_POST[ $f ] ) ? wp_unslash( $_POST[ $f ] ) : '';
