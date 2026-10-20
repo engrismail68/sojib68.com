@@ -154,6 +154,11 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'POST' === $_SERVER['REQUEST_METHOD'] && sojib68_crm_entry_page_type( $segments[1] ) ) {
+			sojib68_crm_handle_save_work( sojib68_crm_entry_page_type( $segments[1] ) );
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'cash-add' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			sojib68_crm_handle_cash_add();
 			exit;
@@ -442,6 +447,39 @@ function sojib68_crm_handle_save_lead() {
 	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . $saved_id ) );
 }
 
+function sojib68_crm_handle_save_work( $type ) {
+	$back = home_url( '/' . SOJIB68_CRM_BASE . '/' . $type . '-entry' );
+
+	if ( ! isset( $_POST['sojib68_crm_work_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_work_nonce'] ), 'sojib68_crm_save_work' ) ) {
+		wp_safe_redirect( $back );
+		return;
+	}
+
+	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+
+	if ( $id ) {
+		$existing = sojib68_crm_work_get( $id );
+		if ( ! $existing || $existing['work_type'] !== $type || ( ! sojib68_crm_is_admin() && (int) $existing['assigned_to'] !== get_current_user_id() ) ) {
+			wp_safe_redirect( $back );
+			return;
+		}
+	}
+
+	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'referred_by', 'assigned_to', 'status', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_recipient' );
+	$data   = array();
+	foreach ( $fields as $f ) {
+		$data[ $f ] = isset( $_POST[ $f ] ) ? wp_unslash( $_POST[ $f ] ) : '';
+	}
+
+	$saved = sojib68_crm_work_save( $data, $id, $type );
+	if ( is_wp_error( $saved ) ) {
+		wp_safe_redirect( $id ? add_query_arg( 'id', $id, $back ) : $back );
+		return;
+	}
+
+	wp_safe_redirect( add_query_arg( 'id', $saved, $back ) );
+}
+
 /* ---------------------------------------------------------------------
  * Authenticated: add cash ledger entry (admin/finance only)
  * ------------------------------------------------------------------ */
@@ -480,7 +518,17 @@ function sojib68_crm_menu_items() {
 		'leads'     => __( 'সব লিড', 'sojib68' ),
 		'works'     => __( 'সব কাজ', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
+		'namjari-entry' => __( 'নামজারি এন্ট্রি', 'sojib68' ),
 	);
+}
+
+/** Returns the service-type key for a "<type>-entry" page key, or '' if it isn't one. */
+function sojib68_crm_entry_page_type( $page_key ) {
+	if ( '-entry' !== substr( (string) $page_key, -6 ) ) {
+		return '';
+	}
+	$type = substr( $page_key, 0, -6 );
+	return isset( sojib68_crm_service_types()[ $type ] ) && isset( sojib68_crm_menu_items()[ $page_key ] ) ? $type : '';
 }
 
 function sojib68_crm_render_dashboard( $page_key ) {
@@ -495,12 +543,14 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'leads'     => 'users',
 		'works'     => 'briefcase',
 		'entry-new' => 'plus',
+		'namjari-entry' => 'briefcase',
 	);
 	$subs  = array(
 		'dashboard' => __( 'লিড, কাজ ও ক্লায়েন্টের এক নজরে সারসংক্ষেপ', 'sojib68' ),
 		'leads'     => __( 'ফেসবুক, হোয়াটসঅ্যাপ, ফোন ও সরাসরি — সব লিড এক জায়গায়', 'sojib68' ),
 		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
+		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
 	);
 
 	$page_title = $menu[ $page_key ];
@@ -612,6 +662,12 @@ function sojib68_crm_render_section( $page_key ) {
 			return ob_get_clean();
 
 		default:
+			$type = sojib68_crm_entry_page_type( $page_key );
+			if ( $type ) {
+				ob_start();
+				sojib68_crm_render_category_entry( $type );
+				return ob_get_clean();
+			}
 			return '';
 	}
 }

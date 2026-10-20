@@ -667,39 +667,67 @@ function sojib68_crm_cash_entries( $category = '', $limit = 30 ) {
 	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY txn_date DESC, id DESC LIMIT %d", (int) $limit ), ARRAY_A );
 }
 
-function sojib68_crm_work_update( $id, $data ) {
+function sojib68_crm_work_clean_date( $value ) {
+	$ts = ! empty( $value ) ? strtotime( $value ) : false;
+	return $ts ? gmdate( 'Y-m-d', $ts ) : null;
+}
+
+/**
+ * Creates (when $id is 0) or updates a work using the shared work
+ * fields. $work_type is fixed by the entry page the form came from
+ * (e.g. নামজারি এন্ট্রি always saves namjari). Category-specific fields
+ * are added later, per category, as they're defined.
+ *
+ * @return int|WP_Error Work ID.
+ */
+function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service' ) {
 	global $wpdb;
 	$table = sojib68_crm_works_table();
 
-	$row = array( 'updated_at' => current_time( 'mysql' ) );
-
-	foreach ( array( 'pending_reason', 'next_action', 'file_location', 'delivery_recipient' ) as $f ) {
-		if ( isset( $data[ $f ] ) ) {
-			$row[ $f ] = sanitize_text_field( $data[ $f ] );
-		}
-	}
-	foreach ( array( 'docs_needed', 'docs_received', 'docs_pending' ) as $f ) {
-		if ( isset( $data[ $f ] ) ) {
-			$row[ $f ] = sanitize_textarea_field( $data[ $f ] );
-		}
-	}
-	if ( isset( $data['status'] ) ) {
-		$row['status'] = sojib68_crm_sanitize_from_list( $data['status'], sojib68_crm_work_statuses(), 'running' );
-	}
-	if ( isset( $data['delivery_status'] ) ) {
-		$row['delivery_status'] = sojib68_crm_sanitize_from_list( $data['delivery_status'], sojib68_crm_delivery_statuses(), 'not_ready' );
-	}
-	if ( isset( $data['assigned_to'] ) ) {
-		$assignable = sojib68_crm_assignable_users();
-		$aid        = (int) $data['assigned_to'];
-		$row['assigned_to'] = isset( $assignable[ $aid ] ) ? $aid : null;
-	}
-	if ( ! empty( $data['next_action_date'] ) ) {
-		$row['next_action_date'] = $data['next_action_date'];
-	}
-	if ( ! empty( $data['delivery_date'] ) ) {
-		$row['delivery_date'] = $data['delivery_date'];
+	$name  = isset( $data['customer_name'] ) ? sanitize_text_field( $data['customer_name'] ) : '';
+	$phone = isset( $data['customer_phone'] ) ? sanitize_text_field( $data['customer_phone'] ) : '';
+	if ( '' === $name && '' === $phone ) {
+		return new WP_Error( 'crm_work_missing_fields', __( 'গ্রাহকের নাম অথবা মোবাইল — অন্তত একটি দিতে হবে।', 'sojib68' ) );
 	}
 
-	return $wpdb->update( $table, $row, array( 'id' => (int) $id ) );
+	$assignable  = sojib68_crm_assignable_users();
+	$assigned_to = isset( $data['assigned_to'] ) ? (int) $data['assigned_to'] : 0;
+
+	$row = array(
+		'customer_name'      => $name,
+		'customer_phone'     => $phone,
+		'received_date'      => sojib68_crm_work_clean_date( isset( $data['received_date'] ) ? $data['received_date'] : '' ),
+		'referred_by'        => isset( $data['referred_by'] ) ? sanitize_text_field( $data['referred_by'] ) : '',
+		'assigned_to'        => isset( $assignable[ $assigned_to ] ) ? $assigned_to : null,
+		'status'             => sojib68_crm_sanitize_from_list( isset( $data['status'] ) ? $data['status'] : '', sojib68_crm_work_statuses(), 'running' ),
+		'pending_reason'     => isset( $data['pending_reason'] ) ? sanitize_text_field( $data['pending_reason'] ) : '',
+		'next_action'        => isset( $data['next_action'] ) ? sanitize_text_field( $data['next_action'] ) : '',
+		'next_action_date'   => sojib68_crm_work_clean_date( isset( $data['next_action_date'] ) ? $data['next_action_date'] : '' ),
+		'docs_needed'        => isset( $data['docs_needed'] ) ? sanitize_textarea_field( $data['docs_needed'] ) : '',
+		'docs_received'      => isset( $data['docs_received'] ) ? sanitize_textarea_field( $data['docs_received'] ) : '',
+		'docs_pending'       => isset( $data['docs_pending'] ) ? sanitize_textarea_field( $data['docs_pending'] ) : '',
+		'file_location'      => isset( $data['file_location'] ) ? sanitize_text_field( $data['file_location'] ) : '',
+		'delivery_status'    => sojib68_crm_sanitize_from_list( isset( $data['delivery_status'] ) ? $data['delivery_status'] : '', sojib68_crm_delivery_statuses(), 'not_ready' ),
+		'delivery_date'      => sojib68_crm_work_clean_date( isset( $data['delivery_date'] ) ? $data['delivery_date'] : '' ),
+		'delivery_recipient' => isset( $data['delivery_recipient'] ) ? sanitize_text_field( $data['delivery_recipient'] ) : '',
+		'updated_at'         => current_time( 'mysql' ),
+	);
+
+	if ( $id > 0 ) {
+		$wpdb->update( $table, $row, array( 'id' => (int) $id ) );
+		return (int) $id;
+	}
+
+	$row['work_code']  = '';
+	$row['work_type']  = sojib68_crm_sanitize_from_list( $work_type, sojib68_crm_service_types(), 'other_land_service' );
+	$row['created_at'] = current_time( 'mysql' );
+	if ( empty( $row['received_date'] ) ) {
+		$row['received_date'] = current_time( 'Y-m-d' );
+	}
+
+	$wpdb->insert( $table, $row );
+	$new_id = (int) $wpdb->insert_id;
+	$wpdb->update( $table, array( 'work_code' => sojib68_crm_next_work_code( $new_id ) ), array( 'id' => $new_id ) );
+
+	return $new_id;
 }

@@ -554,6 +554,164 @@ function sojib68_crm_render_lead_detail_extras( $lead ) {
 }
 
 /* ---------------------------------------------------------------------
+ * Category entry page (e.g. নামজারি এন্ট্রি): add/edit a work of one
+ * fixed category using the shared work fields, plus that category's
+ * list below. Category-specific fields get added here per category as
+ * they're defined.
+ * ------------------------------------------------------------------ */
+
+function sojib68_crm_render_category_entry( $type ) {
+	$types    = sojib68_crm_service_types();
+	$statuses = sojib68_crm_work_statuses();
+	$delivery = sojib68_crm_delivery_statuses();
+	$staff    = sojib68_crm_assignable_users();
+	$slug     = $type . '-entry';
+	$action   = home_url( '/' . SOJIB68_CRM_BASE . '/' . $slug );
+
+	$id   = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
+	$work = $id ? sojib68_crm_work_get( $id ) : null;
+
+	if ( $id && ( ! $work || $work['work_type'] !== $type ) ) {
+		echo '<p class="crm-empty">' . esc_html__( 'কাজ পাওয়া যায়নি।', 'sojib68' ) . '</p>';
+		return;
+	}
+	if ( $work && ! sojib68_crm_is_admin() && (int) $work['assigned_to'] !== get_current_user_id() ) {
+		echo '<p class="crm-empty">' . esc_html__( 'এই কাজ দেখার অনুমতি আপনার নেই।', 'sojib68' ) . '</p>';
+		return;
+	}
+
+	$v = function ( $key, $default = '' ) use ( $work ) {
+		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
+	};
+	?>
+	<form method="post" action="<?php echo esc_url( $action ); ?>" class="crm-entry-form">
+		<?php wp_nonce_field( 'sojib68_crm_save_work', 'sojib68_crm_work_nonce' ); ?>
+		<input type="hidden" name="id" value="<?php echo (int) $id; ?>">
+
+		<div class="crm-field">
+			<label><?php esc_html_e( 'গ্রাহকের নাম', 'sojib68' ); ?></label>
+			<input type="text" name="customer_name" value="<?php echo $v( 'customer_name' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label>
+			<input type="text" name="customer_phone" value="<?php echo $v( 'customer_phone' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'কাজ আসার তারিখ', 'sojib68' ); ?></label>
+			<input type="date" name="received_date" value="<?php echo $v( 'received_date', current_time( 'Y-m-d' ) ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'কার মাধ্যমে এসেছেন', 'sojib68' ); ?></label>
+			<input type="text" name="referred_by" value="<?php echo $v( 'referred_by' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'দায়িত্বপ্রাপ্ত ব্যক্তি', 'sojib68' ); ?></label>
+			<select name="assigned_to">
+				<option value=""><?php esc_html_e( '(এখনো ঠিক হয়নি)', 'sojib68' ); ?></option>
+				<?php foreach ( $staff as $uid => $uname ) : ?>
+					<option value="<?php echo (int) $uid; ?>" <?php selected( $work ? (int) $work['assigned_to'] : 0, $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'কাজের অবস্থা', 'sojib68' ); ?></label>
+			<select name="status">
+				<?php foreach ( $statuses as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['status'] : 'running', $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'পেন্ডিং থাকার কারণ', 'sojib68' ); ?></label>
+			<input type="text" name="pending_reason" value="<?php echo $v( 'pending_reason' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'পরবর্তী করণীয়', 'sojib68' ); ?></label>
+			<input type="text" name="next_action" value="<?php echo $v( 'next_action' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'করণীয়ের তারিখ', 'sojib68' ); ?></label>
+			<input type="date" name="next_action_date" value="<?php echo $v( 'next_action_date' ); ?>">
+		</div>
+		<div class="crm-field crm-field--full">
+			<label><?php esc_html_e( 'প্রয়োজনীয় কাগজপত্র', 'sojib68' ); ?></label>
+			<textarea name="docs_needed" rows="2"><?php echo $work ? esc_textarea( $work['docs_needed'] ) : ''; ?></textarea>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'প্রাপ্ত কাগজপত্র', 'sojib68' ); ?></label>
+			<textarea name="docs_received" rows="2"><?php echo $work ? esc_textarea( $work['docs_received'] ) : ''; ?></textarea>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'বাকি কাগজপত্র', 'sojib68' ); ?></label>
+			<textarea name="docs_pending" rows="2"><?php echo $work ? esc_textarea( $work['docs_pending'] ) : ''; ?></textarea>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'ফাইল এখন কোথায় / কার কাছে', 'sojib68' ); ?></label>
+			<input type="text" name="file_location" value="<?php echo $v( 'file_location' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'ডেলিভারির অবস্থা', 'sojib68' ); ?></label>
+			<select name="delivery_status">
+				<?php foreach ( $delivery as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['delivery_status'] : 'not_ready', $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'ডেলিভারির তারিখ', 'sojib68' ); ?></label>
+			<input type="date" name="delivery_date" value="<?php echo $v( 'delivery_date' ); ?>">
+		</div>
+		<div class="crm-field">
+			<label><?php esc_html_e( 'কে গ্রহণ করেছেন', 'sojib68' ); ?></label>
+			<input type="text" name="delivery_recipient" value="<?php echo $v( 'delivery_recipient' ); ?>">
+		</div>
+
+		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
+	</form>
+
+	<h2 class="crm-section-title"><?php echo esc_html( $types[ $type ] ); ?> — <?php esc_html_e( 'সব কাজ', 'sojib68' ); ?></h2>
+	<?php
+	$result = sojib68_crm_works_search( array(
+		'work_type'     => $type,
+		'scope_user_id' => sojib68_crm_current_user_scope(),
+	) );
+	if ( empty( $result['rows'] ) ) :
+		?>
+		<p class="crm-empty"><?php esc_html_e( 'এখনো কোনো এন্ট্রি নেই।', 'sojib68' ); ?></p>
+	<?php else : ?>
+		<div class="crm-table-wrap">
+			<table class="crm-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'অবস্থা', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'ডেলিভারি', 'sojib68' ); ?></th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $result['rows'] as $w ) : ?>
+						<tr>
+							<td><?php echo esc_html( $w['work_code'] ); ?></td>
+							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></td>
+							<td><?php echo esc_html( $w['customer_phone'] ? $w['customer_phone'] : '—' ); ?></td>
+							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
+							<td><span class="crm-chip"><?php echo esc_html( $statuses[ $w['status'] ] ?? $w['status'] ); ?></span></td>
+							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
+							<td><a href="<?php echo esc_url( add_query_arg( 'id', (int) $w['id'], $action ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'eye', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+	<?php endif; ?>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
  * Works list (minimal — category-specific detail forms come later)
  * ------------------------------------------------------------------ */
 
