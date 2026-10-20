@@ -50,6 +50,68 @@
 		});
 	});
 
+	document.querySelectorAll('[data-add-followup]').forEach(function (form) {
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var leadId = form.getAttribute('data-lead-id');
+			var due = form.querySelector('[name="due_at"]').value;
+			var note = form.querySelector('[name="note"]').value;
+			if (!due) { return; }
+			post('sojib68_crm_add_followup', { lead_id: leadId, due_at: due, note: note }).then(function (res) {
+				if (res && res.success) {
+					window.location.reload();
+				} else {
+					flash((res && res.data && res.data.message) || 'ফলোআপ যোগ করা যায়নি।', true);
+				}
+			});
+		});
+	});
+
+	document.querySelectorAll('[data-complete-followup]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var id = btn.getAttribute('data-complete-followup');
+			post('sojib68_crm_complete_followup', { id: id }).then(function (res) {
+				if (res && res.success) {
+					window.location.reload();
+				} else {
+					flash('আপডেট ব্যর্থ হয়েছে।', true);
+				}
+			});
+		});
+	});
+
+	document.querySelectorAll('[data-add-note]').forEach(function (form) {
+		form.addEventListener('submit', function (e) {
+			e.preventDefault();
+			var leadId = form.getAttribute('data-lead-id');
+			var note = form.querySelector('[name="note"]').value;
+			if (!note.trim()) { return; }
+			post('sojib68_crm_add_note', { lead_id: leadId, note: note }).then(function (res) {
+				if (res && res.success) {
+					window.location.reload();
+				} else {
+					flash((res && res.data && res.data.message) || 'নোট যোগ করা যায়নি।', true);
+				}
+			});
+		});
+	});
+
+	document.querySelectorAll('[data-create-work]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			if (btn.disabled) { return; }
+			btn.disabled = true;
+			var leadId = btn.getAttribute('data-create-work');
+			post('sojib68_crm_create_work', { lead_id: leadId }).then(function (res) {
+				if (res && res.success) {
+					window.location.reload();
+				} else {
+					btn.disabled = false;
+					flash((res && res.data && res.data.message) || 'কাজের ফাইল তৈরি করা যায়নি।', true);
+				}
+			});
+		});
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {

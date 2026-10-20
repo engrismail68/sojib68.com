@@ -301,7 +301,7 @@ function sojib68_crm_handle_public_inquiry() {
 			if ( '' === $name && '' === $phone ) {
 				$error = __( 'নাম অথবা মোবাইল নম্বর অন্তত একটি দিন।', 'sojib68' );
 			} else {
-				$source = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : 'website';
+				$source = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : 'facebook_internet';
 				$id     = sojib68_crm_lead_save(
 					array(
 						'name'   => $name,
@@ -323,10 +323,10 @@ function sojib68_crm_handle_public_inquiry() {
 		}
 	}
 
-	$default_source = isset( $_GET['src'] ) ? sanitize_key( wp_unslash( $_GET['src'] ) ) : 'website';
+	$default_source = isset( $_GET['src'] ) ? sanitize_key( wp_unslash( $_GET['src'] ) ) : 'facebook_internet';
 	$sources        = sojib68_crm_lead_sources();
 	if ( ! isset( $sources[ $default_source ] ) ) {
-		$default_source = 'website';
+		$default_source = 'facebook_internet';
 	}
 	?>
 	<!DOCTYPE html>
@@ -402,14 +402,29 @@ function sojib68_crm_handle_save_lead() {
 
 	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
+	// Non-admin staff may only edit leads already assigned to them.
+	if ( $id && ! sojib68_crm_is_admin() ) {
+		$existing = sojib68_crm_lead_get( $id );
+		if ( ! $existing || (int) $existing['assigned_to'] !== get_current_user_id() ) {
+			wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/leads' ) );
+			return;
+		}
+	}
+
 	$saved_id = sojib68_crm_lead_save(
 		array(
-			'name'   => isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
-			'phone'  => isset( $_POST['phone'] ) ? wp_unslash( $_POST['phone'] ) : '',
-			'email'  => isset( $_POST['email'] ) ? wp_unslash( $_POST['email'] ) : '',
-			'source' => isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '',
-			'status' => isset( $_POST['status'] ) ? wp_unslash( $_POST['status'] ) : '',
-			'notes'  => isset( $_POST['notes'] ) ? wp_unslash( $_POST['notes'] ) : '',
+			'name'             => isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
+			'phone'            => isset( $_POST['phone'] ) ? wp_unslash( $_POST['phone'] ) : '',
+			'email'            => isset( $_POST['email'] ) ? wp_unslash( $_POST['email'] ) : '',
+			'address'          => isset( $_POST['address'] ) ? wp_unslash( $_POST['address'] ) : '',
+			'source'           => isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '',
+			'referred_by'      => isset( $_POST['referred_by'] ) ? wp_unslash( $_POST['referred_by'] ) : '',
+			'service_type'     => isset( $_POST['service_type'] ) ? wp_unslash( $_POST['service_type'] ) : '',
+			'details'          => isset( $_POST['details'] ) ? wp_unslash( $_POST['details'] ) : '',
+			'notes'            => isset( $_POST['notes'] ) ? wp_unslash( $_POST['notes'] ) : '',
+			'assigned_to'      => isset( $_POST['assigned_to'] ) ? wp_unslash( $_POST['assigned_to'] ) : '',
+			'status'           => isset( $_POST['status'] ) ? wp_unslash( $_POST['status'] ) : '',
+			'next_followup_at' => isset( $_POST['next_followup_at'] ) ? wp_unslash( $_POST['next_followup_at'] ) : '',
 		),
 		$id
 	);
@@ -419,7 +434,7 @@ function sojib68_crm_handle_save_lead() {
 		return;
 	}
 
-	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/leads' ) );
+	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . $saved_id ) );
 }
 
 /* ---------------------------------------------------------------------
@@ -430,6 +445,7 @@ function sojib68_crm_menu_items() {
 	return array(
 		'dashboard' => __( 'ড্যাশবোর্ড', 'sojib68' ),
 		'leads'     => __( 'সব লিড', 'sojib68' ),
+		'works'     => __( 'সব কাজ', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
 	);
 }
@@ -444,11 +460,13 @@ function sojib68_crm_render_dashboard( $page_key ) {
 	$icons = array(
 		'dashboard' => 'grid',
 		'leads'     => 'users',
+		'works'     => 'briefcase',
 		'entry-new' => 'plus',
 	);
 	$subs  = array(
-		'dashboard' => __( 'লিড ও ক্লায়েন্টের এক নজরে সারসংক্ষেপ', 'sojib68' ),
-		'leads'     => __( 'ফেসবুক বিজ্ঞাপন ও সরাসরি — সব লিড এক জায়গায়', 'sojib68' ),
+		'dashboard' => __( 'লিড, কাজ ও ক্লায়েন্টের এক নজরে সারসংক্ষেপ', 'sojib68' ),
+		'leads'     => __( 'ফেসবুক, হোয়াটসঅ্যাপ, ফোন ও সরাসরি — সব লিড এক জায়গায়', 'sojib68' ),
+		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
 	);
 
@@ -547,7 +565,12 @@ function sojib68_crm_render_section( $page_key ) {
 
 		case 'leads':
 			ob_start();
-			sojib68_crm_render_leads_list();
+			sojib68_crm_render_leads_table();
+			return ob_get_clean();
+
+		case 'works':
+			ob_start();
+			sojib68_crm_render_works_list();
 			return ob_get_clean();
 
 		case 'entry-new':
