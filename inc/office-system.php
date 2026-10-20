@@ -182,6 +182,11 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && SOJIB68_GDRIVE_REDIRECT_SLUG === $segments[1] ) {
+			sojib68_gdrive_handle_oauth_callback();
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_office_render_dashboard( $page_key );
 		exit;

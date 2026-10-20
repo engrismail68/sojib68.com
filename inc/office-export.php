@@ -99,8 +99,34 @@ function sojib68_office_render_export() {
 	<?php
 }
 
+/** Saves the Client ID/Secret the person pastes in — POSTed from the form below. Admin-only, nonce-checked. */
+function sojib68_office_maybe_save_gdrive_client() {
+	if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || empty( $_POST['sojib68_gdrive_client_save'] ) ) {
+		return;
+	}
+	if ( ! sojib68_office_can_export() || ! isset( $_POST['sojib68_gdrive_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_gdrive_nonce'] ), 'sojib68_gdrive_client' ) ) {
+		return;
+	}
+
+	$client_id = isset( $_POST['client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['client_id'] ) ) : '';
+	if ( $client_id ) {
+		sojib68_gdrive_set( 'client_id', $client_id );
+	}
+
+	// Secret field is left blank on reload (never re-displayed) — only overwrite when something new was typed.
+	$client_secret = isset( $_POST['client_secret'] ) ? trim( wp_unslash( $_POST['client_secret'] ) ) : '';
+	if ( $client_secret ) {
+		sojib68_gdrive_set( 'client_secret', $client_secret );
+	}
+
+	wp_safe_redirect( home_url( '/' . SOJIB68_OFFICE_BASE . '/export' ) );
+	exit;
+}
+add_action( 'init', 'sojib68_office_maybe_save_gdrive_client', 5 ); // before sojib68_office_router (priority 10), which would otherwise render+exit on this same request first.
+
 function sojib68_office_render_gdrive_card() {
-	$configured = sojib68_gdrive_configured();
+	$has_client = sojib68_gdrive_has_client();
+	$connected  = sojib68_gdrive_configured();
 	$last       = sojib68_gdrive_last_run_status();
 	?>
 	<section class="deed-card tone-blue">
@@ -112,33 +138,74 @@ function sojib68_office_render_gdrive_card() {
 			</div>
 		</header>
 		<div class="deed-card__body">
-			<?php if ( ! $configured ) : ?>
-				<div class="office-notice office-notice--warning"><?php esc_html_e( 'এখনো সেটআপ করা হয়নি।', 'sojib68' ); ?></div>
+			<?php if ( ! empty( $_GET['gdrive_connected'] ) ) : ?>
+				<div class="office-notice office-notice--success"><?php esc_html_e( 'Google Drive সফলভাবে সংযুক্ত হয়েছে!', 'sojib68' ); ?></div>
+			<?php elseif ( ! empty( $_GET['gdrive_error'] ) ) : ?>
+				<div class="office-notice office-notice--error">
+					<?php
+					$err    = sanitize_key( wp_unslash( $_GET['gdrive_error'] ) );
+					$detail = isset( $_GET['detail'] ) ? sanitize_text_field( wp_unslash( $_GET['detail'] ) ) : '';
+					switch ( $err ) {
+						case 'denied':
+							esc_html_e( 'আপনি Google-এ অনুমতি দেননি, তাই সংযুক্ত হয়নি।', 'sojib68' );
+							break;
+						case 'state':
+							esc_html_e( 'লিংকটির মেয়াদ শেষ হয়ে গেছে, আবার চেষ্টা করুন।', 'sojib68' );
+							break;
+						default:
+							echo esc_html( __( 'সংযুক্ত করা যায়নি।', 'sojib68' ) . ( $detail ? ' — ' . $detail : '' ) );
+					}
+					?>
+				</div>
+			<?php endif; ?>
+
+			<?php if ( ! $has_client ) : ?>
 				<details class="deed-row__more" open>
 					<summary><?php esc_html_e( 'কীভাবে সেটআপ করবেন (একবারের কাজ)', 'sojib68' ); ?></summary>
 					<ol class="gdrive-steps">
 						<li><?php esc_html_e( 'console.cloud.google.com-এ গিয়ে একটি নতুন প্রজেক্ট খুলুন (যেমন নাম দিন "Sojib68 Backup")।', 'sojib68' ); ?></li>
 						<li><?php esc_html_e( '"APIs & Services → Library"-তে গিয়ে "Google Drive API" খুঁজে Enable করুন।', 'sojib68' ); ?></li>
-						<li><?php esc_html_e( '"APIs & Services → Credentials → Create Credentials → Service Account" দিয়ে একটি সার্ভিস অ্যাকাউন্ট বানান।', 'sojib68' ); ?></li>
-						<li><?php esc_html_e( 'সেই সার্ভিস অ্যাকাউন্টের "Keys" ট্যাবে গিয়ে "Add Key → Create new key → JSON" — একটি JSON ফাইল ডাউনলোড হবে, এতে client_email ও private_key থাকবে।', 'sojib68' ); ?></li>
-						<li><?php esc_html_e( 'আপনার Google Drive-এ একটি নতুন ফোল্ডার বানান (যেমন "Sojib68 Backups"), সেটি Share করুন — JSON ফাইলের client_email ঠিকানাটি বসিয়ে "Editor" অ্যাক্সেস দিন।', 'sojib68' ); ?></li>
-						<li><?php esc_html_e( 'ফোল্ডারের লিংক থেকে folder ID নিন (drive.google.com/drive/folders/ এর পরের অংশটুকু)।', 'sojib68' ); ?></li>
-						<li><?php esc_html_e( 'Hostinger File Manager দিয়ে wp-config.php খুলুন, "stop editing" লেখার ঠিক আগে এই তিনটি লাইন বসান:', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( '"APIs & Services → OAuth consent screen"-এ গিয়ে User type "External" দিয়ে একটি বেসিক ফর্ম পূরণ করুন (App name, আপনার ইমেইল), Scopes-এ ".../auth/drive.file" যোগ করুন, আর নিজের ইমেইলকে Test user হিসেবে যোগ করুন।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'একই পেজে "PUBLISH APP" চাপুন (drive.file একটি সাধারণ/non-sensitive স্কোপ, তাই Google-এর আলাদা যাচাই লাগবে না) — এতে লগইন টোকেন বারবার মেয়াদ শেষ হবে না।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( '"APIs & Services → Credentials → Create Credentials → OAuth client ID" — Application type "Web application" সিলেক্ট করুন।', 'sojib68' ); ?></li>
+						<li>
+							<?php esc_html_e( '"Authorized redirect URIs"-এ ঠিক এই লিংকটা বসান:', 'sojib68' ); ?>
+							<code class="gdrive-inline-code"><?php echo esc_html( sojib68_gdrive_redirect_uri() ); ?></code>
+						</li>
+						<li><?php esc_html_e( 'Create চাপার পর যে Client ID আর Client Secret দেখাবে, সেগুলো নিচের ফর্মে বসিয়ে সংরক্ষণ করুন।', 'sojib68' ); ?></li>
 					</ol>
-					<pre class="gdrive-code">define( 'SOJIB68_GDRIVE_CLIENT_EMAIL', 'xxxx@xxxx.iam.gserviceaccount.com' );
-define( 'SOJIB68_GDRIVE_PRIVATE_KEY', "-----BEGIN PRIVATE KEY-----\nxxxx\n-----END PRIVATE KEY-----\n" );
-define( 'SOJIB68_GDRIVE_FOLDER_ID', 'xxxxxxxxxxxxxxxxxxxx' );</pre>
-					<p class="print-hint"><?php esc_html_e( 'JSON ফাইলের private_key ভ্যালুটি (ভিতরের \\n সহ) হুবহু কপি করে বসাবেন, ডাবল কোটের মধ্যেই রাখবেন।', 'sojib68' ); ?></p>
 				</details>
+
+				<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/export' ) ); ?>" class="gdrive-client-form">
+					<?php wp_nonce_field( 'sojib68_gdrive_client', 'sojib68_gdrive_nonce' ); ?>
+					<input type="hidden" name="sojib68_gdrive_client_save" value="1">
+					<div class="deed-grid">
+						<div class="deed-field col-6">
+							<label for="f-gdrive-client-id"><?php esc_html_e( 'Client ID', 'sojib68' ); ?></label>
+							<input type="text" id="f-gdrive-client-id" name="client_id" value="<?php echo esc_attr( sojib68_gdrive_get( 'client_id' ) ); ?>">
+						</div>
+						<div class="deed-field col-6">
+							<label for="f-gdrive-client-secret"><?php esc_html_e( 'Client Secret', 'sojib68' ); ?></label>
+							<input type="password" id="f-gdrive-client-secret" name="client_secret" autocomplete="off" placeholder="<?php echo sojib68_gdrive_get( 'client_secret' ) ? esc_attr__( '(সংরক্ষিত আছে — বদলাতে চাইলে নতুন ভ্যালু লিখুন)', 'sojib68' ) : ''; ?>">
+						</div>
+					</div>
+					<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
+				</form>
+			<?php elseif ( ! $connected ) : ?>
+				<div class="office-notice office-notice--info"><?php esc_html_e( 'Client ID/Secret সংরক্ষিত আছে — এখন নিজের Google অ্যাকাউন্ট দিয়ে সংযুক্ত করুন।', 'sojib68' ); ?></div>
+				<a class="btn btn-primary" href="<?php echo esc_url( sojib68_gdrive_auth_url() ); ?>"><?php echo sojib68_office_icon( 'check', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'Google Drive-এর সাথে সংযুক্ত করুন', 'sojib68' ); ?></a>
 			<?php else : ?>
 				<?php if ( $last ) : ?>
 					<div class="office-notice office-notice--<?php echo 'success' === $last['status'] ? 'success' : 'error'; ?>">
 						<?php echo esc_html( sprintf( /* translators: 1: date/time, 2: status message */ __( 'সর্বশেষ: %1$s — %2$s', 'sojib68' ), $last['time'], $last['message'] ) ); ?>
 					</div>
 				<?php else : ?>
-					<div class="office-notice office-notice--info"><?php esc_html_e( 'এখনো কোনো ব্যাকআপ চালানো হয়নি — পরের সাপ্তাহিক সময়ে বা এখনই নিচের বাটনে চালাতে পারেন।', 'sojib68' ); ?></div>
+					<div class="office-notice office-notice--info"><?php esc_html_e( 'সংযুক্ত আছে — এখনো কোনো ব্যাকআপ চালানো হয়নি। পরের সাপ্তাহিক সময়ে বা এখনই নিচের বাটনে চালাতে পারেন।', 'sojib68' ); ?></div>
 				<?php endif; ?>
-				<a class="btn btn-primary" href="<?php echo esc_url( sojib68_office_export_nonce_url( 'gdrive-now' ) ); ?>"><?php echo sojib68_office_icon( 'clock', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'এখনই ব্যাকআপ করুন', 'sojib68' ); ?></a>
+				<div class="office-pagehead__actions">
+					<a class="btn btn-primary" href="<?php echo esc_url( sojib68_office_export_nonce_url( 'gdrive-now' ) ); ?>"><?php echo sojib68_office_icon( 'clock', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'এখনই ব্যাকআপ করুন', 'sojib68' ); ?></a>
+					<a class="btn btn-outline btn-sm" href="<?php echo esc_url( sojib68_office_export_nonce_url( 'gdrive-disconnect' ) ); ?>"><?php esc_html_e( 'সংযোগ বিচ্ছিন্ন করুন', 'sojib68' ); ?></a>
+				</div>
 			<?php endif; ?>
 		</div>
 	</section>
@@ -175,6 +242,12 @@ function sojib68_office_stream_export( $type ) {
 
 	if ( 'gdrive-now' === $type ) {
 		sojib68_gdrive_run_scheduled_backup();
+		wp_safe_redirect( home_url( '/' . SOJIB68_OFFICE_BASE . '/export' ) );
+		exit;
+	}
+
+	if ( 'gdrive-disconnect' === $type ) {
+		sojib68_gdrive_disconnect();
 		wp_safe_redirect( home_url( '/' . SOJIB68_OFFICE_BASE . '/export' ) );
 		exit;
 	}

@@ -1,83 +1,159 @@
 <?php
 /**
- * Automatic weekly backup to Google Drive, via a Google "service
- * account" (server-to-server auth — no one has to log in or
- * re-authorize anything after the one-time setup).
+ * Automatic weekly backup to Google Drive.
  *
- * Needs three constants defined in wp-config.php (NOT in this theme —
- * they're a secret, and this theme is deployed from a public-ish git
- * repo, so they must never live in a theme file):
+ * Originally built around a Google "service account", but that hits a
+ * hard wall on an ordinary (non-Workspace) Google account: a service
+ * account has zero storage quota of its own, and Google refuses to
+ * create files on its behalf even in a folder a human has shared with
+ * it (error: "Service Accounts do not have storage quota..."). Shared
+ * Drives, which would fix that, are a paid Workspace feature.
  *
- *   define( 'SOJIB68_GDRIVE_CLIENT_EMAIL', '...@...iam.gserviceaccount.com' );
- *   define( 'SOJIB68_GDRIVE_PRIVATE_KEY',  "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n" );
- *   define( 'SOJIB68_GDRIVE_FOLDER_ID',    'the-shared-drive-folder-id' );
+ * So instead this connects as the site owner's own Google account via
+ * OAuth — a one-time "Google Drive-এর সাথে সংযুক্ত করুন" login, the same
+ * pattern as "Sign in with Google" on any ordinary app. Everything it
+ * needs (Client ID, Client Secret, the refresh token from that login)
+ * is entered through the এক্সপোর্ট / ব্যাকআপ page itself and stored in
+ * the database — no wp-config.php editing, no private keys to paste.
  *
- * See the "Google Drive অটো ব্যাকআপ" card on the এক্সপোর্ট / ব্যাকআপ
- * page for the exact setup steps. Until all three are defined, this
- * whole feature quietly does nothing — no cron job, no API calls.
+ * See the "Google Drive অটো ব্যাকআপ" card for the exact setup steps.
+ * Until it's connected, this whole feature quietly does nothing — no
+ * cron job, no API calls.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Full Drive scope, not the narrower drive.file — the backup folder is
-// created by a human in their own Drive and only shared with this
-// service account afterwards, which drive.file does not reliably cover.
-define( 'SOJIB68_GDRIVE_SCOPE', 'https://www.googleapis.com/auth/drive' );
+// drive.file — the app only ever touches files/folders it creates
+// itself, never anything else in the person's Drive. This is Google's
+// "non-sensitive" scope tier, so it needs no app-verification review.
+define( 'SOJIB68_GDRIVE_SCOPE', 'https://www.googleapis.com/auth/drive.file' );
+define( 'SOJIB68_GDRIVE_REDIRECT_SLUG', 'gdrive-oauth-callback' );
 
-function sojib68_gdrive_configured() {
-	return defined( 'SOJIB68_GDRIVE_CLIENT_EMAIL' ) && SOJIB68_GDRIVE_CLIENT_EMAIL
-		&& defined( 'SOJIB68_GDRIVE_PRIVATE_KEY' ) && SOJIB68_GDRIVE_PRIVATE_KEY
-		&& defined( 'SOJIB68_GDRIVE_FOLDER_ID' ) && SOJIB68_GDRIVE_FOLDER_ID;
+/* ---------------------------------------------------------------------
+ * Settings — all stored in wp_options, editable from the এক্সপোর্ট /
+ * ব্যাকআপ page itself.
+ * ------------------------------------------------------------------ */
+
+function sojib68_gdrive_get( $key, $default = '' ) {
+	return get_option( 'sojib68_gdrive_' . $key, $default );
 }
 
-function sojib68_gdrive_base64url( $data ) {
-	return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' );
+function sojib68_gdrive_set( $key, $value ) {
+	update_option( 'sojib68_gdrive_' . $key, $value );
+}
+
+function sojib68_gdrive_has_client() {
+	return (bool) ( sojib68_gdrive_get( 'client_id' ) && sojib68_gdrive_get( 'client_secret' ) );
+}
+
+function sojib68_gdrive_configured() {
+	return sojib68_gdrive_has_client() && (bool) sojib68_gdrive_get( 'refresh_token' );
+}
+
+function sojib68_gdrive_redirect_uri() {
+	return home_url( '/' . SOJIB68_OFFICE_BASE . '/' . SOJIB68_GDRIVE_REDIRECT_SLUG );
+}
+
+/** The link the "Google Drive-এর সাথে সংযুক্ত করুন" button sends the browser to. */
+function sojib68_gdrive_auth_url() {
+	$params = array(
+		'client_id'              => sojib68_gdrive_get( 'client_id' ),
+		'redirect_uri'           => sojib68_gdrive_redirect_uri(),
+		'response_type'          => 'code',
+		'scope'                  => SOJIB68_GDRIVE_SCOPE,
+		'access_type'            => 'offline', // ask for a refresh token, not just a short-lived access token.
+		'prompt'                 => 'consent', // force Google to re-issue a refresh token even on a repeat connect.
+		'state'                  => wp_create_nonce( 'sojib68_gdrive_oauth' ),
+	);
+	return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query( $params );
 }
 
 /**
- * A signed JWT exchanged for a short-lived Drive API access token.
- * Cached in a transient so a weekly cron run (and a manual "এখনই
- * ব্যাকআপ করুন" click) never need more than one token request.
+ * Handles the redirect back from Google after the person approves
+ * access. Only ever redirects (never exits itself) — the router that
+ * calls this exits right after, same as every other route it handles.
  */
-function sojib68_gdrive_get_access_token() {
-	if ( ! sojib68_gdrive_configured() ) {
-		return new WP_Error( 'not_configured', __( 'Google Drive ব্যাকআপ এখনো সেটআপ করা হয়নি।', 'sojib68' ) );
+function sojib68_gdrive_handle_oauth_callback() {
+	$base = home_url( '/' . SOJIB68_OFFICE_BASE . '/export' );
+
+	if ( ! sojib68_office_can_export() ) {
+		wp_safe_redirect( $base );
+		return;
 	}
 
-	$cached = get_transient( 'sojib68_gdrive_token_v2' );
-	if ( $cached ) {
-		return $cached;
+	$state = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
+	if ( ! wp_verify_nonce( $state, 'sojib68_gdrive_oauth' ) ) {
+		wp_safe_redirect( add_query_arg( 'gdrive_error', 'state', $base ) );
+		return;
 	}
 
-	if ( ! function_exists( 'openssl_sign' ) ) {
-		return new WP_Error( 'no_openssl', __( 'এই সার্ভারে OpenSSL নেই, তাই Google Drive ব্যাকআপ কাজ করবে না।', 'sojib68' ) );
+	if ( ! empty( $_GET['error'] ) ) {
+		wp_safe_redirect( add_query_arg( 'gdrive_error', 'denied', $base ) );
+		return;
 	}
 
-	$now = time();
-	$header = sojib68_gdrive_base64url( wp_json_encode( array( 'alg' => 'RS256', 'typ' => 'JWT' ) ) );
-	$claims = sojib68_gdrive_base64url( wp_json_encode( array(
-		'iss'   => SOJIB68_GDRIVE_CLIENT_EMAIL,
-		'scope' => SOJIB68_GDRIVE_SCOPE,
-		'aud'   => 'https://oauth2.googleapis.com/token',
-		'iat'   => $now,
-		'exp'   => $now + 3600,
-	) ) );
-
-	$signature = '';
-	$signed_ok = openssl_sign( "$header.$claims", $signature, SOJIB68_GDRIVE_PRIVATE_KEY, 'sha256WithRSAEncryption' );
-	if ( ! $signed_ok ) {
-		return new WP_Error( 'sign_failed', __( 'Private key দিয়ে সাইন করা যায়নি — wp-config.php-তে key টি ঠিকভাবে বসানো হয়েছে কিনা দেখুন।', 'sojib68' ) );
+	$code = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
+	if ( ! $code ) {
+		wp_safe_redirect( add_query_arg( 'gdrive_error', 'no_code', $base ) );
+		return;
 	}
-
-	$jwt = $header . '.' . $claims . '.' . sojib68_gdrive_base64url( $signature );
 
 	$resp = wp_remote_post( 'https://oauth2.googleapis.com/token', array(
 		'timeout' => 30,
 		'body'    => array(
-			'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-			'assertion'  => $jwt,
+			'code'          => $code,
+			'client_id'     => sojib68_gdrive_get( 'client_id' ),
+			'client_secret' => sojib68_gdrive_get( 'client_secret' ),
+			'redirect_uri'  => sojib68_gdrive_redirect_uri(),
+			'grant_type'    => 'authorization_code',
+		),
+	) );
+
+	$body = is_wp_error( $resp ) ? array() : json_decode( wp_remote_retrieve_body( $resp ), true );
+
+	if ( empty( $body['refresh_token'] ) ) {
+		// Google omits refresh_token on a repeat consent unless prompt=consent
+		// forced it (which we do) — if it's still missing, surface *why*.
+		$detail = $body['error_description'] ?? ( is_wp_error( $resp ) ? $resp->get_error_message() : '' );
+		wp_safe_redirect( add_query_arg( array( 'gdrive_error' => 'token', 'detail' => rawurlencode( (string) $detail ) ), $base ) );
+		return;
+	}
+
+	sojib68_gdrive_set( 'refresh_token', $body['refresh_token'] );
+	delete_transient( 'sojib68_gdrive_access_token' );
+	wp_safe_redirect( add_query_arg( 'gdrive_connected', '1', $base ) );
+}
+
+/** Disconnects — keeps the saved Client ID/Secret, only forgets the login. */
+function sojib68_gdrive_disconnect() {
+	sojib68_gdrive_set( 'refresh_token', '' );
+	delete_transient( 'sojib68_gdrive_access_token' );
+}
+
+/**
+ * A short-lived Drive API access token, refreshed from the stored
+ * refresh token. Cached in a transient so a weekly cron run (and a
+ * manual "এখনই ব্যাকআপ করুন" click) never need more than one request.
+ */
+function sojib68_gdrive_get_access_token() {
+	if ( ! sojib68_gdrive_configured() ) {
+		return new WP_Error( 'not_configured', __( 'Google Drive এখনো সংযুক্ত করা হয়নি।', 'sojib68' ) );
+	}
+
+	$cached = get_transient( 'sojib68_gdrive_access_token' );
+	if ( $cached ) {
+		return $cached;
+	}
+
+	$resp = wp_remote_post( 'https://oauth2.googleapis.com/token', array(
+		'timeout' => 30,
+		'body'    => array(
+			'client_id'     => sojib68_gdrive_get( 'client_id' ),
+			'client_secret' => sojib68_gdrive_get( 'client_secret' ),
+			'refresh_token' => sojib68_gdrive_get( 'refresh_token' ),
+			'grant_type'    => 'refresh_token',
 		),
 	) );
 
@@ -88,26 +164,77 @@ function sojib68_gdrive_get_access_token() {
 	$body = json_decode( wp_remote_retrieve_body( $resp ), true );
 	if ( empty( $body['access_token'] ) ) {
 		$detail = isset( $body['error_description'] ) ? $body['error_description'] : wp_remote_retrieve_body( $resp );
+		if ( isset( $body['error'] ) && 'invalid_grant' === $body['error'] ) {
+			// The login was revoked (from the Google Account side) or expired — ask them to reconnect rather than retry forever.
+			sojib68_gdrive_disconnect();
+		}
 		return new WP_Error( 'token_failed', sprintf( /* translators: %s: error detail from Google */ __( 'Google থেকে টোকেন পাওয়া যায়নি: %s', 'sojib68' ), $detail ) );
 	}
 
 	$ttl = isset( $body['expires_in'] ) ? max( 60, (int) $body['expires_in'] - 60 ) : 3000;
-	set_transient( 'sojib68_gdrive_token_v2', $body['access_token'], $ttl );
+	set_transient( 'sojib68_gdrive_access_token', $body['access_token'], $ttl );
 
 	return $body['access_token'];
 }
 
-/** Uploads raw file bytes into the shared backup folder via Drive API v3's multipart upload. */
+/**
+ * The folder backups go into — created once, in the account's own My
+ * Drive, the first time a backup runs. Because the token only has the
+ * drive.file scope, the app can only ever see/use folders it created
+ * itself, so this is the one it always reuses afterwards.
+ */
+function sojib68_gdrive_ensure_backup_folder() {
+	$existing = sojib68_gdrive_get( 'folder_id' );
+	if ( $existing ) {
+		return $existing;
+	}
+
+	$token = sojib68_gdrive_get_access_token();
+	if ( is_wp_error( $token ) ) {
+		return $token;
+	}
+
+	$resp = wp_remote_post( 'https://www.googleapis.com/drive/v3/files', array(
+		'timeout' => 30,
+		'headers' => array(
+			'Authorization' => 'Bearer ' . $token,
+			'Content-Type'  => 'application/json',
+		),
+		'body'    => wp_json_encode( array(
+			'name'     => 'Sojib68 Backups',
+			'mimeType' => 'application/vnd.google-apps.folder',
+		) ),
+	) );
+
+	if ( is_wp_error( $resp ) ) {
+		return $resp;
+	}
+
+	$body = json_decode( wp_remote_retrieve_body( $resp ), true );
+	if ( empty( $body['id'] ) ) {
+		return new WP_Error( 'folder_failed', __( 'ব্যাকআপ ফোল্ডার তৈরি করা যায়নি।', 'sojib68' ) );
+	}
+
+	sojib68_gdrive_set( 'folder_id', $body['id'] );
+	return $body['id'];
+}
+
+/** Uploads raw file bytes into the backup folder via Drive API v3's multipart upload. */
 function sojib68_gdrive_upload_file( $filename, $mime_type, $bytes ) {
 	$token = sojib68_gdrive_get_access_token();
 	if ( is_wp_error( $token ) ) {
 		return $token;
 	}
 
+	$folder_id = sojib68_gdrive_ensure_backup_folder();
+	if ( is_wp_error( $folder_id ) ) {
+		return $folder_id;
+	}
+
 	$boundary = 'sojib68-' . wp_generate_password( 24, false );
 	$metadata = wp_json_encode( array(
 		'name'    => $filename,
-		'parents' => array( SOJIB68_GDRIVE_FOLDER_ID ),
+		'parents' => array( $folder_id ),
 	) );
 
 	$body  = "--$boundary\r\n";

@@ -681,3 +681,11 @@
 	font-size: .78rem; overflow-x: auto; white-space: pre; margin: 10px 0;
 	font-family: 'Figtree', monospace;
 }
+
+/* ---------- Google Drive OAuth setup form ---------- */
+.gdrive-inline-code {
+	display: inline-block; margin-top: 4px; padding: 4px 10px; border-radius: 6px;
+	background: #1d2b22; color: #cfe6d4; font-size: .78rem; word-break: break-all;
+}
+.gdrive-client-form { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--o-line); }
+.gdrive-client-form .btn { margin-top: 10px; }
