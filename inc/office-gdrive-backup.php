@@ -21,7 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_GDRIVE_SCOPE', 'https://www.googleapis.com/auth/drive.file' );
+// Full Drive scope, not the narrower drive.file — the backup folder is
+// created by a human in their own Drive and only shared with this
+// service account afterwards, which drive.file does not reliably cover.
+define( 'SOJIB68_GDRIVE_SCOPE', 'https://www.googleapis.com/auth/drive' );
 
 function sojib68_gdrive_configured() {
 	return defined( 'SOJIB68_GDRIVE_CLIENT_EMAIL' ) && SOJIB68_GDRIVE_CLIENT_EMAIL
@@ -43,7 +46,7 @@ function sojib68_gdrive_get_access_token() {
 		return new WP_Error( 'not_configured', __( 'Google Drive ব্যাকআপ এখনো সেটআপ করা হয়নি।', 'sojib68' ) );
 	}
 
-	$cached = get_transient( 'sojib68_gdrive_token' );
+	$cached = get_transient( 'sojib68_gdrive_token_v2' );
 	if ( $cached ) {
 		return $cached;
 	}
@@ -89,7 +92,7 @@ function sojib68_gdrive_get_access_token() {
 	}
 
 	$ttl = isset( $body['expires_in'] ) ? max( 60, (int) $body['expires_in'] - 60 ) : 3000;
-	set_transient( 'sojib68_gdrive_token', $body['access_token'], $ttl );
+	set_transient( 'sojib68_gdrive_token_v2', $body['access_token'], $ttl );
 
 	return $body['access_token'];
 }
@@ -130,7 +133,12 @@ function sojib68_gdrive_upload_file( $filename, $mime_type, $bytes ) {
 
 	$code = wp_remote_retrieve_response_code( $resp );
 	if ( $code < 200 || $code >= 300 ) {
-		return new WP_Error( 'upload_failed', sprintf( /* translators: %d: HTTP status code */ __( 'Google Drive আপলোড ব্যর্থ (কোড %d)।', 'sojib68' ), $code ) );
+		$detail = wp_remote_retrieve_body( $resp );
+		$parsed = json_decode( $detail, true );
+		if ( ! empty( $parsed['error']['message'] ) ) {
+			$detail = $parsed['error']['message'];
+		}
+		return new WP_Error( 'upload_failed', sprintf( /* translators: 1: HTTP status code, 2: Google's own error message */ __( 'Google Drive আপলোড ব্যর্থ (কোড %1$d): %2$s', 'sojib68' ), $code, $detail ) );
 	}
 
 	$result = json_decode( wp_remote_retrieve_body( $resp ), true );
