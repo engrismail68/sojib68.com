@@ -216,7 +216,9 @@ function sojib68_office_stream_full_zip() {
 		wp_die( esc_html__( 'এই সার্ভারে ZIP তৈরি করা যাচ্ছে না। পৃথক CSV ডাউনলোড ব্যবহার করুন।', 'sojib68' ) );
 	}
 
-	$tmp_path = wp_tempnam( 'sojib68-backup.zip' );
+	// tempnam(), not wp_tempnam() — that WP helper only autoloads in
+	// wp-admin, and this route runs on a plain frontend request.
+	$tmp_path = tempnam( sys_get_temp_dir(), 'sojib68-backup-' );
 	$zip      = new ZipArchive();
 	$zip->open( $tmp_path, ZipArchive::OVERWRITE );
 
