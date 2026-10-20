@@ -90,10 +90,58 @@ function sojib68_office_render_export() {
 		</div>
 	</section>
 
+	<?php sojib68_office_render_gdrive_card(); ?>
+
 	<p class="deed-note">
 		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
-		<span><?php esc_html_e( 'এই ফাইলগুলো ডাউনলোড হওয়ার পর আপনার কম্পিউটারে থাকে — নিয়মিত ডাউনলোড করে নিরাপদ জায়গায় (যেমন গুগল ড্রাইভ) রাখুন।', 'sojib68' ); ?></span>
+		<span><?php esc_html_e( 'ম্যানুয়াল ফাইলগুলো ডাউনলোড হওয়ার পর আপনার কম্পিউটারে থাকে — নিয়মিত ডাউনলোড করে নিরাপদ জায়গায় রাখুন।', 'sojib68' ); ?></span>
 	</p>
+	<?php
+}
+
+function sojib68_office_render_gdrive_card() {
+	$configured = sojib68_gdrive_configured();
+	$last       = sojib68_gdrive_last_run_status();
+	?>
+	<section class="deed-card tone-blue">
+		<header class="deed-card__head">
+			<span class="deed-card__icon"><?php echo sojib68_office_icon( 'clock', 19 ); // phpcs:ignore ?></span>
+			<div>
+				<h2 class="deed-card__title"><?php esc_html_e( 'Google Drive অটো ব্যাকআপ', 'sojib68' ); ?></h2>
+				<p class="deed-card__hint"><?php esc_html_e( 'সাপ্তাহিক স্বয়ংক্রিয়ভাবে সম্পূর্ণ ব্যাকআপ আপনার Google Drive-এর একটি ফোল্ডারে আপলোড হয়ে যাবে — ডাউনলোড করার দরকার নেই।', 'sojib68' ); ?></p>
+			</div>
+		</header>
+		<div class="deed-card__body">
+			<?php if ( ! $configured ) : ?>
+				<div class="office-notice office-notice--warning"><?php esc_html_e( 'এখনো সেটআপ করা হয়নি।', 'sojib68' ); ?></div>
+				<details class="deed-row__more" open>
+					<summary><?php esc_html_e( 'কীভাবে সেটআপ করবেন (একবারের কাজ)', 'sojib68' ); ?></summary>
+					<ol class="gdrive-steps">
+						<li><?php esc_html_e( 'console.cloud.google.com-এ গিয়ে একটি নতুন প্রজেক্ট খুলুন (যেমন নাম দিন "Sojib68 Backup")।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( '"APIs & Services → Library"-তে গিয়ে "Google Drive API" খুঁজে Enable করুন।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( '"APIs & Services → Credentials → Create Credentials → Service Account" দিয়ে একটি সার্ভিস অ্যাকাউন্ট বানান।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'সেই সার্ভিস অ্যাকাউন্টের "Keys" ট্যাবে গিয়ে "Add Key → Create new key → JSON" — একটি JSON ফাইল ডাউনলোড হবে, এতে client_email ও private_key থাকবে।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'আপনার Google Drive-এ একটি নতুন ফোল্ডার বানান (যেমন "Sojib68 Backups"), সেটি Share করুন — JSON ফাইলের client_email ঠিকানাটি বসিয়ে "Editor" অ্যাক্সেস দিন।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'ফোল্ডারের লিংক থেকে folder ID নিন (drive.google.com/drive/folders/ এর পরের অংশটুকু)।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'Hostinger File Manager দিয়ে wp-config.php খুলুন, "stop editing" লেখার ঠিক আগে এই তিনটি লাইন বসান:', 'sojib68' ); ?></li>
+					</ol>
+					<pre class="gdrive-code">define( 'SOJIB68_GDRIVE_CLIENT_EMAIL', 'xxxx@xxxx.iam.gserviceaccount.com' );
+define( 'SOJIB68_GDRIVE_PRIVATE_KEY', "-----BEGIN PRIVATE KEY-----\nxxxx\n-----END PRIVATE KEY-----\n" );
+define( 'SOJIB68_GDRIVE_FOLDER_ID', 'xxxxxxxxxxxxxxxxxxxx' );</pre>
+					<p class="print-hint"><?php esc_html_e( 'JSON ফাইলের private_key ভ্যালুটি (ভিতরের \\n সহ) হুবহু কপি করে বসাবেন, ডাবল কোটের মধ্যেই রাখবেন।', 'sojib68' ); ?></p>
+				</details>
+			<?php else : ?>
+				<?php if ( $last ) : ?>
+					<div class="office-notice office-notice--<?php echo 'success' === $last['status'] ? 'success' : 'error'; ?>">
+						<?php echo esc_html( sprintf( /* translators: 1: date/time, 2: status message */ __( 'সর্বশেষ: %1$s — %2$s', 'sojib68' ), $last['time'], $last['message'] ) ); ?>
+					</div>
+				<?php else : ?>
+					<div class="office-notice office-notice--info"><?php esc_html_e( 'এখনো কোনো ব্যাকআপ চালানো হয়নি — পরের সাপ্তাহিক সময়ে বা এখনই নিচের বাটনে চালাতে পারেন।', 'sojib68' ); ?></div>
+				<?php endif; ?>
+				<a class="btn btn-primary" href="<?php echo esc_url( sojib68_office_export_nonce_url( 'gdrive-now' ) ); ?>"><?php echo sojib68_office_icon( 'clock', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'এখনই ব্যাকআপ করুন', 'sojib68' ); ?></a>
+			<?php endif; ?>
+		</div>
+	</section>
 	<?php
 }
 
@@ -122,6 +170,12 @@ function sojib68_office_stream_export( $type ) {
 
 	if ( 'full-zip' === $type ) {
 		sojib68_office_stream_full_zip();
+		exit;
+	}
+
+	if ( 'gdrive-now' === $type ) {
+		sojib68_gdrive_run_scheduled_backup();
+		wp_safe_redirect( home_url( '/' . SOJIB68_OFFICE_BASE . '/export' ) );
 		exit;
 	}
 
@@ -210,40 +264,14 @@ function sojib68_office_stream_table_csv( $table_key ) {
 
 /** Every table, each as its own CSV, bundled into one ZIP. */
 function sojib68_office_stream_full_zip() {
-	global $wpdb;
-
 	if ( ! class_exists( 'ZipArchive' ) ) {
 		wp_die( esc_html__( 'এই সার্ভারে ZIP তৈরি করা যাচ্ছে না। পৃথক CSV ডাউনলোড ব্যবহার করুন।', 'sojib68' ) );
 	}
 
-	// tempnam(), not wp_tempnam() — that WP helper only autoloads in
-	// wp-admin, and this route runs on a plain frontend request.
-	$tmp_path = tempnam( sys_get_temp_dir(), 'sojib68-backup-' );
-	$zip      = new ZipArchive();
-	$zip->open( $tmp_path, ZipArchive::OVERWRITE );
-
-	foreach ( sojib68_office_export_tables() as $table_key => $label ) {
-		$table = sojib68_deeds_table( $table_key );
-		$rows  = $wpdb->get_results( "SELECT * FROM $table", ARRAY_A );
-
-		$csv = fopen( 'php://temp', 'r+' );
-		fwrite( $csv, "\xEF\xBB\xBF" );
-		if ( $rows ) {
-			fputcsv( $csv, array_keys( $rows[0] ) );
-			foreach ( $rows as $row ) {
-				fputcsv( $csv, $row );
-			}
-		}
-		rewind( $csv );
-		$zip->addFromString( $table_key . '.csv', stream_get_contents( $csv ) );
-		fclose( $csv );
-	}
-
-	$zip->close();
+	$bytes = sojib68_build_full_backup_zip_bytes(); // shared with the Google Drive auto-backup, see office-gdrive-backup.php.
 
 	header( 'Content-Type: application/zip' );
 	header( 'Content-Disposition: attachment; filename="sojib68-full-backup-' . gmdate( 'Y-m-d' ) . '.zip"' );
-	header( 'Content-Length: ' . filesize( $tmp_path ) );
-	readfile( $tmp_path ); // phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData -- local temp file we just wrote, not a remote fetch.
-	@unlink( $tmp_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors -- best-effort cleanup of a temp file; a failure here isn't worth surfacing to the download.
+	header( 'Content-Length: ' . strlen( $bytes ) );
+	echo $bytes; // phpcs:ignore WordPress.Security.EscapeOutput -- raw binary zip bytes, not markup.
 }
