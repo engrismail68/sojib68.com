@@ -177,7 +177,7 @@ function sojib68_crm_render_cash_ledger( $cash ) {
 				</div>
 				<div class="crm-field">
 					<label><?php esc_html_e( 'পরিমাণ (৳)', 'sojib68' ); ?></label>
-					<input type="number" step="0.01" min="0.01" name="amount" required>
+					<input type="text" inputmode="decimal" autocomplete="off" data-money name="amount" placeholder="<?php esc_attr_e( 'যেমন ১২,৫০০ বা 12,500', 'sojib68' ); ?>" required>
 				</div>
 				<div class="crm-field">
 					<label><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></label>
@@ -617,7 +617,7 @@ function sojib68_crm_render_category_entry( $type ) {
 		<?php if ( sojib68_crm_can_view_finance() ) : ?>
 			<div class="crm-field">
 				<label><?php esc_html_e( 'গ্রাহকের সাথে চুক্তির মোট টাকা (৳)', 'sojib68' ); ?></label>
-				<input type="number" step="0.01" min="0" name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( number_format( $work['agreed_poysha'] / 100, 2, '.', '' ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
+				<input type="text" inputmode="decimal" autocomplete="off" data-money name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
 			</div>
 		<?php endif; ?>
 		<?php if ( $stage_cfg ) : ?>
@@ -767,7 +767,7 @@ function sojib68_crm_render_work_accounts( $work, $type ) {
 					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( 'in' === $key ? __( 'আদায় (গ্রাহক দিলেন)', 'sojib68' ) : __( 'খরচ (কাউকে দিলাম)', 'sojib68' ) ); ?></option>
 				<?php endforeach; ?>
 			</select>
-			<input type="number" step="0.01" min="0.01" name="amount" placeholder="<?php esc_attr_e( 'টাকা', 'sojib68' ); ?>" required>
+			<input type="text" inputmode="decimal" autocomplete="off" data-money name="amount" placeholder="<?php esc_attr_e( 'টাকা', 'sojib68' ); ?>" required>
 			<input type="date" name="txn_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
 			<input type="text" name="party" placeholder="<?php esc_attr_e( 'কার কাছ থেকে / কাকে', 'sojib68' ); ?>">
 			<input type="text" name="note" placeholder="<?php esc_attr_e( 'নোট (যেমন: ভূমি অফিস ফি)', 'sojib68' ); ?>">

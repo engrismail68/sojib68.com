@@ -607,13 +607,40 @@ function sojib68_crm_cash_directions() {
 	);
 }
 
-function sojib68_crm_taka_to_poysha( $taka ) {
-	$taka = (float) str_replace( ',', '', (string) $taka );
-	return (int) round( $taka * 100 );
+/**
+ * Parses a typed amount — Bangla or English digits, with or without
+ * comma separators (e.g. "১২,৫০০.৫০" or "12,500.50"). Returns null when
+ * it isn't a number at all.
+ */
+function sojib68_crm_parse_amount( $value ) {
+	$clean = str_replace( array( ',', ' ', '৳' ), '', sojib68_crm_bn_to_en_digits( trim( (string) $value ) ) );
+	if ( '' === $clean || ! preg_match( '/^\d+(\.\d+)?$/', $clean ) ) {
+		return null;
+	}
+	return (float) $clean;
 }
 
+function sojib68_crm_taka_to_poysha( $taka ) {
+	$amount = sojib68_crm_parse_amount( $taka );
+	return null === $amount ? 0 : (int) round( $amount * 100 );
+}
+
+/** Bangladeshi grouping: 12,34,567.50 (last three digits, then pairs). */
 function sojib68_crm_poysha_to_taka_display( $poysha ) {
-	return number_format( ( (int) $poysha ) / 100, 2 );
+	$poysha   = (int) $poysha;
+	$sign     = $poysha < 0 ? '-' : '';
+	$abs      = abs( $poysha );
+	$integer  = (string) intdiv( $abs, 100 );
+	$fraction = str_pad( (string) ( $abs % 100 ), 2, '0', STR_PAD_LEFT );
+
+	if ( strlen( $integer ) > 3 ) {
+		$last3   = substr( $integer, -3 );
+		$rest    = substr( $integer, 0, -3 );
+		$rest    = preg_replace( '/\B(?=(\d{2})+(?!\d))/', ',', $rest );
+		$integer = $rest . ',' . $last3;
+	}
+
+	return $sign . $integer . '.' . $fraction;
 }
 
 /**
@@ -810,8 +837,9 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 
 	// Only touched when the form actually sent it (finance users); staff saves leave it alone.
 	if ( array_key_exists( 'agreed_amount', $data ) ) {
-		$agreed = trim( (string) $data['agreed_amount'] );
-		$row['agreed_poysha'] = '' === $agreed ? null : max( 0, sojib68_crm_taka_to_poysha( $agreed ) );
+		// Blank or unreadable means "not agreed yet" — never silently zero.
+		$agreed = sojib68_crm_parse_amount( $data['agreed_amount'] );
+		$row['agreed_poysha'] = null === $agreed ? null : (int) round( $agreed * 100 );
 	}
 
 	if ( $id > 0 ) {

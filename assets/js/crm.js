@@ -139,6 +139,59 @@
 		sync();
 	});
 
+	// Money inputs: accept Bangla or English digits and group as you type
+	// (Bangladeshi style 12,34,567.50), keeping whichever digits were typed.
+	var BN = '০১২৩৪৫৬৭৮৯';
+
+	function toEn(s) {
+		return s.replace(/[০-৯]/g, function (d) { return String(BN.indexOf(d)); });
+	}
+	function toBn(s) {
+		return s.replace(/[0-9]/g, function (d) { return BN.charAt(+d); });
+	}
+	function groupBd(intPart) {
+		if (intPart.length <= 3) { return intPart; }
+		var last3 = intPart.slice(-3);
+		var rest = intPart.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+		return rest + ',' + last3;
+	}
+	function formatMoney(raw) {
+		var bangla = /[০-৯]/.test(raw);
+		var s = toEn(raw).replace(/[^0-9.]/g, '');
+		var dot = s.indexOf('.');
+		var intPart = dot === -1 ? s : s.slice(0, dot);
+		var frac = dot === -1 ? null : s.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+		intPart = intPart.replace(/^0+(?=\d)/, '');
+		var out = groupBd(intPart) + (frac === null ? '' : '.' + frac);
+		return bangla ? toBn(out) : out;
+	}
+	function digitsBefore(str, pos) {
+		return toEn(str.slice(0, pos)).replace(/[^0-9.]/g, '').length;
+	}
+
+	document.querySelectorAll('[data-money]').forEach(function (input) {
+		function apply() {
+			var old = input.value;
+			var caret = input.selectionStart === null ? old.length : input.selectionStart;
+			var keep = digitsBefore(old, caret);
+			var next = formatMoney(old);
+			if (next === old) { return; }
+			input.value = next;
+			// Put the caret back after the same number of digits it was after before formatting.
+			var pos = 0;
+			var seen = 0;
+			while (pos < next.length && seen < keep) {
+				if (/[0-9০-৯.]/.test(next.charAt(pos))) { seen++; }
+				pos++;
+			}
+			if (document.activeElement === input) {
+				input.setSelectionRange(pos, pos);
+			}
+		}
+		input.addEventListener('input', apply);
+		apply();
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {
