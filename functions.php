@@ -35,6 +35,9 @@ if ( ! defined( 'SOJIB68_EMAIL' ) ) {
 if ( ! defined( 'SOJIB68_ADDRESS' ) ) {
 	define( 'SOJIB68_ADDRESS', '' );
 }
+if ( ! defined( 'SOJIB68_CRM_URL' ) ) {
+	define( 'SOJIB68_CRM_URL', 'https://crm.sojib68.com' );
+}
 
 function sojib68_setup() {
 	add_theme_support( 'title-tag' );

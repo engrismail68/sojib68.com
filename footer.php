@@ -77,6 +77,7 @@ $sojib68_socials         = function_exists( 'sojib68_get_social_links' ) ? sojib
 					<li><a href="<?php echo esc_url( get_permalink( $sojib68_terms_page ) ); ?>"><?php esc_html_e( 'Terms & Conditions', 'sojib68' ); ?></a></li>
 				<?php endif; ?>
 				<li><a href="<?php echo esc_url( defined( 'SOJIB68_OFFICE_LOGIN_URL' ) ? SOJIB68_OFFICE_LOGIN_URL : home_url( '/office-login/' ) ); ?>"><?php esc_html_e( 'অফিস লগইন', 'sojib68' ); ?></a></li>
+				<li><a href="<?php echo esc_url( defined( 'SOJIB68_CRM_URL' ) ? SOJIB68_CRM_URL : 'https://crm.sojib68.com' ); ?>"><?php esc_html_e( 'ক্লায়েন্ট ডেস্ক', 'sojib68' ); ?></a></li>
 			</ul>
 		</div>
 	</div>
