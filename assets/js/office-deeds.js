@@ -233,6 +233,23 @@
 	if ( dateField ) { dateField.addEventListener( 'change', checkDateYear ); }
 	if ( yearField ) { yearField.addEventListener( 'change', checkDateYear ); }
 
+	/* ---------------- Original deed status (shows only the relevant fields) ---------------- */
+
+	var statusGroup = form.querySelector( '[data-original-status-group]' );
+	if ( statusGroup ) {
+		var updateStatusFields = function () {
+			var checked = statusGroup.querySelector( '[data-original-status-radio]:checked' );
+			var current = checked ? checked.value : '';
+			statusGroup.querySelectorAll( '[data-original-status-field]' ).forEach( function ( field ) {
+				field.hidden = field.getAttribute( 'data-original-status-field' ) !== current;
+			} );
+		};
+		statusGroup.querySelectorAll( '[data-original-status-radio]' ).forEach( function ( r ) {
+			r.addEventListener( 'change', updateStatusFields );
+		} );
+		updateStatusFields();
+	}
+
 	/* ---------------- Submit (AJAX) ---------------- */
 
 	var noticeArea = form.querySelector( '.deed-notice-area' );

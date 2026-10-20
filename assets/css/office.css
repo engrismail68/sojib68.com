@@ -656,3 +656,19 @@
 .office-pagehead__actions { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 .btn-danger-outline { border-color: #f1c9c0; color: #b3261e; }
 .btn-danger-outline:hover { background: #fdecea; border-color: #e6a99b; }
+
+/* ---------- Original deed status (radio group) ---------- */
+.deed-radio-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.deed-radio {
+	display: inline-flex; align-items: center; gap: 9px;
+	padding: 10px 14px; border: 1.5px solid #d9d7cb; border-radius: 10px;
+	background: #fcfcf9; cursor: pointer; font-size: .88rem; color: var(--o-ink);
+	transition: border-color .15s, background .15s;
+}
+.deed-radio input { width: 17px; height: 17px; accent-color: #8a3fb0; flex-shrink: 0; }
+.deed-radio:has(input:checked) { border-color: #8a3fb0; background: #f6effa; font-weight: 700; }
+
+/* ---------- Original-deed status tiles on the dashboard ---------- */
+.period-head__plain { margin: 26px 0 10px; font-size: 1.05rem; color: var(--o-ink); }
+.office-stat-tile--link { text-decoration: none; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .15s, transform .15s; }
+.office-stat-tile--link:hover { box-shadow: 0 4px 14px rgba(3, 39, 55, .1); transform: translateY(-1px); }

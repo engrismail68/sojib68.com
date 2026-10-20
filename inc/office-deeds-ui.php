@@ -112,6 +112,17 @@ function sojib68_money_html( $poysha, $unknown = '—' ) {
 	return '<span class="taka">৳</span> ' . esc_html( sojib68_poysha_to_display( $poysha ) );
 }
 
+/** Small chip for a deed's original_status — used in the list, dues cards, print page. */
+function sojib68_deed_original_status_chip( $status ) {
+	$map = array(
+		'not_received' => array( 'cls' => 'deed-chip--unknown', 'label' => __( 'আসেনি', 'sojib68' ) ),
+		'in_office'    => array( 'cls' => 'deed-chip--advance', 'label' => __( 'আমাদের কাছে', 'sojib68' ) ),
+		'delivered'    => array( 'cls' => 'deed-chip--settled', 'label' => __( 'ডেলিভারি হয়েছে', 'sojib68' ) ),
+	);
+	$row = isset( $map[ $status ] ) ? $map[ $status ] : $map['not_received'];
+	return '<span class="deed-chip ' . esc_attr( $row['cls'] ) . '">' . esc_html( $row['label'] ) . '</span>';
+}
+
 function sojib68_deed_card_open( $tone, $icon, $title, $hint = '' ) {
 	?>
 	<section class="deed-card tone-<?php echo esc_attr( $tone ); ?>">
@@ -166,6 +177,26 @@ function sojib68_office_render_dashboard_home() {
 	<p class="deed-cta">
 		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' ) ); ?>" class="btn btn-outline"><?php echo sojib68_office_icon( 'clock', 17 ); // phpcs:ignore ?> <?php esc_html_e( 'বকেয়া আদায় পেজে যান', 'sojib68' ); ?></a>
 	</p>
+
+	<?php
+	$original_counts = sojib68_office_original_status_counts();
+	$all_deeds_base  = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
+	$original_tiles  = array(
+		array( 'tone' => 'gray',   'icon' => 'clock', 'status' => 'not_received', 'label' => __( 'অফিস থেকে এখনো আসেনি', 'sojib68' ) ),
+		array( 'tone' => 'blue',   'icon' => 'file',  'status' => 'in_office',    'label' => __( 'আমাদের কাছে আছে', 'sojib68' ) ),
+		array( 'tone' => 'green',  'icon' => 'check', 'status' => 'delivered',    'label' => __( 'ক্লায়েন্টকে ডেলিভারি হয়েছে', 'sojib68' ) ),
+	);
+	?>
+	<h2 class="period-head__plain"><?php esc_html_e( 'মূল দলিলের অবস্থা', 'sojib68' ); ?></h2>
+	<div class="office-stats-grid office-stats-grid--3">
+		<?php foreach ( $original_tiles as $tile ) : ?>
+			<a class="office-stat-tile tone-<?php echo esc_attr( $tile['tone'] ); ?> office-stat-tile--link" href="<?php echo esc_url( add_query_arg( 'original_status', $tile['status'], $all_deeds_base ) ); ?>">
+				<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( $tile['icon'], 22 ); // phpcs:ignore ?></span>
+				<span class="office-stat-tile__label"><?php echo esc_html( $tile['label'] ); ?></span>
+				<span class="office-stat-tile__value"><?php echo esc_html( number_format( $original_counts[ $tile['status'] ] ) ); ?></span>
+			</a>
+		<?php endforeach; ?>
+	</div>
 
 	<p class="deed-note">
 		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
@@ -364,6 +395,55 @@ function sojib68_office_render_entry_form() {
 					</div>
 				<?php sojib68_deed_card_close(); ?>
 
+				<?php
+				$status        = $deed ? $deed->original_status : 'not_received';
+				$status_labels = sojib68_deed_original_status_options();
+				sojib68_deed_card_open( 'purple', 'briefcase', __( 'মূল দলিলের অবস্থা', 'sojib68' ), __( 'রেজিস্ট্রেশনের পর মূল দলিল সরকারি অফিস থেকে আসতে সাধারণত কয়েক বছর লাগে', 'sojib68' ) );
+				?>
+					<div class="deed-grid" data-original-status-group>
+						<div class="deed-field col-12">
+							<label><?php esc_html_e( 'এই মুহূর্তে দলিলটি কোথায়', 'sojib68' ); ?></label>
+							<div class="deed-radio-row">
+								<?php foreach ( $status_labels as $val => $label ) : ?>
+									<label class="deed-radio">
+										<input type="radio" name="original_status" value="<?php echo esc_attr( $val ); ?>" data-original-status-radio <?php checked( $status, $val ); ?>>
+										<span><?php echo esc_html( $label ); ?></span>
+									</label>
+								<?php endforeach; ?>
+							</div>
+						</div>
+
+						<div class="deed-field col-6" data-original-status-field="in_office">
+							<label for="f-original-received"><?php esc_html_e( 'আমাদের হাতে পাওয়ার তারিখ', 'sojib68' ); ?></label>
+							<input type="date" id="f-original-received" name="original_received_date" value="<?php echo esc_attr( $deed ? $deed->original_received_date : '' ); ?>">
+						</div>
+
+						<div class="deed-field col-6" data-original-status-field="delivered">
+							<label for="f-delivered-date"><?php esc_html_e( 'ক্লায়েন্টকে ডেলিভারির তারিখ', 'sojib68' ); ?></label>
+							<input type="date" id="f-delivered-date" name="original_delivered_date" value="<?php echo esc_attr( $deed ? $deed->original_delivered_date : '' ); ?>">
+						</div>
+						<div class="deed-field col-6" data-original-status-field="delivered">
+							<label for="f-delivered-to"><?php esc_html_e( 'কে বুঝে নিয়েছেন (নাম)', 'sojib68' ); ?></label>
+							<input type="text" id="f-delivered-to" name="original_delivered_to" value="<?php echo esc_attr( $deed ? $deed->original_delivered_to : '' ); ?>">
+						</div>
+						<div class="deed-field col-6" data-original-status-field="delivered">
+							<label for="f-delivered-mobile"><?php esc_html_e( 'তার মোবাইল নং', 'sojib68' ); ?></label>
+							<input type="text" id="f-delivered-mobile" inputmode="tel" name="original_delivered_mobile" value="<?php echo esc_attr( $deed ? $deed->original_delivered_mobile : '' ); ?>">
+						</div>
+						<div class="deed-field col-12" data-original-status-field="delivered">
+							<label for="f-delivered-note"><?php esc_html_e( 'মন্তব্য (ঐচ্ছিক)', 'sojib68' ); ?></label>
+							<input type="text" id="f-delivered-note" name="original_delivered_note" value="<?php echo esc_attr( $deed ? $deed->original_delivered_note : '' ); ?>" placeholder="<?php esc_attr_e( 'যেমন: মূল গ্রহীতার পক্ষে তার ছেলে বুঝে নিয়েছেন', 'sojib68' ); ?>">
+						</div>
+					</div>
+
+					<?php if ( $deed && 'delivered' === $status ) : ?>
+						<p class="deed-note">
+							<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
+							<span><?php esc_html_e( 'ডেলিভারির প্রমাণ হিসেবে "প্রিন্ট সারসংক্ষেপ" পেজ থেকে একটি হস্তান্তর রশিদ প্রিন্ট করে গ্রহণকারীর স্বাক্ষর রাখতে পারেন।', 'sojib68' ); ?></span>
+						</p>
+					<?php endif; ?>
+				<?php sojib68_deed_card_close(); ?>
+
 				<?php sojib68_deed_card_open( 'gray', 'note', __( 'অন্যান্য', 'sojib68' ) ); ?>
 					<div class="deed-field">
 						<label for="f-notes"><?php esc_html_e( 'সাধারণ মন্তব্য', 'sojib68' ); ?></label>
@@ -504,7 +584,7 @@ function sojib68_render_land_row( $i, $row ) {
  * ------------------------------------------------------------------ */
 
 function sojib68_office_collect_filters() {
-	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due' );
+	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
 	$filters = array();
 	foreach ( $keys as $key ) {
 		$val = isset( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : '';
@@ -524,7 +604,7 @@ function sojib68_office_render_all_deeds() {
 	$types   = sojib68_deed_types_list();
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
 
-	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due' );
+	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
 	$advanced_active = count( array_intersect_key( $filters, array_flip( $advanced_keys ) ) );
 	$f               = function ( $key ) use ( $filters ) {
 		return isset( $filters[ $key ] ) ? $filters[ $key ] : '';
@@ -588,6 +668,15 @@ function sojib68_office_render_all_deeds() {
 							<option value="0" <?php selected( $f( 'has_due' ), '0' ); ?>><?php esc_html_e( 'বকেয়া নেই', 'sojib68' ); ?></option>
 						</select>
 					</div>
+					<div class="deed-field col-3 m-6">
+						<label><?php esc_html_e( 'মূল দলিলের অবস্থা', 'sojib68' ); ?></label>
+						<select name="original_status">
+							<option value=""><?php esc_html_e( 'সব', 'sojib68' ); ?></option>
+							<?php foreach ( sojib68_deed_original_status_options() as $val => $label ) : ?>
+								<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $f( 'original_status' ), $val ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
 				</div>
 			</details>
 
@@ -623,6 +712,7 @@ function sojib68_office_render_all_deeds() {
 						<th><?php esc_html_e( 'জমি', 'sojib68' ); ?></th>
 						<th class="num"><?php esc_html_e( 'মূল্য', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'বকেয়া', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'মূল দলিল', 'sojib68' ); ?></th>
 						<th></th>
 					</tr>
 				</thead>
@@ -674,6 +764,9 @@ function sojib68_office_render_all_deeds() {
 								}
 								?>
 							</td>
+							<td data-label="<?php esc_attr_e( 'মূল দলিল', 'sojib68' ); ?>">
+								<?php echo sojib68_deed_original_status_chip( $row->original_status ); // phpcs:ignore ?>
+							</td>
 							<td class="act">
 								<?php if ( $row->due_poysha > 0 ) : ?>
 									<button type="button" class="btn btn-primary btn-sm" data-toggle-collect data-collect-for="deed-<?php echo (int) $row->id; ?>"><?php echo sojib68_office_icon( 'wallet', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'পরিশোধ', 'sojib68' ); ?></button>
@@ -685,7 +778,7 @@ function sojib68_office_render_all_deeds() {
 						</tr>
 						<?php if ( $row->due_poysha > 0 ) : ?>
 							<tr class="deed-collect-row" data-collect-wrap="deed-<?php echo (int) $row->id; ?>">
-								<td colspan="8">
+								<td colspan="9">
 									<div class="collect-panel" hidden>
 										<?php sojib68_render_collect_form( $row->id, $row->due_poysha ); ?>
 									</div>
@@ -1130,10 +1223,32 @@ function sojib68_office_render_print( $deed_id ) {
 				</section>
 			<?php endif; ?>
 
-			<footer class="print-sign">
-				<div><span></span><p><?php esc_html_e( 'গ্রাহকের স্বাক্ষর', 'sojib68' ); ?></p></div>
-				<div><span></span><p><?php esc_html_e( 'অফিসের স্বাক্ষর / সীল', 'sojib68' ); ?></p></div>
-			</footer>
+			<?php if ( 'delivered' === $deed->original_status ) : ?>
+				<section class="print-section print-section--handover">
+					<h2><?php esc_html_e( 'মূল দলিল হস্তান্তরের প্রমাণ', 'sojib68' ); ?></h2>
+					<table class="print-kv">
+						<tr><th><?php esc_html_e( 'ডেলিভারির তারিখ', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->original_delivered_date ?: '—' ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'বুঝে নিয়েছেন', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->original_delivered_to ?: '—' ); ?></td></tr>
+						<?php if ( $deed->original_delivered_mobile ) : ?>
+							<tr><th><?php esc_html_e( 'মোবাইল নং', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->original_delivered_mobile ); ?></td></tr>
+						<?php endif; ?>
+						<?php if ( $deed->original_delivered_note ) : ?>
+							<tr><th><?php esc_html_e( 'মন্তব্য', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->original_delivered_note ); ?></td></tr>
+						<?php endif; ?>
+					</table>
+					<p class="print-hint"><?php esc_html_e( 'আমি উপরোক্ত দলিলের মূল কপিটি সম্পূর্ণ ও সঠিক অবস্থায় বুঝে পেয়েছি।', 'sojib68' ); ?></p>
+				</section>
+
+				<footer class="print-sign">
+					<div><span></span><p><?php echo esc_html( $deed->original_delivered_to ? sprintf( /* translators: %s: receiver's name */ __( '%s — এর স্বাক্ষর', 'sojib68' ), $deed->original_delivered_to ) : __( 'গ্রহণকারীর স্বাক্ষর', 'sojib68' ) ); ?></p></div>
+					<div><span></span><p><?php esc_html_e( 'অফিসের পক্ষে স্বাক্ষর / সীল', 'sojib68' ); ?></p></div>
+				</footer>
+			<?php else : ?>
+				<footer class="print-sign">
+					<div><span></span><p><?php esc_html_e( 'গ্রাহকের স্বাক্ষর', 'sojib68' ); ?></p></div>
+					<div><span></span><p><?php esc_html_e( 'অফিসের স্বাক্ষর / সীল', 'sojib68' ); ?></p></div>
+				</footer>
+			<?php endif; ?>
 		</article>
 	</body>
 	</html>

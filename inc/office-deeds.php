@@ -227,6 +227,19 @@ function sojib68_deed_find_possible_duplicate( $deed_no_normalized, $reg_year, $
  * transaction: either everything saves, or nothing does.
  * ------------------------------------------------------------------ */
 
+/**
+ * The original deed paper itself takes years to come back from the
+ * sub-registry office — this tracks where that physical paper is,
+ * separate from all the money/record-keeping above.
+ */
+function sojib68_deed_original_status_options() {
+	return array(
+		'not_received' => __( 'রেজিস্ট্রেশন অফিস থেকে এখনো আসেনি', 'sojib68' ),
+		'in_office'    => __( 'আমাদের কাছে আছে', 'sojib68' ),
+		'delivered'    => __( 'ক্লায়েন্টকে ডেলিভারি দেওয়া হয়েছে', 'sojib68' ),
+	);
+}
+
 function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 	global $wpdb;
 
@@ -252,6 +265,12 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 		'fee_agreed_poysha'        => sojib68_money_to_poysha( $data['fee_agreed'] ?? '' ),
 		'fee_collected_poysha'     => sojib68_money_to_poysha( $data['fee_collected'] ?? '' ),
 		'dues_verified'            => ! empty( $data['dues_verified'] ) ? 1 : 0,
+		'original_status'          => array_key_exists( (string) ( $data['original_status'] ?? '' ), sojib68_deed_original_status_options() ) ? $data['original_status'] : 'not_received',
+		'original_received_date'   => ! empty( $data['original_received_date'] ) ? $data['original_received_date'] : null,
+		'original_delivered_date'  => ! empty( $data['original_delivered_date'] ) ? $data['original_delivered_date'] : null,
+		'original_delivered_to'    => ! empty( $data['original_delivered_to'] ) ? trim( (string) $data['original_delivered_to'] ) : null,
+		'original_delivered_mobile' => ! empty( $data['original_delivered_mobile'] ) ? trim( (string) $data['original_delivered_mobile'] ) : null,
+		'original_delivered_note'  => isset( $data['original_delivered_note'] ) ? trim( (string) $data['original_delivered_note'] ) : null,
 		'notes'                    => isset( $data['notes'] ) ? trim( $data['notes'] ) : null,
 		'updated_by'               => $user_id,
 		'updated_at'               => $now,
@@ -758,6 +777,11 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		}
 	}
 
+	if ( ! empty( $filters['original_status'] ) && array_key_exists( $filters['original_status'], sojib68_deed_original_status_options() ) ) {
+		$where[] = 'd.original_status = %s';
+		$args[]  = $filters['original_status'];
+	}
+
 	$where_sql = implode( ' AND ', $where );
 
 	$per_page = max( 1, (int) $per_page );
@@ -806,6 +830,22 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
  * "Profit" = amount collected from clients minus recorded expenses
  * (bank challan, office fee, stamp, other).
  * ------------------------------------------------------------------ */
+
+/** Count of deeds in each original_status — for the dashboard's "মূল দলিল" tiles. */
+function sojib68_office_original_status_counts() {
+	global $wpdb;
+
+	$deeds  = sojib68_deeds_table( 'deeds' );
+	$counts = array( 'not_received' => 0, 'in_office' => 0, 'delivered' => 0 );
+
+	$rows = $wpdb->get_results( "SELECT original_status, COUNT(*) AS n FROM $deeds WHERE deleted_at IS NULL GROUP BY original_status" );
+	foreach ( $rows as $row ) {
+		if ( isset( $counts[ $row->original_status ] ) ) {
+			$counts[ $row->original_status ] = (int) $row->n;
+		}
+	}
+	return $counts;
+}
 
 function sojib68_office_dashboard_stats() {
 	global $wpdb;
