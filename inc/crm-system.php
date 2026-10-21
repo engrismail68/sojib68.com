@@ -640,20 +640,27 @@ function sojib68_crm_menu_items() {
 	);
 }
 
-/** Returns the service-type key for a "<type>-entry" page key, or '' if it isn't one. */
+/**
+ * Returns the service-type key for a "<type>-entry" page key, or '' if it
+ * isn't one. Every service type has an entry/edit page (so any work can be
+ * edited from "সব কাজ"); only some are also listed in the sidebar menu.
+ */
 function sojib68_crm_entry_page_type( $page_key ) {
 	if ( '-entry' !== substr( (string) $page_key, -6 ) ) {
 		return '';
 	}
 	$type = substr( $page_key, 0, -6 );
-	return isset( sojib68_crm_service_types()[ $type ] ) && isset( sojib68_crm_menu_items()[ $page_key ] ) ? $type : '';
+	return isset( sojib68_crm_service_types()[ $type ] ) ? $type : '';
 }
 
 function sojib68_crm_render_dashboard( $page_key ) {
 	$menu = sojib68_crm_menu_items();
-	if ( ! isset( $menu[ $page_key ] ) ) {
+	$entry_type = sojib68_crm_entry_page_type( $page_key );
+	if ( ! isset( $menu[ $page_key ] ) && ! $entry_type ) {
 		$page_key = 'dashboard';
 	}
+	// Editing a work of a category that has no menu item of its own: keep "সব কাজ" highlighted.
+	$active_menu = isset( $menu[ $page_key ] ) ? $page_key : 'works';
 
 	$user       = wp_get_current_user();
 	$idle_count = count( sojib68_crm_idle_works( sojib68_crm_current_user_scope() ) );
@@ -674,9 +681,11 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
 	);
 
-	$page_title = $menu[ $page_key ];
+	$page_title = isset( $menu[ $page_key ] ) ? $menu[ $page_key ] : sprintf( /* translators: %s: service */ __( '%s এন্ট্রি', 'sojib68' ), sojib68_crm_service_types()[ $entry_type ] );
 	if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) {
 		$page_title = __( 'লিড সম্পাদনা', 'sojib68' );
+	} elseif ( $entry_type && ! empty( $_GET['id'] ) ) {
+		$page_title = sprintf( /* translators: %s: service */ __( '%s — কাজ সম্পাদনা', 'sojib68' ), sojib68_crm_service_types()[ $entry_type ] );
 	}
 	?>
 	<!DOCTYPE html>
@@ -711,7 +720,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 							<li>
 								<a
 									href="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/' . ( 'dashboard' === $key ? '' : $key ) ) ); ?>"
-									class="<?php echo $page_key === $key ? 'is-active' : ''; ?>"
+									class="<?php echo $active_menu === $key ? 'is-active' : ''; ?>"
 								>
 									<?php echo sojib68_crm_icon( $icons[ $key ] ?? 'grid', 19 ); // phpcs:ignore ?>
 									<span><?php echo esc_html( $label ); ?></span>

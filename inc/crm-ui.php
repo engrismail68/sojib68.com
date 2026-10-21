@@ -24,6 +24,7 @@ function sojib68_crm_icon( $name, $size = 20 ) {
 		'briefcase'=> '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
 		'back'     => '<path d="M19 12H5M11 18l-6-6 6-6"/>',
 		'bell'     => '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+		'edit'     => '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
 		'eye'      => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
 	);
 
@@ -1206,18 +1207,20 @@ function sojib68_crm_render_works_list() {
 						<th><?php esc_html_e( 'অবস্থা', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'ডেলিভারি', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'ফাইল কোথায়', 'sojib68' ); ?></th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
 					<?php foreach ( $result['rows'] as $w ) : ?>
 						<tr>
-							<td><?php echo esc_html( $w['work_code'] ); ?></td>
+							<td><a href="<?php echo esc_url( sojib68_crm_work_edit_url( $w ) ); ?>"><?php echo esc_html( $w['work_code'] ); ?></a></td>
 							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : $w['customer_phone'] ); ?></td>
 							<td><?php echo esc_html( $types[ $w['work_type'] ] ?? $w['work_type'] ); ?></td>
 							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
-							<td><span class="crm-chip"><?php echo esc_html( $statuses[ $w['status'] ] ?? $w['status'] ); ?></span></td>
+							<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
 							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
 							<td><?php echo esc_html( $w['file_location'] ? $w['file_location'] : '—' ); ?></td>
+							<td><a class="btn btn-outline btn-sm" href="<?php echo esc_url( sojib68_crm_work_edit_url( $w ) ); ?>"><?php echo sojib68_crm_icon( 'edit', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'এডিট', 'sojib68' ); ?></a></td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
