@@ -159,6 +159,11 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'work-delete' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			sojib68_crm_handle_work_delete();
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'wa-template' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			sojib68_crm_handle_wa_template();
 			exit;
@@ -544,6 +549,23 @@ function sojib68_crm_handle_save_work( $type ) {
 
 	delete_transient( sojib68_crm_work_draft_key() );
 	wp_safe_redirect( add_query_arg( array( 'id' => $saved, 'crm_notice' => 'saved' ), $back ) );
+}
+
+/** Admin only: delete a work (and its money entries) from the category list. */
+function sojib68_crm_handle_work_delete() {
+	$crm     = home_url( '/' . SOJIB68_CRM_BASE . '/' );
+	$return  = isset( $_POST['return'] ) ? esc_url_raw( wp_unslash( $_POST['return'] ) ) : '';
+	$back    = ( $return && 0 === strpos( $return, $crm ) ) ? remove_query_arg( array( 'crm_notice', 'id' ), $return ) : $crm;
+	$work_id = isset( $_POST['work_id'] ) ? (int) $_POST['work_id'] : 0;
+
+	if ( ! sojib68_crm_is_admin()
+		|| ! isset( $_POST['sojib68_crm_del_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_del_nonce'] ), 'sojib68_crm_work_delete_' . $work_id ) ) {
+		wp_safe_redirect( add_query_arg( 'crm_notice', 'delete_error', $back ) . '#crm-list' );
+		return;
+	}
+
+	$notice = sojib68_crm_work_delete( $work_id ) ? 'deleted' : 'delete_error';
+	wp_safe_redirect( add_query_arg( 'crm_notice', $notice, $back ) . '#crm-list' );
 }
 
 function sojib68_crm_handle_wa_template() {

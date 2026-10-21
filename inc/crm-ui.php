@@ -729,6 +729,10 @@ function sojib68_crm_render_category_entry( $type ) {
 	$notice  = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
 	if ( 'saved' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'সংরক্ষণ হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'deleted' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'কাজটি ও তার টাকার এন্ট্রি মুছে ফেলা হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'delete_error' === $notice ) {
+		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'মুছে ফেলা যায়নি — পাতাটি আবার লোড করে চেষ্টা করুন।', 'sojib68' ) . '</div>';
 	} elseif ( 'paid' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'টাকার এন্ট্রি যোগ হয়েছে, হিসাব হালনাগাদ হয়েছে।', 'sojib68' ) . '</div>';
 	} elseif ( 'pay_error' === $notice ) {
@@ -1037,14 +1041,24 @@ function sojib68_crm_render_category_list( $type, $action ) {
 								<?php endif; ?>
 							</td>
 						<?php endif; ?>
+						<?php $settled = null !== $w['due'] && $w['due'] <= 0; ?>
 						<td class="crm-cell-actions">
-							<?php if ( $finance ) : ?>
+							<?php if ( $finance && ! $settled ) : ?>
 								<button type="button" class="btn btn-sm crm-btn-pay" data-pay-toggle="<?php echo (int) $w['id']; ?>"><?php echo sojib68_crm_icon( 'plus', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'আদায়/খরচ', 'sojib68' ); ?></button>
 							<?php endif; ?>
 							<a href="<?php echo esc_url( $edit ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'edit', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'এডিট', 'sojib68' ); ?></a>
+							<?php if ( sojib68_crm_is_admin() ) : ?>
+								<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-delete' ) ); ?>" class="crm-inline-delete"
+									onsubmit="return confirm('<?php echo esc_js( sprintf( /* translators: 1: work code, 2: client */ __( '%1$s (%2$s) স্থায়ীভাবে মুছে ফেলবেন? এই কাজের সব টাকার এন্ট্রিও মুছে যাবে, ফেরত আনা যাবে না।', 'sojib68' ), $w['work_code'], $w['customer_name'] ) ); ?>');">
+									<?php wp_nonce_field( 'sojib68_crm_work_delete_' . (int) $w['id'], 'sojib68_crm_del_nonce', false ); ?>
+									<input type="hidden" name="work_id" value="<?php echo (int) $w['id']; ?>">
+									<input type="hidden" name="return" value="<?php echo esc_url( $list_url ); ?>">
+									<button type="submit" class="btn btn-outline btn-sm btn-danger-outline" title="<?php esc_attr_e( 'ডিলিট', 'sojib68' ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: work code */ __( '%s ডিলিট', 'sojib68' ), $w['work_code'] ) ); ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button>
+								</form>
+							<?php endif; ?>
 						</td>
 					</tr>
-					<?php if ( $finance ) :
+					<?php if ( $finance && ! $settled ) :
 						$due_now = null !== $w['due'] && $w['due'] > 0 && 'cancelled' !== $w['status'] ? $w['due'] : 0;
 						?>
 						<tr class="crm-pay-row" data-pay-row="<?php echo (int) $w['id']; ?>" hidden>

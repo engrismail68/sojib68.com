@@ -628,6 +628,20 @@ function sojib68_crm_not_started_works( $type, $scope_user_id = null ) {
 }
 
 /**
+ * Permanently deletes a work together with its money entries, so no
+ * orphaned amounts stay in the category cash totals.
+ */
+function sojib68_crm_work_delete( $id ) {
+	global $wpdb;
+	$id = (int) $id;
+	if ( ! $id || ! sojib68_crm_work_get( $id ) ) {
+		return false;
+	}
+	$wpdb->delete( sojib68_crm_cash_table(), array( 'work_id' => $id ) );
+	return false !== $wpdb->delete( sojib68_crm_works_table(), array( 'id' => $id ) );
+}
+
+/**
  * One category's works for its control list, each with its money:
  * collected, spent, due (agreed − collected, null when no agreed amount)
  * and profit. Newest first.
