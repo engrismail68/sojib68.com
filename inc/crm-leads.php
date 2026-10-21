@@ -511,6 +511,7 @@ function sojib68_crm_work_create_from_lead( $lead_id ) {
 		'work_type'      => $lead['service_type'],
 		'received_date'  => current_time( 'Y-m-d' ),
 		'referred_by'    => $lead['referred_by'],
+		'source'         => $lead['source'],
 		'assigned_to'    => $lead['assigned_to'] ? (int) $lead['assigned_to'] : null,
 		'status'         => 'running',
 		'stage_changed_at' => current_time( 'mysql' ),
@@ -560,10 +561,8 @@ function sojib68_crm_works_search( $args = array() ) {
 	}
 	if ( ! empty( $args['q'] ) ) {
 		$like     = '%' . $wpdb->esc_like( sojib68_crm_bn_to_en_digits( $args['q'] ) ) . '%';
-		$where[]  = '(customer_name LIKE %s OR customer_phone LIKE %s OR work_code LIKE %s)';
-		$params[] = $like;
-		$params[] = $like;
-		$params[] = $like;
+		$where[]  = '(customer_name LIKE %s OR customer_phone LIKE %s OR work_code LIKE %s OR application_no LIKE %s OR nothi_no LIKE %s OR application_mobile LIKE %s)';
+		array_push( $params, $like, $like, $like, $like, $like, $like );
 	}
 
 	$per_page = isset( $args['per_page'] ) ? (int) $args['per_page'] : 30;
@@ -790,10 +789,11 @@ function sojib68_crm_work_cash_entries( $work_id ) {
 }
 
 /**
- * Money picture for one work. Amounts in poysha. 'agreed' and 'due'
- * are null when no agreed amount was entered — unknown is never
- * shown as zero. 'balance' (collected - spent) is cash in hand for
- * this work, not profit.
+ * Money picture for one work. Amounts in poysha. 'agreed', 'due' and
+ * 'profit' are null when no agreed amount was entered — unknown is
+ * never shown as zero. 'profit' is agreed minus spent (what the work
+ * earns once fully paid); 'balance' (collected - spent) is cash in
+ * hand right now.
  */
 function sojib68_crm_work_accounts( $work_id ) {
 	global $wpdb;
@@ -809,6 +809,7 @@ function sojib68_crm_work_accounts( $work_id ) {
 		'collected' => $collected,
 		'due'       => null === $agreed ? null : $agreed - $collected,
 		'spent'     => $spent,
+		'profit'    => null === $agreed ? null : $agreed - $spent,
 		'balance'   => $collected - $spent,
 	);
 }
@@ -829,6 +830,13 @@ function sojib68_crm_work_clean_date( $value ) {
 function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service' ) {
 	global $wpdb;
 	$table = sojib68_crm_works_table();
+
+	// On update, any field the form didn't send keeps its stored value, so a
+	// category form that shows only some fields never wipes the others.
+	$before = $id > 0 ? sojib68_crm_work_get( $id ) : null;
+	if ( $before ) {
+		$data = $data + $before;
+	}
 
 	$name  = isset( $data['customer_name'] ) ? sanitize_text_field( $data['customer_name'] ) : '';
 	$phone = isset( $data['customer_phone'] ) ? sanitize_text_field( $data['customer_phone'] ) : '';
@@ -861,7 +869,22 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		}
 	}
 
+	$delivery_date   = sojib68_crm_work_clean_date( isset( $data['delivery_date'] ) ? $data['delivery_date'] : '' );
+	$delivery_status = sojib68_crm_sanitize_from_list( isset( $data['delivery_status'] ) ? $data['delivery_status'] : '', sojib68_crm_delivery_statuses(), 'not_ready' );
+
+	// For categories with their own stages, entering a delivery date is what marks the work delivered.
+	if ( $stage_cfg && 'cancelled' !== $status && $delivery_date ) {
+		$status          = 'delivered';
+		$delivery_status = 'delivered';
+	}
+
 	$row = array(
+		'source'             => sojib68_crm_sanitize_from_list( isset( $data['source'] ) ? $data['source'] : '', sojib68_crm_lead_sources(), '' ),
+		'application_date'   => sojib68_crm_work_clean_date( isset( $data['application_date'] ) ? $data['application_date'] : '' ),
+		'application_no'     => isset( $data['application_no'] ) ? sanitize_text_field( $data['application_no'] ) : '',
+		'nothi_no'           => isset( $data['nothi_no'] ) ? sanitize_text_field( $data['nothi_no'] ) : '',
+		'application_mobile' => isset( $data['application_mobile'] ) ? sanitize_text_field( $data['application_mobile'] ) : '',
+		'delivery_method'    => isset( $data['delivery_method'] ) ? sanitize_text_field( $data['delivery_method'] ) : '',
 		'stage'              => $stage,
 		'cancel_reason'      => $cancel_reason,
 		'customer_name'      => $name,
@@ -877,8 +900,8 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		'docs_received'      => isset( $data['docs_received'] ) ? sanitize_textarea_field( $data['docs_received'] ) : '',
 		'docs_pending'       => isset( $data['docs_pending'] ) ? sanitize_textarea_field( $data['docs_pending'] ) : '',
 		'file_location'      => isset( $data['file_location'] ) ? sanitize_text_field( $data['file_location'] ) : '',
-		'delivery_status'    => sojib68_crm_sanitize_from_list( isset( $data['delivery_status'] ) ? $data['delivery_status'] : '', sojib68_crm_delivery_statuses(), 'not_ready' ),
-		'delivery_date'      => sojib68_crm_work_clean_date( isset( $data['delivery_date'] ) ? $data['delivery_date'] : '' ),
+		'delivery_status'    => $delivery_status,
+		'delivery_date'      => $delivery_date,
 		'delivery_recipient' => isset( $data['delivery_recipient'] ) ? sanitize_text_field( $data['delivery_recipient'] ) : '',
 		'updated_at'         => current_time( 'mysql' ),
 	);
@@ -893,7 +916,6 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	if ( $id > 0 ) {
 		// Restart the idle clock only when the work actually moved (stage or status changed),
 		// not when someone just edits a note or a phone number.
-		$before = sojib68_crm_work_get( $id );
 		if ( ! $before || $before['stage'] !== $row['stage'] || $before['status'] !== $row['status'] ) {
 			$row['stage_changed_at'] = current_time( 'mysql' );
 		}

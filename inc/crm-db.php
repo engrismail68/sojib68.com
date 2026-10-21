@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.4.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '2.5.0' );
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -114,6 +114,12 @@ function sojib68_crm_install() {
 		assigned_to BIGINT(20) UNSIGNED NULL,
 		status VARCHAR(20) NOT NULL DEFAULT 'running',
 		agreed_poysha BIGINT(20) UNSIGNED NULL,
+		source VARCHAR(30) NOT NULL DEFAULT '',
+		application_date DATE NULL,
+		application_no VARCHAR(100) NOT NULL DEFAULT '',
+		nothi_no VARCHAR(100) NOT NULL DEFAULT '',
+		application_mobile VARCHAR(30) NOT NULL DEFAULT '',
+		delivery_method VARCHAR(100) NOT NULL DEFAULT '',
 		stage VARCHAR(40) NOT NULL DEFAULT '',
 		stage_changed_at DATETIME NULL,
 		cancel_reason TEXT NULL,

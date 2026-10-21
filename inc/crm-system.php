@@ -470,10 +470,13 @@ function sojib68_crm_handle_save_work( $type ) {
 		}
 	}
 
-	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'referred_by', 'assigned_to', 'status', 'stage', 'cancel_reason', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_recipient' );
-	$data   = array();
+	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'source', 'referred_by', 'assigned_to', 'status', 'stage', 'cancel_reason', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_method', 'delivery_recipient', 'application_date', 'application_no', 'nothi_no', 'application_mobile' );
+	// Only fields this category's form actually shows are passed on; the rest keep their stored values.
+	$data = array();
 	foreach ( $fields as $f ) {
-		$data[ $f ] = isset( $_POST[ $f ] ) ? wp_unslash( $_POST[ $f ] ) : '';
+		if ( isset( $_POST[ $f ] ) ) {
+			$data[ $f ] = wp_unslash( $_POST[ $f ] );
+		}
 	}
 
 	// Money fields are finance-permission only; for everyone else the key is left out so a staff save never touches it.
@@ -485,6 +488,28 @@ function sojib68_crm_handle_save_work( $type ) {
 	if ( is_wp_error( $saved ) ) {
 		wp_safe_redirect( $id ? add_query_arg( 'id', $id, $back ) : $back );
 		return;
+	}
+
+	// "আদায়" / "খরচ" typed on the form are new amounts, recorded as dated ledger entries
+	// (so the category cash totals and the per-work history stay the single source of truth).
+	if ( sojib68_crm_can_view_finance() ) {
+		$work  = sojib68_crm_work_get( $saved );
+		$moves = array(
+			'collected_add' => array( 'in', $work ? $work['customer_name'] : '', __( 'এন্ট্রি ফর্ম থেকে আদায়', 'sojib68' ) ),
+			'expense_add'   => array( 'out', '', __( 'ফাইল প্রসেসিং ও অন্যান্য খরচ', 'sojib68' ) ),
+		);
+		foreach ( $moves as $field => $move ) {
+			$amount = isset( $_POST[ $field ] ) ? sojib68_crm_parse_amount( wp_unslash( $_POST[ $field ] ) ) : null;
+			if ( $amount && $amount > 0 ) {
+				sojib68_crm_cash_add( array(
+					'work_id'   => $saved,
+					'direction' => $move[0],
+					'amount'    => $amount,
+					'party'     => $move[1],
+					'note'      => $move[2],
+				) );
+			}
+		}
 	}
 
 	wp_safe_redirect( add_query_arg( 'id', $saved, $back ) );

@@ -169,6 +169,54 @@
 		return toEn(str.slice(0, pos)).replace(/[^0-9.]/g, '').length;
 	}
 
+	// Live বাকী / প্রফিট on the entry form: existing totals (from the ledger)
+	// plus whatever new আদায় / খরচ is being typed right now.
+	function moneyValue(str) {
+		var n = parseFloat(toEn(str || '').replace(/[^0-9.]/g, ''));
+		return isNaN(n) ? null : n;
+	}
+	function taka(n) {
+		var neg = n < 0;
+		var parts = Math.abs(n).toFixed(2).split('.');
+		return (neg ? '-' : '') + '৳' + groupBd(parts[0]) + '.' + parts[1];
+	}
+	document.querySelectorAll('[data-acc-form]').forEach(function (form) {
+		var baseCollected = (parseInt(form.getAttribute('data-collected'), 10) || 0) / 100;
+		var baseSpent = (parseInt(form.getAttribute('data-spent'), 10) || 0) / 100;
+		var agreedIn = form.querySelector('[data-acc="agreed"]');
+		var collectedIn = form.querySelector('[data-acc="collected"]');
+		var spentIn = form.querySelector('[data-acc="spent"]');
+		var dueOut = form.querySelector('[data-out="due"]');
+		var profitOut = form.querySelector('[data-out="profit"]');
+		if (!agreedIn || !dueOut || !profitOut) { return; }
+
+		function recalc() {
+			var agreed = moneyValue(agreedIn.value);
+			var collected = baseCollected + (moneyValue(collectedIn.value) || 0);
+			var spent = baseSpent + (moneyValue(spentIn.value) || 0);
+			dueOut.classList.remove('is-due', 'is-extra', 'is-loss');
+			profitOut.classList.remove('is-loss');
+			if (agreed === null) {
+				dueOut.textContent = 'চুক্তির টাকা দিন';
+				profitOut.textContent = 'চুক্তির টাকা দিন';
+				return;
+			}
+			var due = agreed - collected;
+			if (due < 0) {
+				dueOut.textContent = 'অতিরিক্ত জমা ' + taka(-due);
+				dueOut.classList.add('is-extra');
+			} else {
+				dueOut.textContent = taka(due);
+				if (due > 0) { dueOut.classList.add('is-due'); }
+			}
+			var profit = agreed - spent;
+			profitOut.textContent = taka(profit);
+			if (profit < 0) { profitOut.classList.add('is-loss'); }
+		}
+		[agreedIn, collectedIn, spentIn].forEach(function (el) { if (el) { el.addEventListener('input', recalc); } });
+		recalc();
+	});
+
 	document.querySelectorAll('[data-money]').forEach(function (input) {
 		function apply() {
 			var old = input.value;

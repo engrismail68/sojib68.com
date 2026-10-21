@@ -669,6 +669,10 @@ function sojib68_crm_render_category_entry( $type ) {
 	$v = function ( $key, $default = '' ) use ( $work ) {
 		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
 	};
+
+	if ( 'namjari' === $type ) {
+		sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff );
+	} else {
 	?>
 	<form method="post" action="<?php echo esc_url( $action ); ?>" class="crm-entry-form">
 		<?php wp_nonce_field( 'sojib68_crm_save_work', 'sojib68_crm_work_nonce' ); ?>
@@ -775,6 +779,7 @@ function sojib68_crm_render_category_entry( $type ) {
 
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
 	</form>
+	<?php } ?>
 
 	<?php if ( $work && sojib68_crm_can_view_finance() ) : ?>
 		<?php sojib68_crm_render_work_accounts( $work, $type ); ?>
@@ -795,6 +800,7 @@ function sojib68_crm_render_category_entry( $type ) {
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
+						<?php if ( 'namjari' === $type ) : ?><th><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></th><?php endif; ?>
 						<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
@@ -807,6 +813,7 @@ function sojib68_crm_render_category_entry( $type ) {
 					<?php foreach ( $result['rows'] as $w ) : ?>
 						<tr>
 							<td><?php echo esc_html( $w['work_code'] ); ?></td>
+							<?php if ( 'namjari' === $type ) : ?><td><?php echo esc_html( $w['application_no'] ? $w['application_no'] : '—' ); ?></td><?php endif; ?>
 							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['customer_phone'] ? $w['customer_phone'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
@@ -819,6 +826,144 @@ function sojib68_crm_render_category_entry( $type ) {
 			</table>
 		</div>
 	<?php endif; ?>
+	<?php
+}
+
+/**
+ * নামজারি entry form, in the two sections the office asked for:
+ * 1) customer & money, 2) application details. Money fields are
+ * finance-permission only. "আদায়" and "খরচ" add new dated entries to
+ * the ledger on save; বাকী and প্রফিট are calculated live as you type.
+ */
+function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
+	$v = function ( $key, $default = '' ) use ( $work ) {
+		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
+	};
+	$finance = sojib68_crm_can_view_finance();
+	$acc     = $work ? sojib68_crm_work_accounts( $work['id'] ) : array( 'collected' => 0, 'spent' => 0 );
+	$money   = function ( $poysha ) {
+		return '৳' . sojib68_crm_poysha_to_taka_display( $poysha );
+	};
+	?>
+	<form method="post" action="<?php echo esc_url( $action ); ?>" class="crm-entry-form crm-entry-form--sections" data-acc-form data-collected="<?php echo (int) $acc['collected']; ?>" data-spent="<?php echo (int) $acc['spent']; ?>">
+		<?php wp_nonce_field( 'sojib68_crm_save_work', 'sojib68_crm_work_nonce' ); ?>
+		<input type="hidden" name="id" value="<?php echo (int) ( $work ? $work['id'] : 0 ); ?>">
+
+		<fieldset class="crm-fieldset">
+			<legend><span>১</span> <?php esc_html_e( 'গ্রাহক ও হিসাব', 'sojib68' ); ?></legend>
+
+			<div class="crm-field">
+				<label><?php esc_html_e( 'কাজ আসার তারিখ', 'sojib68' ); ?></label>
+				<input type="date" name="received_date" value="<?php echo $v( 'received_date', current_time( 'Y-m-d' ) ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'কিভাবে এসেছে (সোর্স)', 'sojib68' ); ?></label>
+				<select name="source">
+					<option value=""><?php esc_html_e( '— বাছাই করুন —', 'sojib68' ); ?></option>
+					<?php foreach ( sojib68_crm_lead_sources() as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['source'] : '', $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="crm-field crm-field--full">
+				<label><?php esc_html_e( 'আবেদনকারীগণের নাম', 'sojib68' ); ?></label>
+				<input type="text" name="customer_name" value="<?php echo $v( 'customer_name' ); ?>" placeholder="<?php esc_attr_e( 'একাধিক হলে কমা দিয়ে লিখুন', 'sojib68' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'মোবাইল নং', 'sojib68' ); ?></label>
+				<input type="text" name="customer_phone" value="<?php echo $v( 'customer_phone' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'দায়িত্বপ্রাপ্ত ব্যক্তি', 'sojib68' ); ?></label>
+				<select name="assigned_to">
+					<option value=""><?php esc_html_e( '(এখনো ঠিক হয়নি)', 'sojib68' ); ?></option>
+					<?php foreach ( $staff as $uid => $uname ) : ?>
+						<option value="<?php echo (int) $uid; ?>" <?php selected( $work ? (int) $work['assigned_to'] : 0, $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+
+			<?php if ( $finance ) : ?>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'গ্রাহকের সাথে কাজের চুক্তি (৳)', 'sojib68' ); ?></label>
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="agreed" name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'গ্রাহক থেকে টাকা আদায় (৳)', 'sojib68' ); ?></label>
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="collected" name="collected_add" placeholder="<?php esc_attr_e( 'নতুন আদায় হলে লিখুন', 'sojib68' ); ?>">
+					<small class="crm-field__hint"><?php echo esc_html( sprintf( /* translators: %s: amount */ __( 'এ পর্যন্ত আদায়: %s', 'sojib68' ), $money( $acc['collected'] ) ) ); ?></small>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'গ্রাহকের নিকট বাকী', 'sojib68' ); ?></label>
+					<output class="crm-calc" data-out="due">—</output>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'ফাইল প্রসেসিং ও অন্যান্য খরচ (৳)', 'sojib68' ); ?></label>
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="spent" name="expense_add" placeholder="<?php esc_attr_e( 'নতুন খরচ হলে লিখুন', 'sojib68' ); ?>">
+					<small class="crm-field__hint"><?php echo esc_html( sprintf( /* translators: %s: amount */ __( 'এ পর্যন্ত খরচ: %s', 'sojib68' ), $money( $acc['spent'] ) ) ); ?></small>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'প্রফিট (অটোমেটিক)', 'sojib68' ); ?></label>
+					<output class="crm-calc crm-calc--profit" data-out="profit">—</output>
+				</div>
+			<?php endif; ?>
+
+			<div class="crm-field crm-field--full">
+				<label><?php esc_html_e( 'পেন্ডিং থাকার কারণ', 'sojib68' ); ?></label>
+				<input type="text" name="pending_reason" value="<?php echo $v( 'pending_reason' ); ?>">
+			</div>
+		</fieldset>
+
+		<fieldset class="crm-fieldset">
+			<legend><span>২</span> <?php esc_html_e( 'আবেদনের তথ্য', 'sojib68' ); ?></legend>
+
+			<div class="crm-field">
+				<label><?php esc_html_e( 'আবেদনের তারিখ', 'sojib68' ); ?></label>
+				<input type="date" name="application_date" value="<?php echo $v( 'application_date' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></label>
+				<input type="text" name="application_no" value="<?php echo $v( 'application_no' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'নথি নং', 'sojib68' ); ?></label>
+				<input type="text" name="nothi_no" value="<?php echo $v( 'nothi_no' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'আবেদনের মোবাইল নং', 'sojib68' ); ?></label>
+				<input type="text" name="application_mobile" value="<?php echo $v( 'application_mobile' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'আবেদনের অবস্থা', 'sojib68' ); ?></label>
+				<select name="stage" data-stage-select data-cancel-stage="<?php echo esc_attr( $stage_cfg['cancelled'] ); ?>">
+					<?php foreach ( $stage_cfg['stages'] as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work && $work['stage'] ? $work['stage'] : $stage_cfg['default'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="crm-field crm-field--full" data-cancel-reason hidden>
+				<label><?php esc_html_e( 'বাতিলের কারণ', 'sojib68' ); ?></label>
+				<textarea name="cancel_reason" rows="2"><?php echo $work ? esc_textarea( (string) $work['cancel_reason'] ) : ''; ?></textarea>
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'ডেলিভারির তারিখ', 'sojib68' ); ?></label>
+				<input type="date" name="delivery_date" value="<?php echo $v( 'delivery_date' ); ?>">
+			</div>
+			<div class="crm-field">
+				<label><?php esc_html_e( 'ডেলিভারির মাধ্যম', 'sojib68' ); ?></label>
+				<input type="text" name="delivery_method" value="<?php echo $v( 'delivery_method' ); ?>" list="crm-delivery-methods" placeholder="<?php esc_attr_e( 'যেমন: সরাসরি হাতে', 'sojib68' ); ?>">
+				<datalist id="crm-delivery-methods">
+					<option value="<?php esc_attr_e( 'সরাসরি হাতে', 'sojib68' ); ?>">
+					<option value="<?php esc_attr_e( 'কুরিয়ার', 'sojib68' ); ?>">
+					<option value="<?php esc_attr_e( 'WhatsApp', 'sojib68' ); ?>">
+					<option value="<?php esc_attr_e( 'ইমেইল', 'sojib68' ); ?>">
+					<option value="<?php esc_attr_e( 'প্রতিনিধির মাধ্যমে', 'sojib68' ); ?>">
+				</datalist>
+			</div>
+		</fieldset>
+
+		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
+	</form>
 	<?php
 }
 
@@ -841,6 +986,7 @@ function sojib68_crm_render_work_accounts( $work, $type ) {
 				<strong><?php echo null === $acc['due'] ? esc_html__( 'হিসাব অসম্পূর্ণ', 'sojib68' ) : esc_html( $money( abs( $acc['due'] ) ) ); ?></strong>
 			</div>
 			<div><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong><?php echo esc_html( $money( $acc['spent'] ) ); ?></strong></div>
+			<div><span><?php esc_html_e( 'প্রফিট (চুক্তি − খরচ)', 'sojib68' ); ?></span><strong><?php echo null === $acc['profit'] ? esc_html__( 'হিসাব অসম্পূর্ণ', 'sojib68' ) : esc_html( $money( $acc['profit'] ) ); ?></strong></div>
 			<div><span><?php esc_html_e( 'হাতে আছে (আদায় − খরচ)', 'sojib68' ); ?></span><strong><?php echo esc_html( $money( $acc['balance'] ) ); ?></strong></div>
 		</div>
 
