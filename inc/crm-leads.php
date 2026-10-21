@@ -778,6 +778,10 @@ function sojib68_crm_idle_works( $scope_user_id = null ) {
 }
 
 function sojib68_crm_work_stage_label( $work ) {
+	// Once handed over, that's what matters — not the stage it was last at.
+	if ( 'delivered' === $work['status'] ) {
+		return __( 'ডেলিভারি সম্পন্ন', 'sojib68' );
+	}
 	$cfg = sojib68_crm_category_stage_config( $work['work_type'] );
 	if ( $cfg && ! empty( $work['stage'] ) && isset( $cfg['stages'][ $work['stage'] ] ) ) {
 		return $cfg['stages'][ $work['stage'] ];

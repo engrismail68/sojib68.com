@@ -889,7 +889,11 @@ function sojib68_crm_render_category_entry( $type ) {
 				<thead>
 					<tr>
 						<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
-						<?php if ( 'namjari' === $type ) : ?><th><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></th><?php endif; ?>
+						<?php if ( 'namjari' === $type ) : ?>
+							<th><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'নথি নং', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'মৌজা', 'sojib68' ); ?></th>
+						<?php endif; ?>
 						<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th>
 						<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
@@ -902,11 +906,15 @@ function sojib68_crm_render_category_entry( $type ) {
 					<?php foreach ( $result['rows'] as $w ) : ?>
 						<tr>
 							<td><?php echo esc_html( $w['work_code'] ); ?></td>
-							<?php if ( 'namjari' === $type ) : ?><td><?php echo esc_html( $w['application_no'] ? $w['application_no'] : '—' ); ?></td><?php endif; ?>
+							<?php if ( 'namjari' === $type ) : ?>
+								<td><?php echo esc_html( $w['application_no'] ? $w['application_no'] : '—' ); ?></td>
+								<td><?php echo esc_html( $w['nothi_no'] ? $w['nothi_no'] : '—' ); ?></td>
+								<td><?php echo esc_html( $w['mouza'] ? $w['mouza'] : '—' ); ?></td>
+							<?php endif; ?>
 							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['customer_phone'] ? $w['customer_phone'] : '—' ); ?></td>
 							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
-							<td><span class="crm-chip"><?php echo esc_html( ( $stage_cfg && $w['stage'] && isset( $stage_cfg['stages'][ $w['stage'] ] ) ) ? $stage_cfg['stages'][ $w['stage'] ] : ( $statuses[ $w['status'] ] ?? $w['status'] ) ); ?></span></td>
+							<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
 							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
 							<td><a href="<?php echo esc_url( add_query_arg( 'id', (int) $w['id'], $action ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'eye', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
 						</tr>
