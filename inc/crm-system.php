@@ -582,7 +582,7 @@ function sojib68_crm_handle_work_txn() {
 		return;
 	}
 
-	sojib68_crm_cash_add(
+	$entry = sojib68_crm_cash_add(
 		array(
 			'work_id'   => $work_id,
 			'category'  => isset( $_POST['category'] ) ? wp_unslash( $_POST['category'] ) : '',
@@ -594,7 +594,14 @@ function sojib68_crm_handle_work_txn() {
 		)
 	);
 
-	wp_safe_redirect( add_query_arg( 'id', $work_id, home_url( '/' . SOJIB68_CRM_BASE . '/' . $work['work_type'] . '-entry' ) ) );
+	// Quick payments from the category list come back to the list (filters kept); only CRM URLs are allowed.
+	$return = isset( $_POST['return'] ) ? esc_url_raw( wp_unslash( $_POST['return'] ) ) : '';
+	$crm    = home_url( '/' . SOJIB68_CRM_BASE . '/' );
+	$back   = ( $return && 0 === strpos( $return, $crm ) ) ? $return : add_query_arg( 'id', $work_id, home_url( '/' . SOJIB68_CRM_BASE . '/' . $work['work_type'] . '-entry' ) );
+	$back   = remove_query_arg( 'crm_notice', $back );
+	$notice = is_wp_error( $entry ) ? 'pay_error' : 'paid';
+
+	wp_safe_redirect( add_query_arg( 'crm_notice', $notice, $back ) . ( $return ? '#crm-list' : '' ) );
 }
 
 /* ---------------------------------------------------------------------

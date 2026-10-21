@@ -808,6 +808,42 @@
 }
 .crm-pagination a.is-active { background: var(--crm-grad); color: #fff; border-color: transparent; font-weight: 600; }
 
+/* ---------- Category control list ---------- */
+
+.crm-list-count { font-size: 13px; color: var(--crm-muted); background: #EFEDE4; border-radius: 999px; padding: 4px 12px; }
+.crm-table .is-num { text-align: right; }
+.crm-table--control td { vertical-align: middle; }
+.crm-cell-client strong { display: block; color: var(--crm-forest); font-weight: 600; }
+.crm-cell-client small { font-size: 12px; color: var(--crm-muted); }
+.crm-cell-actions { white-space: nowrap; text-align: right; }
+.crm-cell-actions .btn + .btn { margin-left: 6px; }
+.crm-amt-in { color: #198030; font-weight: 600; }
+.crm-amt-out { color: #8A4B22; font-weight: 600; }
+.crm-amt-due { color: #C8202B; font-weight: 700; }
+.crm-amt-paid { color: #146C2E; font-weight: 600; font-size: 12.5px; background: #E5F3E8; border-radius: 999px; padding: 2px 10px; }
+.crm-amt-extra { color: #4D6B14; font-size: 12.5px; }
+.crm-amt-warn { color: #8A5A00; font-size: 12.5px; }
+.crm-amt-muted { color: var(--crm-muted); }
+.crm-btn-pay { background: #E5F3E8; color: #146C2E; border-color: #BFE3C8; }
+.crm-btn-pay:hover { background: #198030; color: #fff; }
+
+.crm-table tbody tr.crm-pay-row,
+.crm-table tbody tr.crm-pay-row:hover { background: #F1F8EF; }
+.crm-pay-row td { white-space: normal; padding-top: 4px; }
+.crm-pay-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.crm-pay-form__who { font-size: 13px; color: var(--crm-forest); margin-right: 6px; }
+.crm-pay-form input, .crm-pay-form select {
+	padding: 7px 10px;
+	border: 1.5px solid var(--crm-border);
+	border-radius: 9px;
+	background: #fff;
+	font-family: inherit;
+	font-size: 13px;
+	min-width: 0;
+}
+.crm-pay-form [name="amount"] { width: 130px; font-weight: 700; }
+.crm-pay-form [name="note"] { flex: 1; min-width: 140px; }
+
 /* ---------- Entry form ---------- */
 
 .crm-entry-form {

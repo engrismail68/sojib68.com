@@ -729,6 +729,10 @@ function sojib68_crm_render_category_entry( $type ) {
 	$notice  = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
 	if ( 'saved' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'সংরক্ষণ হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'paid' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'টাকার এন্ট্রি যোগ হয়েছে, হিসাব হালনাগাদ হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'pay_error' === $notice ) {
+		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'টাকার এন্ট্রি হয়নি — সঠিক পরিমাণ দিয়ে আবার চেষ্টা করুন।', 'sojib68' ) . '</div>';
 	} elseif ( 'template' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'মেসেজের টেমপ্লেট সংরক্ষণ হয়েছে। এখন থেকে সব ক্লায়েন্টের জন্য এটাই ব্যবহার হবে।', 'sojib68' ) . '</div>';
 	} elseif ( 'error' === $notice ) {
@@ -874,54 +878,218 @@ function sojib68_crm_render_category_entry( $type ) {
 		</div>
 	<?php endif; ?>
 
-	<h2 class="crm-section-title"><?php echo esc_html( $types[ $type ] ); ?> — <?php esc_html_e( 'সব কাজ', 'sojib68' ); ?></h2>
+	<?php sojib68_crm_render_category_list( $type, $action ); ?>
 	<?php
-	$result = sojib68_crm_works_search( array(
-		'work_type'     => $type,
-		'scope_user_id' => sojib68_crm_current_user_scope(),
+}
+
+/**
+ * A category's control list: filters, each client's money (আয় / ব্যয় /
+ * বকেয়া), a quick আদায়/খরচ form under each row, totals for whatever is
+ * filtered, and paging. Money and quick payment are finance-only.
+ */
+function sojib68_crm_render_category_list( $type, $action ) {
+	$types   = sojib68_crm_service_types();
+	$staff   = sojib68_crm_assignable_users();
+	$cfg     = sojib68_crm_category_stage_config( $type );
+	$finance = sojib68_crm_can_view_finance();
+	$is_nj   = 'namjari' === $type;
+	$taka    = function ( $poysha ) {
+		return '৳' . sojib68_crm_poysha_to_taka_display( $poysha );
+	};
+
+	$f = array(
+		'q'           => isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '',
+		'stage'       => isset( $_GET['stage'] ) ? sanitize_key( wp_unslash( $_GET['stage'] ) ) : '',
+		'status'      => isset( $_GET['wstatus'] ) ? sanitize_key( wp_unslash( $_GET['wstatus'] ) ) : '',
+		'money'       => isset( $_GET['money'] ) && $finance ? sanitize_key( wp_unslash( $_GET['money'] ) ) : '',
+		'assigned_to' => isset( $_GET['assigned_to'] ) && sojib68_crm_is_admin() ? (int) $_GET['assigned_to'] : 0,
+		'date_from'   => isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '',
+		'date_to'     => isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '',
+	);
+	$rows = sojib68_crm_category_works( $type, $f, sojib68_crm_current_user_scope() );
+
+	$totals = array( 'collected' => 0, 'spent' => 0, 'due' => 0 );
+	foreach ( $rows as $r ) {
+		$totals['collected'] += $r['collected'];
+		$totals['spent']     += $r['spent'];
+		if ( null !== $r['due'] && $r['due'] > 0 && 'cancelled' !== $r['status'] ) {
+			$totals['due'] += $r['due'];
+		}
+	}
+
+	$per_page = 50;
+	$pages    = max( 1, (int) ceil( count( $rows ) / $per_page ) );
+	$page     = isset( $_GET['pg'] ) ? min( $pages, max( 1, (int) $_GET['pg'] ) ) : 1;
+	$shown    = array_slice( $rows, ( $page - 1 ) * $per_page, $per_page );
+
+	$keep     = array_filter( array(
+		'q' => $f['q'], 'stage' => $f['stage'], 'wstatus' => $f['status'], 'money' => $f['money'],
+		'assigned_to' => $f['assigned_to'], 'date_from' => $f['date_from'], 'date_to' => $f['date_to'],
 	) );
-	if ( empty( $result['rows'] ) ) :
-		?>
-		<p class="crm-empty"><?php esc_html_e( 'এখনো কোনো এন্ট্রি নেই।', 'sojib68' ); ?></p>
-	<?php else : ?>
-		<div class="crm-table-wrap">
-			<table class="crm-table">
-				<thead>
+	$list_url = add_query_arg( array_merge( $keep, $page > 1 ? array( 'pg' => $page ) : array() ), $action );
+	$filtered = ! empty( $keep );
+	?>
+	<div class="crm-section-head" id="crm-list">
+		<h2 class="crm-section-title"><?php echo esc_html( $types[ $type ] ); ?> — <?php esc_html_e( 'সব কাজ', 'sojib68' ); ?></h2>
+		<span class="crm-list-count"><?php echo esc_html( sprintf( /* translators: %s: count */ __( '%s টি কাজ', 'sojib68' ), number_format_i18n( count( $rows ) ) ) ); ?></span>
+	</div>
+
+	<form method="get" action="<?php echo esc_url( $action ); ?>#crm-list" class="crm-filters">
+		<input type="search" name="q" value="<?php echo esc_attr( $f['q'] ); ?>" placeholder="<?php echo esc_attr( $is_nj ? __( 'নাম, মোবাইল, আবেদন নং, নথি নং বা মৌজা', 'sojib68' ) : __( 'নাম, মোবাইল বা Work ID', 'sojib68' ) ); ?>">
+		<?php if ( $cfg ) : ?>
+			<select name="stage">
+				<option value=""><?php esc_html_e( 'সব অবস্থা', 'sojib68' ); ?></option>
+				<?php foreach ( $cfg['stages'] as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $f['stage'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+				<option value="delivered" <?php selected( $f['stage'], 'delivered' ); ?>><?php esc_html_e( 'ডেলিভারি সম্পন্ন', 'sojib68' ); ?></option>
+			</select>
+		<?php else : ?>
+			<select name="wstatus">
+				<option value=""><?php esc_html_e( 'সব অবস্থা', 'sojib68' ); ?></option>
+				<?php foreach ( sojib68_crm_work_statuses() as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $f['status'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endif; ?>
+		<?php if ( $finance ) : ?>
+			<select name="money">
+				<option value=""><?php esc_html_e( 'সব হিসাব', 'sojib68' ); ?></option>
+				<option value="due" <?php selected( $f['money'], 'due' ); ?>><?php esc_html_e( 'বকেয়া আছে', 'sojib68' ); ?></option>
+				<option value="paid" <?php selected( $f['money'], 'paid' ); ?>><?php esc_html_e( 'পুরো পরিশোধিত', 'sojib68' ); ?></option>
+				<option value="no_agreed" <?php selected( $f['money'], 'no_agreed' ); ?>><?php esc_html_e( 'চুক্তি দেওয়া হয়নি', 'sojib68' ); ?></option>
+			</select>
+		<?php endif; ?>
+		<?php if ( sojib68_crm_is_admin() ) : ?>
+			<select name="assigned_to">
+				<option value=""><?php esc_html_e( 'সব দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></option>
+				<?php foreach ( $staff as $uid => $uname ) : ?>
+					<option value="<?php echo (int) $uid; ?>" <?php selected( $f['assigned_to'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endif; ?>
+		<input type="date" name="date_from" value="<?php echo esc_attr( $f['date_from'] ); ?>" title="<?php esc_attr_e( 'কাজ আসার তারিখ থেকে', 'sojib68' ); ?>">
+		<input type="date" name="date_to" value="<?php echo esc_attr( $f['date_to'] ); ?>" title="<?php esc_attr_e( 'কাজ আসার তারিখ পর্যন্ত', 'sojib68' ); ?>">
+		<button type="submit" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'filter', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'ফিল্টার', 'sojib68' ); ?></button>
+		<?php if ( $filtered ) : ?>
+			<a href="<?php echo esc_url( $action ); ?>#crm-list" class="btn btn-outline btn-sm"><?php esc_html_e( 'Clear', 'sojib68' ); ?></a>
+		<?php endif; ?>
+	</form>
+
+	<?php if ( empty( $rows ) ) : ?>
+		<p class="crm-empty"><?php echo $filtered ? esc_html__( 'এই ফিল্টারে কোনো কাজ পাওয়া যায়নি।', 'sojib68' ) : esc_html__( 'এখনো কোনো এন্ট্রি নেই।', 'sojib68' ); ?></p>
+		<?php return; ?>
+	<?php endif; ?>
+
+	<?php $cols = 5 + ( $is_nj ? 3 : 0 ) + ( $finance ? 3 : 0 ); ?>
+	<div class="crm-table-wrap">
+		<table class="crm-table crm-table--control">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
+					<?php if ( $is_nj ) : ?>
+						<th><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'নথি নং', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'মৌজা', 'sojib68' ); ?></th>
+					<?php endif; ?>
+					<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'অবস্থা', 'sojib68' ); ?></th>
+					<?php if ( $finance ) : ?>
+						<th class="is-num"><?php esc_html_e( 'আয়', 'sojib68' ); ?></th>
+						<th class="is-num"><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?></th>
+						<th class="is-num"><?php esc_html_e( 'বকেয়া', 'sojib68' ); ?></th>
+					<?php endif; ?>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $shown as $w ) :
+					$edit = add_query_arg( 'id', (int) $w['id'], $action );
+					?>
 					<tr>
-						<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
-						<?php if ( 'namjari' === $type ) : ?>
-							<th><?php esc_html_e( 'আবেদন নং', 'sojib68' ); ?></th>
-							<th><?php esc_html_e( 'নথি নং', 'sojib68' ); ?></th>
-							<th><?php esc_html_e( 'মৌজা', 'sojib68' ); ?></th>
+						<td><a href="<?php echo esc_url( $edit ); ?>"><?php echo esc_html( $w['work_code'] ); ?></a></td>
+						<?php if ( $is_nj ) : ?>
+							<td><?php echo esc_html( $w['application_no'] ? $w['application_no'] : '—' ); ?></td>
+							<td><?php echo esc_html( $w['nothi_no'] ? $w['nothi_no'] : '—' ); ?></td>
+							<td><?php echo esc_html( $w['mouza'] ? $w['mouza'] : '—' ); ?></td>
 						<?php endif; ?>
-						<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
-						<th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th>
-						<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
-						<th><?php esc_html_e( 'অবস্থা', 'sojib68' ); ?></th>
-						<th><?php esc_html_e( 'ডেলিভারি', 'sojib68' ); ?></th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php foreach ( $result['rows'] as $w ) : ?>
-						<tr>
-							<td><?php echo esc_html( $w['work_code'] ); ?></td>
-							<?php if ( 'namjari' === $type ) : ?>
-								<td><?php echo esc_html( $w['application_no'] ? $w['application_no'] : '—' ); ?></td>
-								<td><?php echo esc_html( $w['nothi_no'] ? $w['nothi_no'] : '—' ); ?></td>
-								<td><?php echo esc_html( $w['mouza'] ? $w['mouza'] : '—' ); ?></td>
+						<td class="crm-cell-client">
+							<strong><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></strong>
+							<?php if ( $w['customer_phone'] ) : ?><small><?php echo esc_html( $w['customer_phone'] ); ?></small><?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
+						<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
+						<?php if ( $finance ) : ?>
+							<td class="is-num crm-amt-in"><?php echo esc_html( $taka( $w['collected'] ) ); ?></td>
+							<td class="is-num crm-amt-out"><?php echo esc_html( $taka( $w['spent'] ) ); ?></td>
+							<td class="is-num">
+								<?php if ( 'cancelled' === $w['status'] ) : ?>
+									<span class="crm-amt-muted">—</span>
+								<?php elseif ( null === $w['due'] ) : ?>
+									<span class="crm-amt-warn"><?php esc_html_e( 'চুক্তি নেই', 'sojib68' ); ?></span>
+								<?php elseif ( $w['due'] > 0 ) : ?>
+									<strong class="crm-amt-due"><?php echo esc_html( $taka( $w['due'] ) ); ?></strong>
+								<?php elseif ( $w['due'] < 0 ) : ?>
+									<span class="crm-amt-extra"><?php echo esc_html( sprintf( /* translators: %s: amount */ __( 'অতিরিক্ত %s', 'sojib68' ), $taka( -$w['due'] ) ) ); ?></span>
+								<?php else : ?>
+									<span class="crm-amt-paid"><?php esc_html_e( 'পরিশোধিত', 'sojib68' ); ?></span>
+								<?php endif; ?>
+							</td>
+						<?php endif; ?>
+						<td class="crm-cell-actions">
+							<?php if ( $finance ) : ?>
+								<button type="button" class="btn btn-sm crm-btn-pay" data-pay-toggle="<?php echo (int) $w['id']; ?>"><?php echo sojib68_crm_icon( 'plus', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'আদায়/খরচ', 'sojib68' ); ?></button>
 							<?php endif; ?>
-							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></td>
-							<td><?php echo esc_html( $w['customer_phone'] ? $w['customer_phone'] : '—' ); ?></td>
-							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
-							<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
-							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
-							<td><a href="<?php echo esc_url( add_query_arg( 'id', (int) $w['id'], $action ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'eye', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
+							<a href="<?php echo esc_url( $edit ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'edit', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'এডিট', 'sojib68' ); ?></a>
+						</td>
+					</tr>
+					<?php if ( $finance ) :
+						$due_now = null !== $w['due'] && $w['due'] > 0 && 'cancelled' !== $w['status'] ? $w['due'] : 0;
+						?>
+						<tr class="crm-pay-row" data-pay-row="<?php echo (int) $w['id']; ?>" hidden>
+							<td colspan="<?php echo (int) $cols; ?>">
+								<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-txn' ) ); ?>" class="crm-pay-form">
+									<?php wp_nonce_field( 'sojib68_crm_work_txn', 'sojib68_crm_txn_nonce' ); ?>
+									<input type="hidden" name="work_id" value="<?php echo (int) $w['id']; ?>">
+									<input type="hidden" name="return" value="<?php echo esc_url( $list_url ); ?>">
+									<strong class="crm-pay-form__who"><?php echo esc_html( $w['work_code'] . ' · ' . ( $w['customer_name'] ? $w['customer_name'] : '' ) ); ?></strong>
+									<select name="direction" data-pay-direction data-due="<?php echo esc_attr( $due_now ? sojib68_crm_poysha_to_taka_display( $due_now ) : '' ); ?>">
+										<option value="in"><?php esc_html_e( 'আদায় (গ্রাহক দিলেন)', 'sojib68' ); ?></option>
+										<option value="out"><?php esc_html_e( 'খরচ (কাউকে দিলাম)', 'sojib68' ); ?></option>
+									</select>
+									<input type="text" inputmode="decimal" autocomplete="off" data-money name="amount" value="<?php echo esc_attr( $due_now ? sojib68_crm_poysha_to_taka_display( $due_now ) : '' ); ?>" placeholder="<?php esc_attr_e( 'টাকা', 'sojib68' ); ?>" required>
+									<input type="date" name="txn_date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
+									<input type="text" name="party" value="<?php echo esc_attr( $w['customer_name'] ); ?>" placeholder="<?php esc_attr_e( 'কার কাছ থেকে / কাকে', 'sojib68' ); ?>">
+									<input type="text" name="note" placeholder="<?php esc_attr_e( 'নোট (ঐচ্ছিক)', 'sojib68' ); ?>">
+									<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( 'সংরক্ষণ', 'sojib68' ); ?></button>
+									<button type="button" class="btn btn-outline btn-sm" data-pay-toggle="<?php echo (int) $w['id']; ?>"><?php esc_html_e( 'বাতিল', 'sojib68' ); ?></button>
+								</form>
+							</td>
 						</tr>
-					<?php endforeach; ?>
-				</tbody>
-			</table>
-		</div>
+					<?php endif; ?>
+				<?php endforeach; ?>
+			</tbody>
+			<?php if ( $finance ) : ?>
+				<tfoot>
+					<tr class="crm-cash-total-row">
+						<td colspan="<?php echo (int) ( $cols - 4 ); ?>"><?php echo esc_html( $filtered ? __( 'ফিল্টার করা কাজের মোট', 'sojib68' ) : __( 'সব কাজের মোট', 'sojib68' ) ); ?></td>
+						<td class="is-num"><?php echo esc_html( $taka( $totals['collected'] ) ); ?></td>
+						<td class="is-num"><?php echo esc_html( $taka( $totals['spent'] ) ); ?></td>
+						<td class="is-num crm-amt-due"><?php echo esc_html( $taka( $totals['due'] ) ); ?></td>
+						<td></td>
+					</tr>
+				</tfoot>
+			<?php endif; ?>
+		</table>
+	</div>
+
+	<?php if ( $pages > 1 ) : ?>
+		<nav class="crm-pagination">
+			<?php for ( $p = 1; $p <= $pages; $p++ ) : ?>
+				<a href="<?php echo esc_url( add_query_arg( array_merge( $keep, array( 'pg' => $p ) ), $action ) ); ?>#crm-list" class="<?php echo $p === $page ? 'is-active' : ''; ?>"><?php echo (int) $p; ?></a>
+			<?php endfor; ?>
+		</nav>
 	<?php endif; ?>
 	<?php
 }

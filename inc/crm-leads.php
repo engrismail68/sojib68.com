@@ -627,6 +627,96 @@ function sojib68_crm_not_started_works( $type, $scope_user_id = null ) {
 	return $rows ? $rows : array();
 }
 
+/**
+ * One category's works for its control list, each with its money:
+ * collected, spent, due (agreed − collected, null when no agreed amount)
+ * and profit. Newest first.
+ *
+ * $f: q (name/phone/application/nothi/mouza/work id), stage (a stage key,
+ * or 'delivered'), status (generic status, for categories without
+ * stages), assigned_to, date_from/date_to (received date), money
+ * ('due' | 'paid' | 'no_agreed').
+ */
+function sojib68_crm_category_works( $type, $f = array(), $scope_user_id = null ) {
+	global $wpdb;
+	$works  = sojib68_crm_works_table();
+	$ledger = sojib68_crm_cash_table();
+
+	$where  = array( 'w.work_type = %s' );
+	$params = array( $type );
+
+	if ( ! empty( $f['q'] ) ) {
+		$like     = '%' . $wpdb->esc_like( sojib68_crm_bn_to_en_digits( $f['q'] ) ) . '%';
+		$where[]  = '(w.customer_name LIKE %s OR w.customer_phone LIKE %s OR w.work_code LIKE %s OR w.application_no LIKE %s OR w.nothi_no LIKE %s OR w.application_mobile LIKE %s OR w.mouza LIKE %s)';
+		array_push( $params, $like, $like, $like, $like, $like, $like, $like );
+	}
+	if ( ! empty( $f['stage'] ) ) {
+		if ( 'delivered' === $f['stage'] ) {
+			$where[] = "w.status = 'delivered'";
+		} else {
+			// A delivered work keeps its last stage; it shouldn't show up as "আবেদন হয় নি" etc.
+			$where[]  = "w.stage = %s AND w.status != 'delivered'";
+			$params[] = $f['stage'];
+		}
+	}
+	if ( ! empty( $f['status'] ) ) {
+		$where[]  = 'w.status = %s';
+		$params[] = $f['status'];
+	}
+	if ( ! empty( $f['assigned_to'] ) ) {
+		$where[]  = 'w.assigned_to = %d';
+		$params[] = (int) $f['assigned_to'];
+	} elseif ( null !== $scope_user_id ) {
+		$where[]  = 'w.assigned_to = %d';
+		$params[] = (int) $scope_user_id;
+	}
+	if ( ! empty( $f['date_from'] ) ) {
+		$where[]  = 'w.received_date >= %s';
+		$params[] = $f['date_from'];
+	}
+	if ( ! empty( $f['date_to'] ) ) {
+		$where[]  = 'w.received_date <= %s';
+		$params[] = $f['date_to'];
+	}
+
+	// Ledger sums are aggregated in a subquery so the outer query needs no GROUP BY over w.*.
+	$sql  = "SELECT w.*, COALESCE(m.collected, 0) AS collected, COALESCE(m.spent, 0) AS spent
+		FROM {$works} w
+		LEFT JOIN (
+			SELECT work_id,
+				SUM(CASE WHEN direction = 'in' THEN amount_poysha ELSE 0 END) AS collected,
+				SUM(CASE WHEN direction = 'out' THEN amount_poysha ELSE 0 END) AS spent
+			FROM {$ledger} WHERE work_id IS NOT NULL GROUP BY work_id
+		) m ON m.work_id = w.id
+		WHERE " . implode( ' AND ', $where ) . '
+		ORDER BY w.id DESC
+		LIMIT 2000';
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+
+	$out = array();
+	foreach ( (array) $rows as $r ) {
+		$r['collected'] = (int) $r['collected'];
+		$r['spent']     = (int) $r['spent'];
+		$has_agreed     = null !== $r['agreed_poysha'] && '' !== $r['agreed_poysha'];
+		$r['due']       = $has_agreed ? (int) $r['agreed_poysha'] - $r['collected'] : null;
+		$r['profit']    = $has_agreed ? (int) $r['agreed_poysha'] - $r['spent'] : null;
+
+		$money = isset( $f['money'] ) ? $f['money'] : '';
+		if ( 'due' === $money && ! ( null !== $r['due'] && $r['due'] > 0 && 'cancelled' !== $r['status'] ) ) {
+			continue;
+		}
+		if ( 'paid' === $money && ! ( null !== $r['due'] && $r['due'] <= 0 ) ) {
+			continue;
+		}
+		if ( 'no_agreed' === $money && ( $has_agreed || 'cancelled' === $r['status'] ) ) {
+			continue;
+		}
+		$out[] = $r;
+	}
+
+	return $out;
+}
+
 /* ---------------------------------------------------------------------
  * Money summary per work type (dashboard). Per work: আয় = collected,
  * ব্যয় = spent, প্রফিট = agreed − spent, বকেয়া = agreed − collected

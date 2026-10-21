@@ -296,6 +296,33 @@
 		sync();
 	});
 
+	// Category list: open the quick আদায়/খরচ form under a row.
+	document.querySelectorAll('[data-pay-toggle]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var row = document.querySelector('[data-pay-row="' + btn.getAttribute('data-pay-toggle') + '"]');
+			if (!row) { return; }
+			row.hidden = !row.hidden;
+			if (!row.hidden) {
+				var amount = row.querySelector('[name="amount"]');
+				if (amount) { amount.focus(); amount.select(); }
+			}
+		});
+	});
+	// Switching to খরচ clears the pre-filled due amount; back to আদায় restores it.
+	document.querySelectorAll('[data-pay-direction]').forEach(function (sel) {
+		sel.addEventListener('change', function () {
+			var amount = sel.form.querySelector('[name="amount"]');
+			var party = sel.form.querySelector('[name="party"]');
+			if (sel.value === 'out') {
+				amount.value = '';
+				if (party) { party.dataset.client = party.value; party.value = ''; }
+			} else {
+				amount.value = sel.getAttribute('data-due') || '';
+				if (party && party.dataset.client) { party.value = party.dataset.client; }
+			}
+		});
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {
