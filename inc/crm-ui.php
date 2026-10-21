@@ -741,6 +741,12 @@ function sojib68_crm_render_category_entry( $type ) {
 		}
 	}
 
+	// Form on the left, the "not started yet" queue on the right (stacks on narrow screens).
+	$queue = 'namjari' === $type;
+	if ( $queue ) {
+		echo '<div class="crm-entry-layout"><div class="crm-entry-main">';
+	}
+
 	if ( 'namjari' === $type ) {
 		sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $prefill );
 	} else {
@@ -858,6 +864,14 @@ function sojib68_crm_render_category_entry( $type ) {
 
 	<?php if ( $work && sojib68_crm_can_view_finance() ) : ?>
 		<?php sojib68_crm_render_work_accounts( $work, $type ); ?>
+	<?php endif; ?>
+
+	<?php if ( $queue ) : ?>
+		</div>
+		<aside class="crm-entry-side">
+			<?php sojib68_crm_render_not_started_queue( $type, $work ? (int) $work['id'] : 0, $action ); ?>
+		</aside>
+		</div>
 	<?php endif; ?>
 
 	<h2 class="crm-section-title"><?php echo esc_html( $types[ $type ] ); ?> — <?php esc_html_e( 'সব কাজ', 'sojib68' ); ?></h2>
@@ -1046,6 +1060,64 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $p
 
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
 	</form>
+	<?php
+}
+
+/**
+ * "কাজ শুরু হয়নি" queue beside the entry form: everything entered but
+ * not started, oldest first, with what's still missing before work can
+ * start. Clicking opens it in the form; moving its stage off the
+ * not-started stage takes it off this list.
+ */
+function sojib68_crm_render_not_started_queue( $type, $current_id, $action ) {
+	$rows    = sojib68_crm_not_started_works( $type, sojib68_crm_current_user_scope() );
+	$finance = sojib68_crm_can_view_finance();
+	?>
+	<div class="crm-queue">
+		<div class="crm-queue__head">
+			<div>
+				<h3><?php esc_html_e( 'কাজ শুরু হয়নি', 'sojib68' ); ?></h3>
+				<p><?php esc_html_e( 'এন্ট্রি করা আছে, কাজ এখনো শুরু হয়নি — পুরনোটা আগে', 'sojib68' ); ?></p>
+			</div>
+			<span class="crm-queue__count"><?php echo esc_html( number_format_i18n( count( $rows ) ) ); ?></span>
+		</div>
+
+		<?php if ( empty( $rows ) ) : ?>
+			<p class="crm-queue__empty"><?php esc_html_e( 'সব এন্ট্রির কাজ শুরু হয়ে গেছে।', 'sojib68' ); ?></p>
+		<?php else : ?>
+			<ol class="crm-queue__list">
+				<?php foreach ( $rows as $r ) :
+					$missing = array();
+					if ( '' === trim( (string) $r['customer_phone'] ) && '' === trim( (string) $r['application_mobile'] ) ) {
+						$missing[] = __( 'মোবাইল নেই', 'sojib68' );
+					}
+					if ( $finance && null === $r['agreed_poysha'] ) {
+						$missing[] = __( 'চুক্তি দেওয়া হয়নি', 'sojib68' );
+					}
+					if ( empty( $r['assigned_to'] ) ) {
+						$missing[] = __( 'দায়িত্ব দেওয়া হয়নি', 'sojib68' );
+					}
+					$level = $r['waiting_days'] >= SOJIB68_CRM_IDLE_ALERT_DAYS ? 'alert' : ( $r['waiting_days'] >= SOJIB68_CRM_IDLE_WARN_DAYS ? 'warn' : 'ok' );
+					?>
+					<li class="<?php echo (int) $r['id'] === $current_id ? 'is-current' : ''; ?>">
+						<a href="<?php echo esc_url( add_query_arg( 'id', (int) $r['id'], $action ) ); ?>">
+							<span class="crm-queue__days crm-queue__days--<?php echo esc_attr( $level ); ?>">
+								<?php echo 0 === $r['waiting_days'] ? esc_html__( 'আজ', 'sojib68' ) : esc_html( sprintf( /* translators: %s: days */ __( '%s দিন', 'sojib68' ), number_format_i18n( $r['waiting_days'] ) ) ); ?>
+							</span>
+							<span class="crm-queue__main">
+								<strong><?php echo esc_html( $r['customer_name'] ? $r['customer_name'] : __( '(নাম নেই)', 'sojib68' ) ); ?></strong>
+								<small><?php echo esc_html( $r['work_code'] . ( $r['customer_phone'] ? ' · ' . $r['customer_phone'] : '' ) . ' · ' . mysql2date( 'd M', $r['received_date'] ? $r['received_date'] : $r['created_at'] ) ); ?></small>
+								<?php if ( $missing ) : ?>
+									<em><?php echo esc_html( implode( ' · ', $missing ) ); ?></em>
+								<?php endif; ?>
+							</span>
+						</a>
+					</li>
+				<?php endforeach; ?>
+			</ol>
+			<p class="crm-queue__tip"><?php esc_html_e( 'খুলে কাজ শুরু করুন, তারপর "আবেদনের অবস্থা" এগিয়ে দিয়ে সংরক্ষণ করুন — তালিকা থেকে সরে যাবে।', 'sojib68' ); ?></p>
+		<?php endif; ?>
+	</div>
 	<?php
 }
 

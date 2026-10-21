@@ -594,6 +594,39 @@ function sojib68_crm_works_search( $args = array() ) {
 	);
 }
 
+/**
+ * Works entered but not started yet (stage in the category's 'pending'
+ * list, e.g. নামজারি "আবেদন হয় নি"), oldest first so work is picked up in
+ * the order it came in. Each row gets 'waiting_days' since it came in.
+ */
+function sojib68_crm_not_started_works( $type, $scope_user_id = null ) {
+	global $wpdb;
+	$cfg = sojib68_crm_category_stage_config( $type );
+	if ( ! $cfg || empty( $cfg['pending'] ) ) {
+		return array();
+	}
+
+	$table        = sojib68_crm_works_table();
+	$placeholders = implode( ',', array_fill( 0, count( $cfg['pending'] ), '%s' ) );
+	$sql          = "SELECT * FROM {$table} WHERE work_type = %s AND stage IN ({$placeholders}) AND status NOT IN ('cancelled','delivered')";
+	$params       = array_merge( array( $type ), $cfg['pending'] );
+	if ( null !== $scope_user_id ) {
+		$sql     .= ' AND assigned_to = %d';
+		$params[] = (int) $scope_user_id;
+	}
+	$sql .= ' ORDER BY COALESCE(received_date, DATE(created_at)) ASC, id ASC';
+
+	$rows  = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+	$today = strtotime( current_time( 'Y-m-d' ) );
+	foreach ( $rows as &$r ) {
+		$came              = $r['received_date'] ? $r['received_date'] : substr( $r['created_at'], 0, 10 );
+		$r['waiting_days'] = max( 0, (int) floor( ( $today - strtotime( $came ) ) / DAY_IN_SECONDS ) );
+	}
+	unset( $r );
+
+	return $rows ? $rows : array();
+}
+
 /* ---------------------------------------------------------------------
  * Money summary per work type (dashboard). Per work: আয় = collected,
  * ব্যয় = spent, প্রফিট = agreed − spent, বকেয়া = agreed − collected
