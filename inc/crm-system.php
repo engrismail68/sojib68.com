@@ -159,6 +159,11 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'wa-template' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			sojib68_crm_handle_wa_template();
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'work-txn' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
 			sojib68_crm_handle_work_txn();
 			exit;
@@ -539,6 +544,25 @@ function sojib68_crm_handle_save_work( $type ) {
 
 	delete_transient( sojib68_crm_work_draft_key() );
 	wp_safe_redirect( add_query_arg( array( 'id' => $saved, 'crm_notice' => 'saved' ), $back ) );
+}
+
+function sojib68_crm_handle_wa_template() {
+	$type    = isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : '';
+	$work_id = isset( $_POST['work_id'] ) ? (int) $_POST['work_id'] : 0;
+	$back    = home_url( '/' . SOJIB68_CRM_BASE . '/' . $type . '-entry' );
+	if ( ! sojib68_crm_entry_page_type( $type . '-entry' ) ) {
+		$back = home_url( '/' . SOJIB68_CRM_BASE . '/' );
+	}
+
+	if ( ! sojib68_crm_is_admin() || ! isset( sojib68_crm_service_types()[ $type ] )
+		|| ! isset( $_POST['sojib68_crm_wa_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_wa_nonce'] ), 'sojib68_crm_wa_template' ) ) {
+		wp_safe_redirect( $back );
+		return;
+	}
+
+	sojib68_crm_wa_template_save( $type, ! empty( $_POST['reset'] ) ? '' : wp_unslash( isset( $_POST['template'] ) ? $_POST['template'] : '' ) );
+
+	wp_safe_redirect( add_query_arg( array_filter( array( 'id' => $work_id, 'crm_notice' => 'template' ) ), $back ) );
 }
 
 function sojib68_crm_handle_work_txn() {

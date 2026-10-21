@@ -888,16 +888,38 @@
 	padding: 5px 12px;
 }
 .crm-notify__status.is-done { color: #047857; background: #E1F7EE; }
-.crm-notify__preview { margin-top: 12px; font-size: 13px; }
-.crm-notify__preview summary { cursor: pointer; color: var(--crm-teal); font-weight: 600; }
-.crm-notify__preview pre {
-	white-space: pre-wrap;
-	font-family: inherit;
-	background: #F6FAFC;
-	border-radius: 10px;
+.crm-notify__label { display: block; font-size: 13px; font-weight: 600; color: var(--crm-navy); margin-bottom: 5px; }
+.crm-notify__text {
+	width: 100%;
 	padding: 10px 12px;
-	margin: 8px 0 0;
+	border: 1.5px solid var(--crm-border);
+	border-radius: 10px;
+	font-family: inherit;
+	font-size: 14px;
+	line-height: 1.6;
+	background: #F6FFF9;
+	margin-bottom: 12px;
+	resize: vertical;
 }
+.crm-notify__text:focus { outline: none; border-color: #25D366; box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.15); }
+.crm-wa-template { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--crm-border); font-size: 13px; }
+.crm-wa-template summary { cursor: pointer; color: var(--crm-teal); font-weight: 600; }
+.crm-wa-template form { margin-top: 10px; }
+.crm-wa-template .crm-notify__text { background: #fff; }
+.crm-wa-tokens { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+.crm-wa-token {
+	border: 1px solid #BDEDE7;
+	background: #EAF7F6;
+	color: var(--crm-navy);
+	border-radius: 999px;
+	padding: 4px 10px;
+	font-family: inherit;
+	font-size: 12.5px;
+	font-weight: 700;
+	cursor: pointer;
+}
+.crm-wa-token small { font-weight: 400; color: var(--crm-muted); }
+.crm-wa-token:hover { border-color: var(--crm-turquoise); }
 
 /* ---------- Cash ledger ---------- */
 

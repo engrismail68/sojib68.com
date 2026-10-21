@@ -658,41 +658,92 @@ function sojib68_crm_work_is_complete( $work ) {
 	return 'delivered' === $work['status'] || 'ready' === $work['status'] || ( $cfg && $work['stage'] === $cfg['ready'] );
 }
 
-function sojib68_crm_work_whatsapp_message( $work ) {
+/**
+ * Placeholders the message template can use, with this work's values.
+ * Bangla tokens so the template stays readable for the office.
+ */
+function sojib68_crm_wa_placeholders( $work ) {
 	$types = sojib68_crm_service_types();
-	$name  = trim( (string) $work['customer_name'] );
-	$lines = array();
+	return array(
+		'{নাম}'       => trim( (string) $work['customer_name'] ),
+		'{সেবা}'      => $types[ $work['work_type'] ] ?? '',
+		'{আবেদন_নং}'  => (string) ( $work['application_no'] ?? '' ),
+		'{নথি_নং}'    => (string) ( $work['nothi_no'] ?? '' ),
+		'{কাজের_আইডি}' => (string) $work['work_code'],
+		'{অফিস_ফোন}'  => defined( 'SOJIB68_PHONE' ) ? (string) SOJIB68_PHONE : '',
+	);
+}
 
-	$lines[] = $name
-		? sprintf( /* translators: %s: client name */ __( 'আসসালামু আলাইকুম, %s।', 'sojib68' ), $name )
-		: __( 'আসসালামু আলাইকুম।', 'sojib68' );
+function sojib68_crm_wa_default_template( $type ) {
+	$done = 'namjari' === $type
+		? __( 'আপনার {সেবা}-এর কাজ সম্পন্ন হয়েছে, খতিয়ান প্রস্তুত। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' )
+		: __( 'আপনার {সেবা}-এর কাজ সম্পন্ন হয়েছে। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' );
 
-	$what = $types[ $work['work_type'] ] ?? __( 'কাজ', 'sojib68' );
-	if ( ! empty( $work['application_no'] ) ) {
-		$what .= sprintf( /* translators: %s: application no */ __( ' (আবেদন নং %s)', 'sojib68' ), $work['application_no'] );
+	return implode( "\n", array(
+		__( 'আসসালামু আলাইকুম, {নাম}।', 'sojib68' ),
+		$done,
+		__( 'আবেদন নং: {আবেদন_নং}', 'sojib68' ),
+		__( 'যোগাযোগ: {অফিস_ফোন}', 'sojib68' ),
+		__( '— ইসমাইল হোসেন সজীব, ল্যান্ড অ্যান্ড আইটি কনসালট্যান্ট', 'sojib68' ),
+	) );
+}
+
+function sojib68_crm_wa_template( $type ) {
+	$saved = get_option( 'sojib68_crm_wa_template_' . sanitize_key( $type ), '' );
+	return '' !== trim( (string) $saved ) ? (string) $saved : sojib68_crm_wa_default_template( $type );
+}
+
+/** Empty $text resets to the default. */
+function sojib68_crm_wa_template_save( $type, $text ) {
+	$text = sanitize_textarea_field( (string) $text );
+	if ( function_exists( 'mb_substr' ) ) {
+		$text = mb_substr( $text, 0, 1000 );
 	}
-	$lines[] = 'namjari' === $work['work_type']
-		? sprintf( /* translators: %s: work */ __( 'আপনার %s-এর কাজ সম্পন্ন হয়েছে, খতিয়ান প্রস্তুত। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' ), $what )
-		: sprintf( /* translators: %s: work */ __( 'আপনার %s-এর কাজ সম্পন্ন হয়েছে। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' ), $what );
+	return update_option( 'sojib68_crm_wa_template_' . sanitize_key( $type ), $text, false );
+}
 
-	if ( defined( 'SOJIB68_PHONE' ) && SOJIB68_PHONE ) {
-		$lines[] = sprintf( /* translators: %s: phone */ __( 'যোগাযোগ: %s', 'sojib68' ), SOJIB68_PHONE );
+/**
+ * Fills the template for this work. A "label: {token}" line whose
+ * placeholders all came out empty is dropped (e.g. "আবেদন নং: " when
+ * there's no application number yet); any other line is kept, so a
+ * greeting survives a missing name.
+ */
+function sojib68_crm_work_whatsapp_message( $work ) {
+	$values = sojib68_crm_wa_placeholders( $work );
+	$out    = array();
+
+	foreach ( preg_split( '/\r\n|\r|\n/', sojib68_crm_wa_template( $work['work_type'] ) ) as $line ) {
+		preg_match_all( '/\{[^{}\s]+\}/u', $line, $m );
+		$tokens = array_intersect( $m[0], array_keys( $values ) );
+		if ( $tokens ) {
+			$filled = array_filter( $tokens, function ( $t ) use ( $values ) {
+				return '' !== $values[ $t ];
+			} );
+			// Multibyte-safe trim (PHP's trim() is byte-based and would split Bangla characters).
+			$rest = preg_replace( '/^[\s,।.]+|[\s,।.]+$/u', '', str_replace( $tokens, '', $line ) );
+			if ( ! $filled && ( '' === $rest || ':' === substr( $rest, -1 ) ) ) {
+				continue;
+			}
+		}
+		// A blank name shouldn't leave "আলাইকুম, ।" behind.
+		$out[] = preg_replace( '/,\s*([।.])/u', '$1', strtr( $line, $values ) );
 	}
-	$lines[] = __( '— ইসমাইল হোসেন সজীব, ল্যান্ড অ্যান্ড আইটি কনসালট্যান্ট', 'sojib68' );
 
-	return implode( "\n", $lines );
+	return trim( implode( "\n", $out ) );
 }
 
 /** Application mobile first (that's the number the client applied with), else the customer phone. */
-function sojib68_crm_work_whatsapp_url( $work ) {
+function sojib68_crm_work_whatsapp_number( $work ) {
 	$number = sojib68_crm_whatsapp_number( ! empty( $work['application_mobile'] ) ? $work['application_mobile'] : '' );
-	if ( '' === $number ) {
-		$number = sojib68_crm_whatsapp_number( $work['customer_phone'] );
-	}
+	return '' !== $number ? $number : sojib68_crm_whatsapp_number( $work['customer_phone'] );
+}
+
+function sojib68_crm_work_whatsapp_url( $work, $message = null ) {
+	$number = sojib68_crm_work_whatsapp_number( $work );
 	if ( '' === $number ) {
 		return '';
 	}
-	return 'https://wa.me/' . $number . '?text=' . rawurlencode( sojib68_crm_work_whatsapp_message( $work ) );
+	return 'https://wa.me/' . $number . '?text=' . rawurlencode( null === $message ? sojib68_crm_work_whatsapp_message( $work ) : $message );
 }
 
 function sojib68_crm_work_mark_notified( $id ) {

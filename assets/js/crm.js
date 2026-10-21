@@ -242,6 +242,29 @@
 
 	// WhatsApp: the link opens WhatsApp with the message written; the same
 	// click records on the work that the client was told.
+	// Edited message → the WhatsApp link always carries what's in the box.
+	var waText = document.querySelector('[data-wa-text]');
+	var waLink = document.querySelector('[data-wa-notify]');
+	if (waText && waLink) {
+		var syncWa = function () {
+			waLink.href = 'https://wa.me/' + waLink.getAttribute('data-wa-number') + '?text=' + encodeURIComponent(waText.value);
+		};
+		waText.addEventListener('input', syncWa);
+	}
+
+	// Template editor: clicking a placeholder inserts it at the cursor.
+	var tpl = document.querySelector('[data-wa-template]');
+	document.querySelectorAll('[data-wa-token]').forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			if (!tpl) { return; }
+			var t = btn.getAttribute('data-wa-token');
+			var a = tpl.selectionStart, z = tpl.selectionEnd;
+			tpl.value = tpl.value.slice(0, a) + t + tpl.value.slice(z);
+			tpl.focus();
+			tpl.setSelectionRange(a + t.length, a + t.length);
+		});
+	});
+
 	document.querySelectorAll('[data-wa-notify]').forEach(function (link) {
 		link.addEventListener('click', function () {
 			var status = document.querySelector('[data-wa-status]');

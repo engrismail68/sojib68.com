@@ -675,6 +675,8 @@ function sojib68_crm_render_category_entry( $type ) {
 	$notice  = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
 	if ( 'saved' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'সংরক্ষণ হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'template' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'মেসেজের টেমপ্লেট সংরক্ষণ হয়েছে। এখন থেকে সব ক্লায়েন্টের জন্য এটাই ব্যবহার হবে।', 'sojib68' ) . '</div>';
 	} elseif ( 'error' === $notice ) {
 		$draft = get_transient( sojib68_crm_work_draft_key() );
 		delete_transient( sojib68_crm_work_draft_key() );
@@ -1000,7 +1002,8 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $p
  */
 function sojib68_crm_render_client_notify( $work ) {
 	$complete = sojib68_crm_work_is_complete( $work );
-	$url      = sojib68_crm_work_whatsapp_url( $work );
+	$number   = sojib68_crm_work_whatsapp_number( $work );
+	$message  = sojib68_crm_work_whatsapp_message( $work );
 	$staff    = sojib68_crm_assignable_users();
 	$done     = ! empty( $work['client_notified_at'] );
 	?>
@@ -1008,11 +1011,13 @@ function sojib68_crm_render_client_notify( $work ) {
 		<h3><?php esc_html_e( 'ক্লায়েন্টকে জানান (WhatsApp)', 'sojib68' ); ?></h3>
 		<?php if ( ! $complete ) : ?>
 			<p class="crm-notify__hint"><?php esc_html_e( 'আবেদনের অবস্থা "খতিয়ান প্রস্তুত" করে সংরক্ষণ করলে এখানে WhatsApp বোতাম চালু হবে।', 'sojib68' ); ?></p>
-		<?php elseif ( '' === $url ) : ?>
+		<?php elseif ( '' === $number ) : ?>
 			<p class="crm-notify__hint crm-notify__hint--warn"><?php esc_html_e( 'আবেদনের মোবাইল নং বা গ্রাহকের মোবাইল সঠিক নয়। 01XXXXXXXXX আকারে (১১ সংখ্যা) দিয়ে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
 		<?php else : ?>
+			<label class="crm-notify__label" for="crm-wa-text"><?php esc_html_e( 'যে মেসেজ যাবে — পাঠানোর আগে এখানে বদলে নিতে পারেন', 'sojib68' ); ?></label>
+			<textarea id="crm-wa-text" class="crm-notify__text" rows="6" data-wa-text><?php echo esc_textarea( $message ); ?></textarea>
 			<div class="crm-notify__row">
-				<a class="btn crm-btn-whatsapp" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" data-wa-notify="<?php echo (int) $work['id']; ?>">
+				<a class="btn crm-btn-whatsapp" href="<?php echo esc_url( sojib68_crm_work_whatsapp_url( $work, $message ) ); ?>" target="_blank" rel="noopener" data-wa-notify="<?php echo (int) $work['id']; ?>" data-wa-number="<?php echo esc_attr( $number ); ?>">
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
 					<?php echo $done ? esc_html__( 'আবার WhatsApp-এ জানান', 'sojib68' ) : esc_html__( 'WhatsApp-এ জানান', 'sojib68' ); ?>
 				</a>
@@ -1027,12 +1032,47 @@ function sojib68_crm_render_client_notify( $work ) {
 					?>
 				</span>
 			</div>
-			<details class="crm-notify__preview">
-				<summary><?php esc_html_e( 'যে মেসেজ যাবে', 'sojib68' ); ?></summary>
-				<pre><?php echo esc_html( sojib68_crm_work_whatsapp_message( $work ) ); ?></pre>
-			</details>
+		<?php endif; ?>
+
+		<?php if ( sojib68_crm_is_admin() ) : ?>
+			<?php sojib68_crm_render_wa_template_editor( $work ); ?>
 		<?php endif; ?>
 	</div>
+	<?php
+}
+
+/** Admin-only: the saved message template every client of this category gets. */
+function sojib68_crm_render_wa_template_editor( $work ) {
+	$type   = $work['work_type'];
+	$tokens = array_keys( sojib68_crm_wa_placeholders( $work ) );
+	$help   = array(
+		'{নাম}'        => __( 'আবেদনকারীর নাম', 'sojib68' ),
+		'{সেবা}'       => __( 'সেবার নাম (যেমন নামজারি)', 'sojib68' ),
+		'{আবেদন_নং}'   => __( 'আবেদন নং', 'sojib68' ),
+		'{নথি_নং}'     => __( 'নথি নং', 'sojib68' ),
+		'{কাজের_আইডি}' => __( 'Work ID', 'sojib68' ),
+		'{অফিস_ফোন}'   => __( 'অফিসের ফোন', 'sojib68' ),
+	);
+	?>
+	<details class="crm-wa-template"<?php echo isset( $_GET['crm_notice'] ) && 'template' === $_GET['crm_notice'] ? ' open' : ''; ?>>
+		<summary><?php esc_html_e( 'সব ক্লায়েন্টের জন্য মেসেজের টেমপ্লেট বদলান', 'sojib68' ); ?></summary>
+		<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/wa-template' ) ); ?>">
+			<?php wp_nonce_field( 'sojib68_crm_wa_template', 'sojib68_crm_wa_nonce' ); ?>
+			<input type="hidden" name="type" value="<?php echo esc_attr( $type ); ?>">
+			<input type="hidden" name="work_id" value="<?php echo (int) $work['id']; ?>">
+			<p class="crm-notify__hint"><?php esc_html_e( 'নিচের কোডে ক্লিক করলে লেখায় বসে যাবে; পাঠানোর সময় প্রতিটি ক্লায়েন্টের আসল তথ্য বসবে। "আবেদন নং: {আবেদন_নং}" ধরনের লাইনের তথ্য ফাঁকা থাকলে সেই লাইনটা বাদ যাবে।', 'sojib68' ); ?></p>
+			<div class="crm-wa-tokens">
+				<?php foreach ( $tokens as $t ) : ?>
+					<button type="button" class="crm-wa-token" data-wa-token="<?php echo esc_attr( $t ); ?>" title="<?php echo esc_attr( $help[ $t ] ?? '' ); ?>"><?php echo esc_html( $t ); ?> <small><?php echo esc_html( $help[ $t ] ?? '' ); ?></small></button>
+				<?php endforeach; ?>
+			</div>
+			<textarea name="template" rows="7" class="crm-notify__text" data-wa-template><?php echo esc_textarea( sojib68_crm_wa_template( $type ) ); ?></textarea>
+			<div class="crm-notify__row">
+				<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( 'টেমপ্লেট সংরক্ষণ করুন', 'sojib68' ); ?></button>
+				<button type="submit" name="reset" value="1" class="btn btn-outline btn-sm" onclick="return confirm('<?php echo esc_js( __( 'আগের মূল মেসেজে ফিরিয়ে নেবেন?', 'sojib68' ) ); ?>');"><?php esc_html_e( 'মূল মেসেজে ফেরত নিন', 'sojib68' ); ?></button>
+			</div>
+		</form>
+	</details>
 	<?php
 }
 
