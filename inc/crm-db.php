@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.6.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '2.7.0' );
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -166,6 +166,11 @@ function sojib68_crm_install() {
 
 	// Works created before stage tracking existed: start their idle clock from their last update.
 	$wpdb->query( "UPDATE {$works_table} SET stage_changed_at = COALESCE(updated_at, created_at) WHERE stage_changed_at IS NULL" );
+
+	// নামজারি: "pending" now means our work hasn't started (stage আবেদন হয় নি);
+	// every application stage after that is running. Re-derive stored statuses once.
+	$wpdb->query( "UPDATE {$works_table} SET status = 'pending' WHERE work_type = 'namjari' AND stage = 'not_applied' AND status IN ('running','pending')" );
+	$wpdb->query( "UPDATE {$works_table} SET status = 'running' WHERE work_type = 'namjari' AND stage IN ('applied','land_office_sent','ac_land_surveyor','ac_land_id') AND status IN ('running','pending')" );
 
 	update_option( 'sojib68_crm_db_version', SOJIB68_CRM_DB_VERSION );
 }

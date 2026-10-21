@@ -69,9 +69,9 @@ function sojib68_crm_delivery_statuses() {
  * Category-specific work stages (finer-grained than the generic work
  * status). Only categories listed here get a stage dropdown; others
  * keep the generic status. 'ready' and 'cancelled' name the stages that
- * map to the generic ready/cancelled statuses so dashboard counts stay
- * meaningful; every other stage counts as running (or pending when a
- * pending reason is filled in).
+ * map to the generic ready/cancelled statuses, 'pending' lists the
+ * stages that count as pending; every other stage counts as running.
+ * (Without a 'pending' list, a filled-in pending reason means pending.)
  */
 function sojib68_crm_category_stage_config( $type ) {
 	$configs = array(
@@ -88,6 +88,14 @@ function sojib68_crm_category_stage_config( $type ) {
 			'default'   => 'not_applied',
 			'ready'     => 'khotian_ready',
 			'cancelled' => 'cancelled',
+			// "Pending" here means we haven't started the work yet.
+			'pending'   => array( 'not_applied' ),
+			// Dashboard card wording for this category's running/pending/ready counts.
+			'labels'    => array(
+				'running' => __( 'আবেদন অবস্থায় চলমান', 'sojib68' ),
+				'pending' => __( 'পেন্ডিং (আমাদের কাজ শুরু হয়নি)', 'sojib68' ),
+				'ready'   => __( 'খতিয়ান প্রস্তুত', 'sojib68' ),
+			),
 		),
 	);
 
@@ -587,6 +595,118 @@ function sojib68_crm_works_search( $args = array() ) {
 }
 
 /* ---------------------------------------------------------------------
+ * Money summary per work type (dashboard). Per work: আয় = collected,
+ * ব্যয় = spent, প্রফিট = agreed − spent, বকেয়া = agreed − collected
+ * (never below zero). Cancelled works still count their real money in/out
+ * but not profit or dues. Works without an agreed amount can't have a
+ * profit or due, so they're counted separately instead of as zero.
+ * ------------------------------------------------------------------ */
+
+/**
+ * @param string|null $from          Y-m-d, filter on the work's received date.
+ * @param string|null $to            Y-m-d.
+ * @param int|null    $scope_user_id Non-admin staff: only their works.
+ */
+function sojib68_crm_work_money_summary( $from = null, $to = null, $scope_user_id = null ) {
+	global $wpdb;
+	$works  = sojib68_crm_works_table();
+	$ledger = sojib68_crm_cash_table();
+
+	$where  = array( '1=1' );
+	$params = array();
+	if ( $from ) {
+		$where[]  = 'w.received_date >= %s';
+		$params[] = $from;
+	}
+	if ( $to ) {
+		$where[]  = 'w.received_date <= %s';
+		$params[] = $to;
+	}
+	if ( null !== $scope_user_id ) {
+		$where[]  = 'w.assigned_to = %d';
+		$params[] = (int) $scope_user_id;
+	}
+
+	$sql = "SELECT w.id, w.work_type, w.status, w.agreed_poysha,
+			COALESCE(SUM(CASE WHEN l.direction = 'in' THEN l.amount_poysha ELSE 0 END), 0) AS collected,
+			COALESCE(SUM(CASE WHEN l.direction = 'out' THEN l.amount_poysha ELSE 0 END), 0) AS spent
+		FROM {$works} w LEFT JOIN {$ledger} l ON l.work_id = w.id
+		WHERE " . implode( ' AND ', $where ) . '
+		GROUP BY w.id, w.work_type, w.status, w.agreed_poysha';
+	$rows = $params ? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) : $wpdb->get_results( $sql, ARRAY_A );
+
+	$blank = array( 'works' => 0, 'collected' => 0, 'spent' => 0, 'profit' => 0, 'due' => 0, 'no_agreed' => 0 );
+	$out   = array( 'by_type' => array(), 'total' => $blank );
+	foreach ( array_keys( sojib68_crm_service_types() ) as $type ) {
+		$out['by_type'][ $type ] = $blank;
+	}
+
+	foreach ( (array) $rows as $r ) {
+		$type = isset( $out['by_type'][ $r['work_type'] ] ) ? $r['work_type'] : null;
+		$add  = array( 'works' => 1, 'collected' => (int) $r['collected'], 'spent' => (int) $r['spent'], 'profit' => 0, 'due' => 0, 'no_agreed' => 0 );
+
+		if ( 'cancelled' !== $r['status'] ) {
+			if ( null === $r['agreed_poysha'] || '' === $r['agreed_poysha'] ) {
+				$add['no_agreed'] = 1;
+			} else {
+				$add['profit'] = (int) $r['agreed_poysha'] - (int) $r['spent'];
+				$add['due']    = max( 0, (int) $r['agreed_poysha'] - (int) $r['collected'] );
+			}
+		}
+
+		foreach ( $add as $k => $v ) {
+			if ( $type ) {
+				$out['by_type'][ $type ][ $k ] += $v;
+			}
+			$out['total'][ $k ] += $v;
+		}
+	}
+
+	return $out;
+}
+
+/** Turns the dashboard's period choice (GET) into a date range and a label. */
+function sojib68_crm_money_period( $period, $month, $year ) {
+	$now_y = (int) current_time( 'Y' );
+	if ( 'month' === $period ) {
+		if ( ! preg_match( '/^\d{4}-\d{2}$/', (string) $month ) ) {
+			$month = current_time( 'Y-m' );
+		}
+		$from = $month . '-01';
+		return array(
+			'period' => 'month',
+			'from'   => $from,
+			'to'     => gmdate( 'Y-m-t', strtotime( $from ) ),
+			'month'  => $month,
+			'year'   => (int) substr( $month, 0, 4 ),
+			'label'  => date_i18n( 'F Y', strtotime( $from ) ),
+		);
+	}
+	if ( 'year' === $period ) {
+		$year = (int) $year;
+		if ( $year < 2000 || $year > $now_y + 1 ) {
+			$year = $now_y;
+		}
+		return array(
+			'period' => 'year',
+			'from'   => $year . '-01-01',
+			'to'     => $year . '-12-31',
+			'month'  => current_time( 'Y-m' ),
+			'year'   => $year,
+			'label'  => sprintf( /* translators: %d: year */ __( '%d সাল', 'sojib68' ), $year ),
+		);
+	}
+	return array(
+		'period' => 'all',
+		'from'   => null,
+		'to'     => null,
+		'month'  => current_time( 'Y-m' ),
+		'year'   => $now_y,
+		'label'  => __( 'সব সময়', 'sojib68' ),
+	);
+}
+
+/* ---------------------------------------------------------------------
  * Idle files — work whose stage hasn't moved for days (file sitting in
  * the office after documents were taken from the client).
  * ------------------------------------------------------------------ */
@@ -991,6 +1111,8 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 			$status = 'cancelled';
 		} elseif ( $stage === $stage_cfg['ready'] ) {
 			$status = 'ready';
+		} elseif ( ! empty( $stage_cfg['pending'] ) ) {
+			$status = in_array( $stage, $stage_cfg['pending'], true ) ? 'pending' : 'running';
 		} else {
 			$status = '' !== $pending_reason ? 'pending' : 'running';
 		}

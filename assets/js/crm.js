@@ -282,6 +282,20 @@
 		});
 	});
 
+	// Dashboard period: show the month picker only for মাসিক, the year only for বাৎসরিক.
+	document.querySelectorAll('[data-period-select]').forEach(function (sel) {
+		var form = sel.form;
+		function sync() {
+			form.querySelectorAll('[data-period-for]').forEach(function (el) {
+				var on = el.getAttribute('data-period-for') === sel.value;
+				el.hidden = !on;
+				el.disabled = !on;
+			});
+		}
+		sel.addEventListener('change', sync);
+		sync();
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {

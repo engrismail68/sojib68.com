@@ -83,30 +83,83 @@ function sojib68_crm_render_dashboard_home() {
 		<?php endforeach; ?>
 	</div>
 
-	<?php $cash = sojib68_crm_can_view_finance() ? sojib68_crm_cash_summary() : array(); ?>
-	<h2 class="crm-section-title"><?php esc_html_e( 'কাজের ধরন অনুযায়ী', 'sojib68' ); ?></h2>
+	<?php
+	$finance = sojib68_crm_can_view_finance();
+	$cash    = $finance ? sojib68_crm_cash_summary() : array();
+	$period  = sojib68_crm_money_period(
+		isset( $_GET['crm_period'] ) ? sanitize_key( wp_unslash( $_GET['crm_period'] ) ) : 'all',
+		isset( $_GET['crm_month'] ) ? sanitize_text_field( wp_unslash( $_GET['crm_month'] ) ) : '',
+		isset( $_GET['crm_year'] ) ? (int) $_GET['crm_year'] : 0
+	);
+	$money   = $finance ? sojib68_crm_work_money_summary( $period['from'], $period['to'], $scope ) : null;
+	$taka    = function ( $poysha ) {
+		return '৳' . sojib68_crm_poysha_to_taka_display( $poysha );
+	};
+	?>
+	<div class="crm-section-head" id="work-summary">
+		<h2 class="crm-section-title"><?php esc_html_e( 'কাজের ধরন অনুযায়ী', 'sojib68' ); ?></h2>
+		<?php if ( $finance ) : ?>
+			<form method="get" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/' ) ); ?>#work-summary" class="crm-period">
+				<select name="crm_period" data-period-select>
+					<option value="all" <?php selected( $period['period'], 'all' ); ?>><?php esc_html_e( 'সব সময়', 'sojib68' ); ?></option>
+					<option value="month" <?php selected( $period['period'], 'month' ); ?>><?php esc_html_e( 'মাসিক', 'sojib68' ); ?></option>
+					<option value="year" <?php selected( $period['period'], 'year' ); ?>><?php esc_html_e( 'বাৎসরিক', 'sojib68' ); ?></option>
+				</select>
+				<input type="month" name="crm_month" value="<?php echo esc_attr( $period['month'] ); ?>" data-period-for="month">
+				<select name="crm_year" data-period-for="year">
+					<?php for ( $y = (int) current_time( 'Y' ); $y >= 2020; $y-- ) : ?>
+						<option value="<?php echo (int) $y; ?>" <?php selected( $period['year'], $y ); ?>><?php echo (int) $y; ?></option>
+					<?php endfor; ?>
+				</select>
+				<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন', 'sojib68' ); ?></button>
+			</form>
+		<?php endif; ?>
+	</div>
+
+	<?php if ( $finance ) :
+		$t = $money['total'];
+		?>
+		<div class="crm-money-strip">
+			<div class="crm-money-strip__title">
+				<strong><?php esc_html_e( 'সব কাজ মিলে', 'sojib68' ); ?></strong>
+				<span><?php echo esc_html( $period['label'] ); ?><?php echo 'all' !== $period['period'] ? ' · ' . esc_html__( 'এই সময়ে আসা কাজ', 'sojib68' ) : ''; ?></span>
+			</div>
+			<div class="crm-money crm-money--in"><span><?php esc_html_e( 'মোট আয় (আদায়)', 'sojib68' ); ?></span><strong><?php echo esc_html( $taka( $t['collected'] ) ); ?></strong></div>
+			<div class="crm-money crm-money--out"><span><?php esc_html_e( 'মোট ব্যয়', 'sojib68' ); ?></span><strong><?php echo esc_html( $taka( $t['spent'] ) ); ?></strong></div>
+			<div class="crm-money crm-money--profit<?php echo $t['profit'] < 0 ? ' is-loss' : ''; ?>"><span><?php esc_html_e( 'মোট প্রফিট', 'sojib68' ); ?></span><strong><?php echo esc_html( $taka( $t['profit'] ) ); ?></strong></div>
+			<div class="crm-money crm-money--due"><span><?php esc_html_e( 'মোট বকেয়া', 'sojib68' ); ?></span><strong><?php echo esc_html( $taka( $t['due'] ) ); ?></strong></div>
+		</div>
+		<?php if ( $t['no_agreed'] ) : ?>
+			<p class="crm-money-note"><?php echo esc_html( sprintf( /* translators: %s: count */ __( '%s টি কাজে চুক্তির টাকা দেওয়া নেই — সেগুলোর প্রফিট ও বকেয়া এই হিসাবে ধরা হয়নি।', 'sojib68' ), number_format_i18n( $t['no_agreed'] ) ) ); ?></p>
+		<?php endif; ?>
+	<?php endif; ?>
+
 	<div class="crm-work-grid">
 		<?php foreach ( $services as $key => $label ) :
-			$w = $stats['by_work_type'][ $key ];
+			$w      = $stats['by_work_type'][ $key ];
+			$cfg    = sojib68_crm_category_stage_config( $key );
+			$labels = $cfg && ! empty( $cfg['labels'] ) ? $cfg['labels'] : array(
+				'running' => __( 'চলমান', 'sojib68' ),
+				'pending' => __( 'পেন্ডিং', 'sojib68' ),
+				'ready'   => __( 'ডেলিভারির জন্য প্রস্তুত', 'sojib68' ),
+			);
 			?>
 			<a class="crm-work-card" href="<?php echo esc_url( add_query_arg( 'work_type', $key, home_url( '/' . SOJIB68_CRM_BASE . '/works' ) ) ); ?>">
 				<h3><?php echo esc_html( $label ); ?></h3>
-				<div class="crm-work-card__row">
-					<span><?php esc_html_e( 'চলমান', 'sojib68' ); ?></span>
-					<strong><?php echo esc_html( number_format_i18n( $w['running'] ) ); ?></strong>
-				</div>
-				<div class="crm-work-card__row">
-					<span><?php esc_html_e( 'পেন্ডিং', 'sojib68' ); ?></span>
-					<strong><?php echo esc_html( number_format_i18n( $w['pending'] ) ); ?></strong>
-				</div>
-				<div class="crm-work-card__row">
-					<span><?php esc_html_e( 'ডেলিভারির জন্য প্রস্তুত', 'sojib68' ); ?></span>
-					<strong><?php echo esc_html( number_format_i18n( $w['ready'] ) ); ?></strong>
-				</div>
-				<?php if ( isset( $cash[ $key ] ) ) : ?>
-					<div class="crm-work-card__cash">
-						<span><?php esc_html_e( 'আদায়', 'sojib68' ); ?> <strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash[ $key ]['in'] ) ); ?></strong></span>
-						<span><?php esc_html_e( 'জমা আছে', 'sojib68' ); ?> <strong>৳<?php echo esc_html( sojib68_crm_poysha_to_taka_display( $cash[ $key ]['balance'] ) ); ?></strong></span>
+				<?php foreach ( array( 'running', 'pending', 'ready' ) as $bucket ) : ?>
+					<div class="crm-work-card__row">
+						<span><?php echo esc_html( $labels[ $bucket ] ); ?></span>
+						<strong><?php echo esc_html( number_format_i18n( $w[ $bucket ] ) ); ?></strong>
+					</div>
+				<?php endforeach; ?>
+				<?php if ( $finance ) :
+					$m = $money['by_type'][ $key ];
+					?>
+					<div class="crm-work-card__money">
+						<span><?php esc_html_e( 'আয়', 'sojib68' ); ?><strong><?php echo esc_html( $taka( $m['collected'] ) ); ?></strong></span>
+						<span><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?><strong><?php echo esc_html( $taka( $m['spent'] ) ); ?></strong></span>
+						<span class="<?php echo $m['profit'] < 0 ? 'is-loss' : ''; ?>"><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?><strong><?php echo esc_html( $taka( $m['profit'] ) ); ?></strong></span>
+						<span class="is-due"><?php esc_html_e( 'বকেয়া', 'sojib68' ); ?><strong><?php echo esc_html( $taka( $m['due'] ) ); ?></strong></span>
 					</div>
 				<?php endif; ?>
 			</a>

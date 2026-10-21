@@ -601,6 +601,78 @@
 	padding: 1px 10px;
 }
 
+/* ---------- Money summary (work types) ---------- */
+
+.crm-section-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px 16px;
+	margin: 32px 0 14px;
+}
+.crm-section-head .crm-section-title { margin: 0; }
+.crm-period { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.crm-period select, .crm-period input {
+	padding: 7px 10px;
+	border: 1.5px solid var(--crm-border);
+	border-radius: 9px;
+	background: #fff;
+	font-family: inherit;
+	font-size: 13px;
+}
+
+.crm-money-strip {
+	display: grid;
+	grid-template-columns: 1.1fr repeat(4, 1fr);
+	gap: 12px;
+	align-items: stretch;
+	background: var(--crm-grad-dark);
+	background-image: var(--crm-plots), var(--crm-grad-dark);
+	border-radius: 16px;
+	padding: 14px;
+	margin-bottom: 16px;
+	box-shadow: var(--crm-shadow);
+}
+.crm-money-strip__title { display: flex; flex-direction: column; justify-content: center; padding: 0 6px; color: #fff; }
+.crm-money-strip__title strong { font-size: 16px; }
+.crm-money-strip__title span { font-size: 12px; color: rgba(255,255,255,0.75); }
+.crm-money {
+	background: #fff;
+	border-radius: 12px;
+	padding: 10px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	border-top: 4px solid var(--m);
+}
+.crm-money span { font-size: 12px; color: var(--crm-muted); }
+.crm-money strong { font-size: 19px; font-weight: 800; color: var(--m); }
+.crm-money--in { --m: #198030; }
+.crm-money--out { --m: #8A4B22; }
+.crm-money--profit { --m: #0E5E2C; }
+.crm-money--profit.is-loss, .crm-money--due { --m: #C8202B; }
+.crm-money-note { margin: -6px 0 14px; font-size: 12.5px; color: #8A5A00; }
+
+.crm-work-card__money {
+	margin-top: 10px;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+.crm-work-card__money span {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	font-size: 11.5px;
+	color: var(--crm-muted);
+	background: var(--tile-soft);
+	border-radius: 10px;
+	padding: 6px 10px;
+}
+.crm-work-card__money strong { font-size: 13.5px; color: var(--tile); }
+.crm-work-card__money .is-due strong, .crm-work-card__money .is-loss strong { color: #C8202B; }
+
 /* ---------- Finance placeholder ---------- */
 
 .crm-finance-placeholder {
@@ -930,23 +1002,6 @@
 
 /* ---------- Cash ledger ---------- */
 
-.crm-work-card__cash {
-	margin-top: 10px;
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
-	font-size: 11.5px;
-	color: var(--crm-muted);
-}
-.crm-work-card__cash span {
-	display: flex;
-	flex-direction: column;
-	gap: 1px;
-	background: var(--tile-soft);
-	border-radius: 10px;
-	padding: 7px 10px;
-}
-.crm-work-card__cash strong { font-size: 14px; color: var(--tile); }
 
 .crm-cash-grid {
 	display: grid;
@@ -1028,6 +1083,8 @@
 	.crm-stats-grid { grid-template-columns: repeat(3, 1fr); }
 	.crm-stats-grid--wrap { grid-template-columns: repeat(3, 1fr); }
 	.crm-work-grid { grid-template-columns: repeat(2, 1fr); }
+	.crm-money-strip { grid-template-columns: repeat(2, 1fr); }
+	.crm-money-strip__title { grid-column: 1 / -1; padding: 2px 4px 4px; }
 }
 
 @media (max-width: 900px) {
