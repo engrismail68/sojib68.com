@@ -461,9 +461,9 @@ function sojib68_crm_dashboard_stats( $scope_user_id = null ) {
 	foreach ( array_keys( sojib68_crm_service_types() ) as $type ) {
 		$params = array_merge( array( $type ), $scope_params );
 		$stats['by_work_type'][ $type ] = array(
-			'running' => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'running'{$work_scope_sql}", $params ),
-			'pending' => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'pending'{$work_scope_sql}", $params ),
-			'ready'   => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'ready'{$work_scope_sql}", $params ),
+			'running' => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'running' AND deleted_at IS NULL{$work_scope_sql}", $params ),
+			'pending' => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'pending' AND deleted_at IS NULL{$work_scope_sql}", $params ),
+			'ready'   => $q( "SELECT COUNT(*) FROM {$works_table} WHERE work_type = %s AND status = 'ready' AND deleted_at IS NULL{$work_scope_sql}", $params ),
 		);
 	}
 
@@ -485,7 +485,7 @@ function sojib68_crm_lead_active_work( $lead_id ) {
 	$table = sojib68_crm_works_table();
 	return $wpdb->get_row(
 		$wpdb->prepare(
-			"SELECT * FROM {$table} WHERE lead_id = %d AND status != 'cancelled' ORDER BY id DESC LIMIT 1",
+			"SELECT * FROM {$table} WHERE lead_id = %d AND status != 'cancelled' AND deleted_at IS NULL ORDER BY id DESC LIMIT 1",
 			(int) $lead_id
 		),
 		ARRAY_A
@@ -539,7 +539,7 @@ function sojib68_crm_work_create_from_lead( $lead_id ) {
 function sojib68_crm_lead_works( $lead_id ) {
 	global $wpdb;
 	$table = sojib68_crm_works_table();
-	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE lead_id = %d ORDER BY created_at DESC", (int) $lead_id ), ARRAY_A );
+	return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE lead_id = %d AND deleted_at IS NULL ORDER BY created_at DESC", (int) $lead_id ), ARRAY_A );
 }
 
 /**
@@ -549,7 +549,7 @@ function sojib68_crm_works_search( $args = array() ) {
 	global $wpdb;
 	$table = sojib68_crm_works_table();
 
-	$where  = array( '1=1' );
+	$where  = array( 'deleted_at IS NULL' );
 	$params = array();
 
 	if ( ! empty( $args['work_type'] ) ) {
@@ -608,7 +608,7 @@ function sojib68_crm_not_started_works( $type, $scope_user_id = null ) {
 
 	$table        = sojib68_crm_works_table();
 	$placeholders = implode( ',', array_fill( 0, count( $cfg['pending'] ), '%s' ) );
-	$sql          = "SELECT * FROM {$table} WHERE work_type = %s AND stage IN ({$placeholders}) AND status NOT IN ('cancelled','delivered')";
+	$sql          = "SELECT * FROM {$table} WHERE work_type = %s AND stage IN ({$placeholders}) AND status NOT IN ('cancelled','delivered') AND deleted_at IS NULL";
 	$params       = array_merge( array( $type ), $cfg['pending'] );
 	if ( null !== $scope_user_id ) {
 		$sql     .= ' AND assigned_to = %d';
@@ -627,14 +627,64 @@ function sojib68_crm_not_started_works( $type, $scope_user_id = null ) {
 	return $rows ? $rows : array();
 }
 
+/** Moves a work to the recycle bin; it (and its money) drops out of every list and total until restored. */
+function sojib68_crm_work_trash( $id ) {
+	global $wpdb;
+	$work = sojib68_crm_work_get( $id );
+	if ( ! $work || ! empty( $work['deleted_at'] ) ) {
+		return false;
+	}
+	return false !== $wpdb->update(
+		sojib68_crm_works_table(),
+		array( 'deleted_at' => current_time( 'mysql' ), 'deleted_by' => get_current_user_id() ),
+		array( 'id' => (int) $id )
+	);
+}
+
+function sojib68_crm_work_restore( $id ) {
+	global $wpdb;
+	$work = sojib68_crm_work_get( $id );
+	if ( ! $work || empty( $work['deleted_at'] ) ) {
+		return false;
+	}
+	return false !== $wpdb->update(
+		sojib68_crm_works_table(),
+		array( 'deleted_at' => null, 'deleted_by' => null ),
+		array( 'id' => (int) $id )
+	);
+}
+
+/** Recycle bin contents, most recently deleted first, with their money totals. */
+function sojib68_crm_trashed_works() {
+	global $wpdb;
+	$works  = sojib68_crm_works_table();
+	$ledger = sojib68_crm_cash_table();
+	return $wpdb->get_results(
+		"SELECT w.*, COALESCE(m.collected, 0) AS collected, COALESCE(m.spent, 0) AS spent, COALESCE(m.entries, 0) AS entries
+		FROM {$works} w
+		LEFT JOIN (
+			SELECT work_id,
+				SUM(CASE WHEN direction = 'in' THEN amount_poysha ELSE 0 END) AS collected,
+				SUM(CASE WHEN direction = 'out' THEN amount_poysha ELSE 0 END) AS spent,
+				COUNT(*) AS entries
+			FROM {$ledger} WHERE work_id IS NOT NULL GROUP BY work_id
+		) m ON m.work_id = w.id
+		WHERE w.deleted_at IS NOT NULL
+		ORDER BY w.deleted_at DESC",
+		ARRAY_A
+	);
+}
+
 /**
  * Permanently deletes a work together with its money entries, so no
- * orphaned amounts stay in the category cash totals.
+ * orphaned amounts stay in the category cash totals. Only for works
+ * already in the recycle bin.
  */
 function sojib68_crm_work_delete( $id ) {
 	global $wpdb;
-	$id = (int) $id;
-	if ( ! $id || ! sojib68_crm_work_get( $id ) ) {
+	$id   = (int) $id;
+	$work = $id ? sojib68_crm_work_get( $id ) : null;
+	if ( ! $work || empty( $work['deleted_at'] ) ) {
 		return false;
 	}
 	$wpdb->delete( sojib68_crm_cash_table(), array( 'work_id' => $id ) );
@@ -656,7 +706,7 @@ function sojib68_crm_category_works( $type, $f = array(), $scope_user_id = null 
 	$works  = sojib68_crm_works_table();
 	$ledger = sojib68_crm_cash_table();
 
-	$where  = array( 'w.work_type = %s' );
+	$where  = array( 'w.work_type = %s', 'w.deleted_at IS NULL' );
 	$params = array( $type );
 
 	if ( ! empty( $f['q'] ) ) {
@@ -749,7 +799,7 @@ function sojib68_crm_work_money_summary( $from = null, $to = null, $scope_user_i
 	$works  = sojib68_crm_works_table();
 	$ledger = sojib68_crm_cash_table();
 
-	$where  = array( '1=1' );
+	$where  = array( 'w.deleted_at IS NULL' );
 	$params = array();
 	if ( $from ) {
 		$where[]  = 'w.received_date >= %s';
@@ -863,7 +913,7 @@ function sojib68_crm_idle_works( $scope_user_id = null ) {
 	$now_ts = strtotime( current_time( 'mysql' ) );
 	$cutoff = gmdate( 'Y-m-d H:i:s', $now_ts - SOJIB68_CRM_IDLE_WARN_DAYS * DAY_IN_SECONDS );
 
-	$sql    = "SELECT * FROM {$table} WHERE status NOT IN ('delivered','cancelled') AND delivery_status != 'delivered' AND stage_changed_at IS NOT NULL AND stage_changed_at <= %s";
+	$sql    = "SELECT * FROM {$table} WHERE status NOT IN ('delivered','cancelled') AND delivery_status != 'delivered' AND stage_changed_at IS NOT NULL AND stage_changed_at <= %s AND deleted_at IS NULL";
 	$params = array( $cutoff );
 	if ( null !== $scope_user_id ) {
 		$sql     .= ' AND assigned_to = %d';
@@ -1131,14 +1181,16 @@ function sojib68_crm_cash_delete( $id ) {
 function sojib68_crm_cash_summary() {
 	global $wpdb;
 	$table = sojib68_crm_cash_table();
+	$works = sojib68_crm_works_table();
 
 	$summary      = array();
 	$total_in     = 0;
 	$total_out    = 0;
 
 	foreach ( array_keys( sojib68_crm_cash_categories() ) as $cat ) {
-		$in  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE category = %s AND direction = 'in'", $cat ) );
-		$out = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM {$table} WHERE category = %s AND direction = 'out'", $cat ) );
+		// Money of works in the recycle bin doesn't count until they're restored.
+		$in  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(l.amount_poysha),0) FROM {$table} l LEFT JOIN {$works} w ON w.id = l.work_id WHERE l.category = %s AND l.direction = 'in' AND w.deleted_at IS NULL", $cat ) );
+		$out = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(l.amount_poysha),0) FROM {$table} l LEFT JOIN {$works} w ON w.id = l.work_id WHERE l.category = %s AND l.direction = 'out' AND w.deleted_at IS NULL", $cat ) );
 
 		$summary[ $cat ] = array(
 			'in'      => $in,
@@ -1163,10 +1215,10 @@ function sojib68_crm_cash_entries( $category = '', $limit = 30 ) {
 	global $wpdb;
 	$table  = sojib68_crm_cash_table();
 	$wtable = sojib68_crm_works_table();
-	$select = "SELECT l.*, w.work_code, w.customer_name FROM {$table} l LEFT JOIN {$wtable} w ON w.id = l.work_id";
+	$select = "SELECT l.*, w.work_code, w.customer_name FROM {$table} l LEFT JOIN {$wtable} w ON w.id = l.work_id WHERE w.deleted_at IS NULL";
 
 	if ( $category ) {
-		return $wpdb->get_results( $wpdb->prepare( "{$select} WHERE l.category = %s ORDER BY l.txn_date DESC, l.id DESC LIMIT %d", $category, (int) $limit ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( "{$select} AND l.category = %s ORDER BY l.txn_date DESC, l.id DESC LIMIT %d", $category, (int) $limit ), ARRAY_A );
 	}
 	return $wpdb->get_results( $wpdb->prepare( "{$select} ORDER BY l.txn_date DESC, l.id DESC LIMIT %d", (int) $limit ), ARRAY_A );
 }

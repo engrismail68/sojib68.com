@@ -711,7 +711,7 @@ function sojib68_crm_render_category_entry( $type ) {
 	$id   = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 	$work = $id ? sojib68_crm_work_get( $id ) : null;
 
-	if ( $id && ( ! $work || $work['work_type'] !== $type ) ) {
+	if ( $id && ( ! $work || ! empty( $work['deleted_at'] ) || $work['work_type'] !== $type ) ) {
 		echo '<p class="crm-empty">' . esc_html__( 'কাজ পাওয়া যায়নি।', 'sojib68' ) . '</p>';
 		return;
 	}
@@ -729,10 +729,10 @@ function sojib68_crm_render_category_entry( $type ) {
 	$notice  = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
 	if ( 'saved' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'সংরক্ষণ হয়েছে।', 'sojib68' ) . '</div>';
-	} elseif ( 'deleted' === $notice ) {
-		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'কাজটি ও তার টাকার এন্ট্রি মুছে ফেলা হয়েছে।', 'sojib68' ) . '</div>';
-	} elseif ( 'delete_error' === $notice ) {
-		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'মুছে ফেলা যায়নি — পাতাটি আবার লোড করে চেষ্টা করুন।', 'sojib68' ) . '</div>';
+	} elseif ( 'trashed' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'কাজটি রিসাইকেল বিনে পাঠানো হয়েছে।', 'sojib68' ) . ' <a href="' . esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/recycle-bin' ) ) . '">' . esc_html__( 'রিসাইকেল বিন দেখুন', 'sojib68' ) . '</a></div>';
+	} elseif ( 'bin_error' === $notice ) {
+		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'কাজটি করা যায়নি — পাতাটি আবার লোড করে চেষ্টা করুন।', 'sojib68' ) . '</div>';
 	} elseif ( 'paid' === $notice ) {
 		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'টাকার এন্ট্রি যোগ হয়েছে, হিসাব হালনাগাদ হয়েছে।', 'sojib68' ) . '</div>';
 	} elseif ( 'pay_error' === $notice ) {
@@ -1049,8 +1049,8 @@ function sojib68_crm_render_category_list( $type, $action ) {
 							<a href="<?php echo esc_url( $edit ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'edit', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'এডিট', 'sojib68' ); ?></a>
 							<?php if ( sojib68_crm_is_admin() ) : ?>
 								<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-delete' ) ); ?>" class="crm-inline-delete"
-									onsubmit="return confirm('<?php echo esc_js( sprintf( /* translators: 1: work code, 2: client */ __( '%1$s (%2$s) স্থায়ীভাবে মুছে ফেলবেন? এই কাজের সব টাকার এন্ট্রিও মুছে যাবে, ফেরত আনা যাবে না।', 'sojib68' ), $w['work_code'], $w['customer_name'] ) ); ?>');">
-									<?php wp_nonce_field( 'sojib68_crm_work_delete_' . (int) $w['id'], 'sojib68_crm_del_nonce', false ); ?>
+									onsubmit="return confirm('<?php echo esc_js( sprintf( /* translators: 1: work code, 2: client */ __( '%1$s (%2$s) রিসাইকেল বিনে পাঠাবেন? সেখান থেকে পরে ফেরত আনা যাবে।', 'sojib68' ), $w['work_code'], $w['customer_name'] ) ); ?>');">
+									<?php wp_nonce_field( 'sojib68_crm_work_delete_' . (int) $w['id'], 'sojib68_crm_bin_nonce', false ); ?>
 									<input type="hidden" name="work_id" value="<?php echo (int) $w['id']; ?>">
 									<input type="hidden" name="return" value="<?php echo esc_url( $list_url ); ?>">
 									<button type="submit" class="btn btn-outline btn-sm btn-danger-outline" title="<?php esc_attr_e( 'ডিলিট', 'sojib68' ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: work code */ __( '%s ডিলিট', 'sojib68' ), $w['work_code'] ) ); ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button>
@@ -1256,6 +1256,89 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $p
 
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
 	</form>
+	<?php
+}
+
+/**
+ * Recycle bin (admin): deleted works with their money, each restorable
+ * or permanently deletable.
+ */
+function sojib68_crm_render_recycle_bin() {
+	$rows  = sojib68_crm_trashed_works();
+	$types = sojib68_crm_service_types();
+	$staff = sojib68_crm_assignable_users();
+	$taka  = function ( $poysha ) {
+		return '৳' . sojib68_crm_poysha_to_taka_display( $poysha );
+	};
+	$bin   = home_url( '/' . SOJIB68_CRM_BASE . '/recycle-bin' );
+
+	$notice = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
+	$msgs   = array(
+		'restored'  => array( 'ok', __( 'কাজটি ফেরত আনা হয়েছে — তালিকা ও হিসাবে আবার দেখা যাবে।', 'sojib68' ) ),
+		'purged'    => array( 'ok', __( 'কাজটি ও তার টাকার এন্ট্রি স্থায়ীভাবে মুছে ফেলা হয়েছে।', 'sojib68' ) ),
+		'bin_error' => array( 'error', __( 'কাজটি করা যায়নি — পাতাটি আবার লোড করে চেষ্টা করুন।', 'sojib68' ) ),
+	);
+	if ( isset( $msgs[ $notice ] ) ) {
+		echo '<div class="crm-notice crm-notice--' . esc_attr( $msgs[ $notice ][0] ) . '">' . esc_html( $msgs[ $notice ][1] ) . '</div>';
+	}
+	?>
+	<p class="crm-bin-note"><?php esc_html_e( 'রিসাইকেল বিনের কাজ ও তার টাকা কোনো তালিকা, নোটিফিকেশন বা হিসাবে গোনা হয় না। ফেরত আনলে সব আগের মতো ফিরে আসবে।', 'sojib68' ); ?></p>
+
+	<?php if ( empty( $rows ) ) : ?>
+		<p class="crm-empty"><?php esc_html_e( 'রিসাইকেল বিন খালি।', 'sojib68' ); ?></p>
+		<?php return; ?>
+	<?php endif; ?>
+
+	<div class="crm-table-wrap">
+		<table class="crm-table">
+			<thead>
+				<tr>
+					<th><?php esc_html_e( 'Work ID', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'ধরন', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'গ্রাহক', 'sojib68' ); ?></th>
+					<th class="is-num"><?php esc_html_e( 'আয়', 'sojib68' ); ?></th>
+					<th class="is-num"><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'কবে মুছেছে', 'sojib68' ); ?></th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $rows as $w ) :
+					$id = (int) $w['id'];
+					?>
+					<tr>
+						<td><?php echo esc_html( $w['work_code'] ); ?></td>
+						<td><?php echo esc_html( $types[ $w['work_type'] ] ?? $w['work_type'] ); ?></td>
+						<td class="crm-cell-client">
+							<strong><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></strong>
+							<?php if ( $w['customer_phone'] ) : ?><small><?php echo esc_html( $w['customer_phone'] ); ?></small><?php endif; ?>
+						</td>
+						<td class="is-num crm-amt-in"><?php echo esc_html( $taka( $w['collected'] ) ); ?></td>
+						<td class="is-num crm-amt-out"><?php echo esc_html( $taka( $w['spent'] ) ); ?></td>
+						<td>
+							<?php echo esc_html( mysql2date( 'd M, Y h:i A', $w['deleted_at'] ) ); ?>
+							<?php if ( $w['deleted_by'] && isset( $staff[ $w['deleted_by'] ] ) ) : ?><small class="crm-bin-by"><?php echo esc_html( $staff[ $w['deleted_by'] ] ); ?></small><?php endif; ?>
+						</td>
+						<td class="crm-cell-actions">
+							<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-restore' ) ); ?>" class="crm-inline-delete">
+								<?php wp_nonce_field( 'sojib68_crm_work_restore_' . $id, 'sojib68_crm_bin_nonce', false ); ?>
+								<input type="hidden" name="work_id" value="<?php echo $id; ?>">
+								<input type="hidden" name="return" value="<?php echo esc_url( $bin ); ?>">
+								<button type="submit" class="btn btn-sm crm-btn-pay"><?php echo sojib68_crm_icon( 'back', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'ফেরত আনুন', 'sojib68' ); ?></button>
+							</form>
+							<form method="post" action="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/work-purge' ) ); ?>" class="crm-inline-delete"
+								onsubmit="return confirm('<?php echo esc_js( sprintf( /* translators: 1: work code, 2: count */ __( '%1$s স্থায়ীভাবে মুছে ফেলবেন? এর %2$s টি টাকার এন্ট্রিও মুছে যাবে। এটা আর ফেরত আনা যাবে না।', 'sojib68' ), $w['work_code'], number_format_i18n( $w['entries'] ) ) ); ?>');">
+								<?php wp_nonce_field( 'sojib68_crm_work_purge_' . $id, 'sojib68_crm_bin_nonce', false ); ?>
+								<input type="hidden" name="work_id" value="<?php echo $id; ?>">
+								<input type="hidden" name="return" value="<?php echo esc_url( $bin ); ?>">
+								<button type="submit" class="btn btn-outline btn-sm btn-danger-outline"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'স্থায়ীভাবে মুছুন', 'sojib68' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
 	<?php
 }
 

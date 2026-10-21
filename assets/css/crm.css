@@ -819,6 +819,9 @@
 .crm-table .crm-cell-actions { white-space: nowrap; text-align: right; }
 .crm-cell-actions .btn + .btn, .crm-cell-actions .btn + .crm-inline-delete { margin-left: 6px; }
 .crm-inline-delete { display: inline; }
+.crm-cell-actions .crm-inline-delete + .crm-inline-delete { margin-left: 6px; }
+.crm-bin-note { margin: 0 0 14px; font-size: 13px; color: var(--crm-muted); }
+.crm-bin-by { display: block; font-size: 12px; color: var(--crm-muted); }
 .crm-amt-in { color: #198030; font-weight: 600; }
 .crm-amt-out { color: #8A4B22; font-weight: 600; }
 .crm-amt-due { color: #C8202B; font-weight: 700; }

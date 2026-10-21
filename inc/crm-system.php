@@ -159,8 +159,8 @@ function sojib68_crm_router() {
 			exit;
 		}
 
-		if ( isset( $segments[1] ) && 'work-delete' === $segments[1] && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
-			sojib68_crm_handle_work_delete();
+		if ( isset( $segments[1] ) && in_array( $segments[1], array( 'work-delete', 'work-restore', 'work-purge' ), true ) && 'POST' === $_SERVER['REQUEST_METHOD'] ) {
+			sojib68_crm_handle_work_bin( substr( $segments[1], 5 ) );
 			exit;
 		}
 
@@ -495,7 +495,7 @@ function sojib68_crm_handle_save_work( $type ) {
 
 	if ( $id ) {
 		$existing = sojib68_crm_work_get( $id );
-		if ( ! $existing || $existing['work_type'] !== $type || ( ! sojib68_crm_is_admin() && (int) $existing['assigned_to'] !== get_current_user_id() ) ) {
+		if ( ! $existing || ! empty( $existing['deleted_at'] ) || $existing['work_type'] !== $type || ( ! sojib68_crm_is_admin() && (int) $existing['assigned_to'] !== get_current_user_id() ) ) {
 			sojib68_crm_work_save_failed( $back, 0, __( 'এই কাজটি সম্পাদনার অনুমতি নেই বা কাজটি পাওয়া যায়নি।', 'sojib68' ) );
 			return;
 		}
@@ -551,21 +551,28 @@ function sojib68_crm_handle_save_work( $type ) {
 	wp_safe_redirect( add_query_arg( array( 'id' => $saved, 'crm_notice' => 'saved' ), $back ) );
 }
 
-/** Admin only: delete a work (and its money entries) from the category list. */
-function sojib68_crm_handle_work_delete() {
+/**
+ * Admin only. 'delete' moves a work to the recycle bin; 'restore' brings
+ * it back; 'purge' removes it (and its money entries) for good.
+ */
+function sojib68_crm_handle_work_bin( $op ) {
 	$crm     = home_url( '/' . SOJIB68_CRM_BASE . '/' );
 	$return  = isset( $_POST['return'] ) ? esc_url_raw( wp_unslash( $_POST['return'] ) ) : '';
-	$back    = ( $return && 0 === strpos( $return, $crm ) ) ? remove_query_arg( array( 'crm_notice', 'id' ), $return ) : $crm;
+	$back    = ( $return && 0 === strpos( $return, $crm ) ) ? remove_query_arg( array( 'crm_notice', 'id' ), $return ) : home_url( '/' . SOJIB68_CRM_BASE . '/recycle-bin' );
+	$anchor  = 'delete' === $op ? '#crm-list' : '';
 	$work_id = isset( $_POST['work_id'] ) ? (int) $_POST['work_id'] : 0;
 
 	if ( ! sojib68_crm_is_admin()
-		|| ! isset( $_POST['sojib68_crm_del_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_del_nonce'] ), 'sojib68_crm_work_delete_' . $work_id ) ) {
-		wp_safe_redirect( add_query_arg( 'crm_notice', 'delete_error', $back ) . '#crm-list' );
+		|| ! isset( $_POST['sojib68_crm_bin_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_bin_nonce'] ), 'sojib68_crm_work_' . $op . '_' . $work_id ) ) {
+		wp_safe_redirect( add_query_arg( 'crm_notice', 'bin_error', $back ) . $anchor );
 		return;
 	}
 
-	$notice = sojib68_crm_work_delete( $work_id ) ? 'deleted' : 'delete_error';
-	wp_safe_redirect( add_query_arg( 'crm_notice', $notice, $back ) . '#crm-list' );
+	$done = 'delete' === $op ? sojib68_crm_work_trash( $work_id )
+		: ( 'restore' === $op ? sojib68_crm_work_restore( $work_id ) : sojib68_crm_work_delete( $work_id ) );
+	$ok   = array( 'delete' => 'trashed', 'restore' => 'restored', 'purge' => 'purged' );
+
+	wp_safe_redirect( add_query_arg( 'crm_notice', $done ? $ok[ $op ] : 'bin_error', $back ) . $anchor );
 }
 
 function sojib68_crm_handle_wa_template() {
@@ -666,7 +673,7 @@ function sojib68_crm_menu_items() {
 		'works'     => __( 'সব কাজ', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারি এন্ট্রি', 'sojib68' ),
-	);
+	) + ( sojib68_crm_is_admin() ? array( 'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ) ) : array() );
 }
 
 /**
@@ -700,6 +707,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'works'     => 'briefcase',
 		'entry-new' => 'plus',
 		'namjari-entry' => 'briefcase',
+		'recycle-bin'   => 'trash',
 	);
 	$subs  = array(
 		'dashboard' => __( 'লিড, কাজ ও ক্লায়েন্টের এক নজরে সারসংক্ষেপ', 'sojib68' ),
@@ -708,6 +716,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
+		'recycle-bin'   => __( 'মুছে ফেলা কাজ — ফেরত আনুন বা স্থায়ীভাবে মুছুন', 'sojib68' ),
 	);
 
 	$page_title = isset( $menu[ $page_key ] ) ? $menu[ $page_key ] : sprintf( /* translators: %s: service */ __( '%s এন্ট্রি', 'sojib68' ), sojib68_crm_service_types()[ $entry_type ] );
@@ -807,6 +816,11 @@ function sojib68_crm_render_dashboard( $page_key ) {
 
 function sojib68_crm_render_section( $page_key ) {
 	switch ( $page_key ) {
+		case 'recycle-bin':
+			ob_start();
+			sojib68_crm_render_recycle_bin();
+			return ob_get_clean();
+
 		case 'notifications':
 			ob_start();
 			sojib68_crm_render_idle_alert( sojib68_crm_current_user_scope(), true );

@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.8.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '2.9.0' );
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -123,6 +123,8 @@ function sojib68_crm_install() {
 		delivery_method VARCHAR(100) NOT NULL DEFAULT '',
 		client_notified_at DATETIME NULL,
 		client_notified_by BIGINT(20) UNSIGNED NULL,
+		deleted_at DATETIME NULL,
+		deleted_by BIGINT(20) UNSIGNED NULL,
 		stage VARCHAR(40) NOT NULL DEFAULT '',
 		stage_changed_at DATETIME NULL,
 		cancel_reason TEXT NULL,
@@ -143,7 +145,8 @@ function sojib68_crm_install() {
 		KEY lead_id (lead_id),
 		KEY work_type (work_type),
 		KEY status (status),
-		KEY assigned_to (assigned_to)
+		KEY assigned_to (assigned_to),
+		KEY deleted_at (deleted_at)
 	) {$charset_collate};";
 	dbDelta( $sql_works );
 
