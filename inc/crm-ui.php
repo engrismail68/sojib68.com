@@ -670,8 +670,23 @@ function sojib68_crm_render_category_entry( $type ) {
 		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
 	};
 
+	// Result of the last save: green on success, red with the reason (and the typed input refilled) on failure.
+	$prefill = array();
+	$notice  = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
+	if ( 'saved' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'সংরক্ষণ হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'error' === $notice ) {
+		$draft = get_transient( sojib68_crm_work_draft_key() );
+		delete_transient( sojib68_crm_work_draft_key() );
+		$msg = is_array( $draft ) && ! empty( $draft['message'] ) ? $draft['message'] : __( 'সংরক্ষণ হয়নি। আবার চেষ্টা করুন।', 'sojib68' );
+		echo '<div class="crm-notice crm-notice--error"><strong>' . esc_html__( 'সংরক্ষণ হয়নি:', 'sojib68' ) . '</strong> ' . esc_html( $msg ) . '</div>';
+		if ( is_array( $draft ) && ! empty( $draft['fields'] ) ) {
+			$prefill = $draft['fields'];
+		}
+	}
+
 	if ( 'namjari' === $type ) {
-		sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff );
+		sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $prefill );
 	} else {
 	?>
 	<form method="post" action="<?php echo esc_url( $action ); ?>" class="crm-entry-form">
@@ -781,6 +796,10 @@ function sojib68_crm_render_category_entry( $type ) {
 	</form>
 	<?php } ?>
 
+	<?php if ( $work && 'namjari' === $type ) : ?>
+		<?php sojib68_crm_render_client_notify( $work ); ?>
+	<?php endif; ?>
+
 	<?php if ( $work && sojib68_crm_can_view_finance() ) : ?>
 		<?php sojib68_crm_render_work_accounts( $work, $type ); ?>
 	<?php endif; ?>
@@ -835,9 +854,16 @@ function sojib68_crm_render_category_entry( $type ) {
  * finance-permission only. "আদায়" and "খরচ" add new dated entries to
  * the ledger on save; বাকী and প্রফিট are calculated live as you type.
  */
-function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
-	$v = function ( $key, $default = '' ) use ( $work ) {
-		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
+function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $prefill = array() ) {
+	// Raw value for a field: what was just typed (after a failed save) wins over what's stored.
+	$raw = function ( $key, $default = '' ) use ( $work, $prefill ) {
+		if ( array_key_exists( $key, $prefill ) ) {
+			return (string) $prefill[ $key ];
+		}
+		return $work && isset( $work[ $key ] ) ? (string) $work[ $key ] : $default;
+	};
+	$v = function ( $key, $default = '' ) use ( $raw ) {
+		return esc_attr( $raw( $key, $default ) );
 	};
 	$finance = sojib68_crm_can_view_finance();
 	$acc     = $work ? sojib68_crm_work_accounts( $work['id'] ) : array( 'collected' => 0, 'spent' => 0 );
@@ -861,7 +887,7 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 				<select name="source">
 					<option value=""><?php esc_html_e( '— বাছাই করুন —', 'sojib68' ); ?></option>
 					<?php foreach ( sojib68_crm_lead_sources() as $key => $label ) : ?>
-						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work ? $work['source'] : '', $key ); ?>><?php echo esc_html( $label ); ?></option>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $raw( 'source' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
@@ -878,7 +904,7 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 				<select name="assigned_to">
 					<option value=""><?php esc_html_e( '(এখনো ঠিক হয়নি)', 'sojib68' ); ?></option>
 					<?php foreach ( $staff as $uid => $uname ) : ?>
-						<option value="<?php echo (int) $uid; ?>" <?php selected( $work ? (int) $work['assigned_to'] : 0, $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+						<option value="<?php echo (int) $uid; ?>" <?php selected( (int) $raw( 'assigned_to', 0 ), $uid ); ?>><?php echo esc_html( $uname ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
@@ -886,11 +912,11 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 			<?php if ( $finance ) : ?>
 				<div class="crm-field">
 					<label><?php esc_html_e( 'গ্রাহকের সাথে কাজের চুক্তি (৳)', 'sojib68' ); ?></label>
-					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="agreed" name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="agreed" name="agreed_amount" value="<?php echo array_key_exists( 'agreed_amount', $prefill ) ? esc_attr( $prefill['agreed_amount'] ) : ( $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : '' ); ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
 				</div>
 				<div class="crm-field">
 					<label><?php esc_html_e( 'গ্রাহক থেকে টাকা আদায় (৳)', 'sojib68' ); ?></label>
-					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="collected" name="collected_add" placeholder="<?php esc_attr_e( 'নতুন আদায় হলে লিখুন', 'sojib68' ); ?>">
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="collected" name="collected_add" value="<?php echo $v( 'collected_add' ); ?>" placeholder="<?php esc_attr_e( 'নতুন আদায় হলে লিখুন', 'sojib68' ); ?>">
 					<small class="crm-field__hint"><?php echo esc_html( sprintf( /* translators: %s: amount */ __( 'এ পর্যন্ত আদায়: %s', 'sojib68' ), $money( $acc['collected'] ) ) ); ?></small>
 				</div>
 				<div class="crm-field">
@@ -899,7 +925,7 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 				</div>
 				<div class="crm-field">
 					<label><?php esc_html_e( 'ফাইল প্রসেসিং ও অন্যান্য খরচ (৳)', 'sojib68' ); ?></label>
-					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="spent" name="expense_add" placeholder="<?php esc_attr_e( 'নতুন খরচ হলে লিখুন', 'sojib68' ); ?>">
+					<input type="text" inputmode="decimal" autocomplete="off" data-money data-acc="spent" name="expense_add" value="<?php echo $v( 'expense_add' ); ?>" placeholder="<?php esc_attr_e( 'নতুন খরচ হলে লিখুন', 'sojib68' ); ?>">
 					<small class="crm-field__hint"><?php echo esc_html( sprintf( /* translators: %s: amount */ __( 'এ পর্যন্ত খরচ: %s', 'sojib68' ), $money( $acc['spent'] ) ) ); ?></small>
 				</div>
 				<div class="crm-field">
@@ -937,13 +963,13 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 				<label><?php esc_html_e( 'আবেদনের অবস্থা', 'sojib68' ); ?></label>
 				<select name="stage" data-stage-select data-cancel-stage="<?php echo esc_attr( $stage_cfg['cancelled'] ); ?>">
 					<?php foreach ( $stage_cfg['stages'] as $key => $label ) : ?>
-						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $work && $work['stage'] ? $work['stage'] : $stage_cfg['default'], $key ); ?>><?php echo esc_html( $label ); ?></option>
+						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( '' !== $raw( 'stage' ) ? $raw( 'stage' ) : $stage_cfg['default'], $key ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
 			<div class="crm-field crm-field--full" data-cancel-reason hidden>
 				<label><?php esc_html_e( 'বাতিলের কারণ', 'sojib68' ); ?></label>
-				<textarea name="cancel_reason" rows="2"><?php echo $work ? esc_textarea( (string) $work['cancel_reason'] ) : ''; ?></textarea>
+				<textarea name="cancel_reason" rows="2"><?php echo esc_textarea( $raw( 'cancel_reason' ) ); ?></textarea>
 			</div>
 			<div class="crm-field">
 				<label><?php esc_html_e( 'ডেলিভারির তারিখ', 'sojib68' ); ?></label>
@@ -964,6 +990,49 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff ) {
 
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button>
 	</form>
+	<?php
+}
+
+/**
+ * "ক্লায়েন্টকে জানান" — once the work is complete, one click opens
+ * WhatsApp to the client's application mobile with the message already
+ * written, and records that the client was told (when, by whom).
+ */
+function sojib68_crm_render_client_notify( $work ) {
+	$complete = sojib68_crm_work_is_complete( $work );
+	$url      = sojib68_crm_work_whatsapp_url( $work );
+	$staff    = sojib68_crm_assignable_users();
+	$done     = ! empty( $work['client_notified_at'] );
+	?>
+	<div class="crm-works-box crm-notify<?php echo $complete ? ' is-ready' : ''; ?>">
+		<h3><?php esc_html_e( 'ক্লায়েন্টকে জানান (WhatsApp)', 'sojib68' ); ?></h3>
+		<?php if ( ! $complete ) : ?>
+			<p class="crm-notify__hint"><?php esc_html_e( 'আবেদনের অবস্থা "খতিয়ান প্রস্তুত" করে সংরক্ষণ করলে এখানে WhatsApp বোতাম চালু হবে।', 'sojib68' ); ?></p>
+		<?php elseif ( '' === $url ) : ?>
+			<p class="crm-notify__hint crm-notify__hint--warn"><?php esc_html_e( 'আবেদনের মোবাইল নং বা গ্রাহকের মোবাইল সঠিক নয়। 01XXXXXXXXX আকারে (১১ সংখ্যা) দিয়ে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
+		<?php else : ?>
+			<div class="crm-notify__row">
+				<a class="btn crm-btn-whatsapp" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" data-wa-notify="<?php echo (int) $work['id']; ?>">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3z"/></svg>
+					<?php echo $done ? esc_html__( 'আবার WhatsApp-এ জানান', 'sojib68' ) : esc_html__( 'WhatsApp-এ জানান', 'sojib68' ); ?>
+				</a>
+				<span class="crm-notify__status<?php echo $done ? ' is-done' : ''; ?>" data-wa-status>
+					<?php
+					if ( $done ) {
+						$by = $work['client_notified_by'] && isset( $staff[ $work['client_notified_by'] ] ) ? $staff[ $work['client_notified_by'] ] : '';
+						echo esc_html( sprintf( /* translators: 1: date/time, 2: name */ __( 'জানানো হয়েছে — %1$s (%2$s)', 'sojib68' ), mysql2date( 'd M, Y h:i A', $work['client_notified_at'] ), $by ) );
+					} else {
+						esc_html_e( 'এখনো জানানো হয়নি', 'sojib68' );
+					}
+					?>
+				</span>
+			</div>
+			<details class="crm-notify__preview">
+				<summary><?php esc_html_e( 'যে মেসেজ যাবে', 'sojib68' ); ?></summary>
+				<pre><?php echo esc_html( sojib68_crm_work_whatsapp_message( $work ) ); ?></pre>
+			</details>
+		<?php endif; ?>
+	</div>
 	<?php
 }
 

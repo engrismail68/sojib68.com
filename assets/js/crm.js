@@ -240,6 +240,25 @@
 		apply();
 	});
 
+	// WhatsApp: the link opens WhatsApp with the message written; the same
+	// click records on the work that the client was told.
+	document.querySelectorAll('[data-wa-notify]').forEach(function (link) {
+		link.addEventListener('click', function () {
+			var status = document.querySelector('[data-wa-status]');
+			post('sojib68_crm_mark_notified', { id: link.getAttribute('data-wa-notify') }).then(function (res) {
+				if (res && res.success) {
+					if (status) {
+						status.textContent = res.data.label;
+						status.classList.add('is-done');
+					}
+					flash('ক্লায়েন্টকে জানানো রেকর্ড হয়েছে। WhatsApp-এ Send চাপতে ভুলবেন না।', false);
+				} else {
+					flash((res && res.data && res.data.message) || 'রেকর্ড করা যায়নি।', true);
+				}
+			});
+		});
+	});
+
 	var menuToggle = document.getElementById('crm-menu-toggle');
 	var sidebar = document.getElementById('crm-sidebar');
 	if (menuToggle && sidebar) {

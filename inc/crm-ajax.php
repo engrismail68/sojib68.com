@@ -168,3 +168,26 @@ function sojib68_crm_ajax_delete_cash() {
 	wp_send_json_success();
 }
 add_action( 'wp_ajax_sojib68_crm_delete_cash', 'sojib68_crm_ajax_delete_cash' );
+
+function sojib68_crm_ajax_mark_notified() {
+	sojib68_crm_ajax_guard();
+
+	$id   = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	$work = $id ? sojib68_crm_work_get( $id ) : null;
+	if ( ! $work ) {
+		wp_send_json_error( array( 'message' => __( 'কাজ পাওয়া যায়নি।', 'sojib68' ) ) );
+	}
+	if ( ! sojib68_crm_is_admin() && (int) $work['assigned_to'] !== get_current_user_id() ) {
+		wp_send_json_error( array( 'message' => __( 'এই কাজে আপনার অনুমতি নেই।', 'sojib68' ) ), 403 );
+	}
+
+	if ( ! sojib68_crm_work_mark_notified( $id ) ) {
+		wp_send_json_error( array( 'message' => __( 'রেকর্ড করা যায়নি।', 'sojib68' ) ) );
+	}
+
+	$user = wp_get_current_user();
+	wp_send_json_success( array(
+		'label' => sprintf( /* translators: 1: date/time, 2: name */ __( 'জানানো হয়েছে — %1$s (%2$s)', 'sojib68' ), mysql2date( 'd M, Y h:i A', current_time( 'mysql' ) ), $user->display_name ),
+	) );
+}
+add_action( 'wp_ajax_sojib68_crm_mark_notified', 'sojib68_crm_ajax_mark_notified' );

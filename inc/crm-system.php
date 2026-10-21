@@ -452,20 +452,41 @@ function sojib68_crm_handle_save_lead() {
 	wp_safe_redirect( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . $saved_id ) );
 }
 
+function sojib68_crm_work_draft_key() {
+	return 'sojib68_crm_work_draft_' . get_current_user_id();
+}
+
+/**
+ * On a failed save, keep what was typed (and why it failed) for a few
+ * minutes so the form can show the reason and refill itself instead of
+ * silently losing the input.
+ */
+function sojib68_crm_work_save_failed( $back, $id, $message ) {
+	$draft = array();
+	foreach ( $_POST as $k => $val ) {
+		if ( is_string( $val ) && 0 !== strpos( $k, 'sojib68_crm_' ) && '_wp_http_referer' !== $k ) {
+			$draft[ sanitize_key( $k ) ] = sanitize_textarea_field( wp_unslash( $val ) );
+		}
+	}
+	set_transient( sojib68_crm_work_draft_key(), array( 'message' => $message, 'fields' => $draft ), 10 * MINUTE_IN_SECONDS );
+
+	$url = $id ? add_query_arg( 'id', $id, $back ) : $back;
+	wp_safe_redirect( add_query_arg( 'crm_notice', 'error', $url ) );
+}
+
 function sojib68_crm_handle_save_work( $type ) {
 	$back = home_url( '/' . SOJIB68_CRM_BASE . '/' . $type . '-entry' );
+	$id   = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
 	if ( ! isset( $_POST['sojib68_crm_work_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sojib68_crm_work_nonce'] ), 'sojib68_crm_save_work' ) ) {
-		wp_safe_redirect( $back );
+		sojib68_crm_work_save_failed( $back, $id, __( 'পাতাটি অনেকক্ষণ খোলা ছিল, তাই নিরাপত্তার কারণে সংরক্ষণ হয়নি। আপনার লেখা ফিরিয়ে দেওয়া হয়েছে — আবার "সংরক্ষণ করুন" চাপুন।', 'sojib68' ) );
 		return;
 	}
-
-	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
 	if ( $id ) {
 		$existing = sojib68_crm_work_get( $id );
 		if ( ! $existing || $existing['work_type'] !== $type || ( ! sojib68_crm_is_admin() && (int) $existing['assigned_to'] !== get_current_user_id() ) ) {
-			wp_safe_redirect( $back );
+			sojib68_crm_work_save_failed( $back, 0, __( 'এই কাজটি সম্পাদনার অনুমতি নেই বা কাজটি পাওয়া যায়নি।', 'sojib68' ) );
 			return;
 		}
 	}
@@ -486,7 +507,7 @@ function sojib68_crm_handle_save_work( $type ) {
 
 	$saved = sojib68_crm_work_save( $data, $id, $type );
 	if ( is_wp_error( $saved ) ) {
-		wp_safe_redirect( $id ? add_query_arg( 'id', $id, $back ) : $back );
+		sojib68_crm_work_save_failed( $back, $id, $saved->get_error_message() );
 		return;
 	}
 
@@ -501,18 +522,23 @@ function sojib68_crm_handle_save_work( $type ) {
 		foreach ( $moves as $field => $move ) {
 			$amount = isset( $_POST[ $field ] ) ? sojib68_crm_parse_amount( wp_unslash( $_POST[ $field ] ) ) : null;
 			if ( $amount && $amount > 0 ) {
-				sojib68_crm_cash_add( array(
+				$entry = sojib68_crm_cash_add( array(
 					'work_id'   => $saved,
 					'direction' => $move[0],
 					'amount'    => $amount,
 					'party'     => $move[1],
 					'note'      => $move[2],
 				) );
+				if ( is_wp_error( $entry ) ) {
+					sojib68_crm_work_save_failed( $back, $saved, __( 'কাজের তথ্য সংরক্ষণ হয়েছে, কিন্তু টাকার এন্ট্রি হয়নি:', 'sojib68' ) . ' ' . $entry->get_error_message() );
+					return;
+				}
 			}
 		}
 	}
 
-	wp_safe_redirect( add_query_arg( 'id', $saved, $back ) );
+	delete_transient( sojib68_crm_work_draft_key() );
+	wp_safe_redirect( add_query_arg( array( 'id' => $saved, 'crm_notice' => 'saved' ), $back ) );
 }
 
 function sojib68_crm_handle_work_txn() {

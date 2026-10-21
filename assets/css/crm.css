@@ -89,6 +89,13 @@
 	border: 1px solid #F8C9D0;
 }
 
+.crm-notice--ok {
+	background: #E1F7EE;
+	color: #047857;
+	border: 1px solid #A7E3C8;
+	font-weight: 600;
+}
+
 .crm-notice--warn {
 	background: #FFF7E6;
 	color: #92560A;
@@ -857,6 +864,40 @@
 }
 .crm-works-box h3 { margin: 0 0 12px; font-size: 14.5px; color: var(--crm-navy); }
 .crm-works-box .btn { margin-top: 10px; }
+
+/* ---------- Client WhatsApp notify ---------- */
+
+.crm-notify { max-width: 900px; border-top: 4px solid #CBD5E1; }
+.crm-notify.is-ready { border-top-color: #25D366; }
+.crm-notify__hint { margin: 0; font-size: 13px; color: var(--crm-muted); }
+.crm-notify__hint--warn { color: #B45309; }
+.crm-notify__row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.crm-btn-whatsapp {
+	background: #25D366;
+	color: #fff;
+	box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+}
+.crm-btn-whatsapp:hover { background: #1EBE5A; color: #fff; }
+.crm-works-box .crm-btn-whatsapp { margin-top: 0; }
+.crm-notify__status {
+	font-size: 13px;
+	font-weight: 600;
+	color: #B45309;
+	background: #FEF3E2;
+	border-radius: 999px;
+	padding: 5px 12px;
+}
+.crm-notify__status.is-done { color: #047857; background: #E1F7EE; }
+.crm-notify__preview { margin-top: 12px; font-size: 13px; }
+.crm-notify__preview summary { cursor: pointer; color: var(--crm-teal); font-weight: 600; }
+.crm-notify__preview pre {
+	white-space: pre-wrap;
+	font-family: inherit;
+	background: #F6FAFC;
+	border-radius: 10px;
+	padding: 10px 12px;
+	margin: 8px 0 0;
+}
 
 /* ---------- Cash ledger ---------- */
 

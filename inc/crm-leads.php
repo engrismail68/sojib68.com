@@ -634,6 +634,80 @@ function sojib68_crm_work_stage_label( $work ) {
 }
 
 /* ---------------------------------------------------------------------
+ * Telling the client the work is done, over WhatsApp. There's no
+ * WhatsApp API here (that needs Meta business verification and is paid),
+ * so this builds a wa.me link with the message pre-written; staff press
+ * Send in WhatsApp, and the click is recorded as confirmation.
+ * ------------------------------------------------------------------ */
+
+/** "01712-345678" / "০১৭১২৩৪৫৬৭৮" / "+8801712345678" → "8801712345678"; '' when it isn't a BD mobile. */
+function sojib68_crm_whatsapp_number( $raw ) {
+	$digits = preg_replace( '/\D+/', '', sojib68_crm_bn_to_en_digits( (string) $raw ) );
+	if ( preg_match( '/^01[3-9]\d{8}$/', $digits ) ) {
+		return '88' . $digits;
+	}
+	if ( preg_match( '/^8801[3-9]\d{8}$/', $digits ) ) {
+		return $digits;
+	}
+	return '';
+}
+
+/** Done = the category's "ready" stage (e.g. খতিয়ান প্রস্তুত) or already delivered. */
+function sojib68_crm_work_is_complete( $work ) {
+	$cfg = sojib68_crm_category_stage_config( $work['work_type'] );
+	return 'delivered' === $work['status'] || 'ready' === $work['status'] || ( $cfg && $work['stage'] === $cfg['ready'] );
+}
+
+function sojib68_crm_work_whatsapp_message( $work ) {
+	$types = sojib68_crm_service_types();
+	$name  = trim( (string) $work['customer_name'] );
+	$lines = array();
+
+	$lines[] = $name
+		? sprintf( /* translators: %s: client name */ __( 'আসসালামু আলাইকুম, %s।', 'sojib68' ), $name )
+		: __( 'আসসালামু আলাইকুম।', 'sojib68' );
+
+	$what = $types[ $work['work_type'] ] ?? __( 'কাজ', 'sojib68' );
+	if ( ! empty( $work['application_no'] ) ) {
+		$what .= sprintf( /* translators: %s: application no */ __( ' (আবেদন নং %s)', 'sojib68' ), $work['application_no'] );
+	}
+	$lines[] = 'namjari' === $work['work_type']
+		? sprintf( /* translators: %s: work */ __( 'আপনার %s-এর কাজ সম্পন্ন হয়েছে, খতিয়ান প্রস্তুত। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' ), $what )
+		: sprintf( /* translators: %s: work */ __( 'আপনার %s-এর কাজ সম্পন্ন হয়েছে। অনুগ্রহ করে সংগ্রহ করে নিন।', 'sojib68' ), $what );
+
+	if ( defined( 'SOJIB68_PHONE' ) && SOJIB68_PHONE ) {
+		$lines[] = sprintf( /* translators: %s: phone */ __( 'যোগাযোগ: %s', 'sojib68' ), SOJIB68_PHONE );
+	}
+	$lines[] = __( '— ইসমাইল হোসেন সজীব, ল্যান্ড অ্যান্ড আইটি কনসালট্যান্ট', 'sojib68' );
+
+	return implode( "\n", $lines );
+}
+
+/** Application mobile first (that's the number the client applied with), else the customer phone. */
+function sojib68_crm_work_whatsapp_url( $work ) {
+	$number = sojib68_crm_whatsapp_number( ! empty( $work['application_mobile'] ) ? $work['application_mobile'] : '' );
+	if ( '' === $number ) {
+		$number = sojib68_crm_whatsapp_number( $work['customer_phone'] );
+	}
+	if ( '' === $number ) {
+		return '';
+	}
+	return 'https://wa.me/' . $number . '?text=' . rawurlencode( sojib68_crm_work_whatsapp_message( $work ) );
+}
+
+function sojib68_crm_work_mark_notified( $id ) {
+	global $wpdb;
+	return false !== $wpdb->update(
+		sojib68_crm_works_table(),
+		array(
+			'client_notified_at' => current_time( 'mysql' ),
+			'client_notified_by' => get_current_user_id(),
+		),
+		array( 'id' => (int) $id )
+	);
+}
+
+/* ---------------------------------------------------------------------
  * Cash ledger — category-wise money in/out, since taka collected for
  * one service is often spent on another (e.g. নামজারির টাকা দিয়ে দলিল
  * রেজিস্ট্রেশন করা). Each entry is tagged with the category the money
@@ -727,7 +801,9 @@ function sojib68_crm_cash_add( $data ) {
 		'created_at'    => current_time( 'mysql' ),
 	);
 
-	$wpdb->insert( sojib68_crm_cash_table(), $row );
+	if ( ! $wpdb->insert( sojib68_crm_cash_table(), $row ) ) {
+		return new WP_Error( 'crm_cash_db', __( 'ডাটাবেসে সংরক্ষণ করা যায়নি।', 'sojib68' ) . ' ' . $wpdb->last_error );
+	}
 	return (int) $wpdb->insert_id;
 }
 
@@ -919,7 +995,9 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		if ( ! $before || $before['stage'] !== $row['stage'] || $before['status'] !== $row['status'] ) {
 			$row['stage_changed_at'] = current_time( 'mysql' );
 		}
-		$wpdb->update( $table, $row, array( 'id' => (int) $id ) );
+		if ( false === $wpdb->update( $table, $row, array( 'id' => (int) $id ) ) ) {
+			return new WP_Error( 'crm_work_db', __( 'ডাটাবেসে সংরক্ষণ করা যায়নি।', 'sojib68' ) . ' ' . $wpdb->last_error );
+		}
 		return (int) $id;
 	}
 
@@ -931,7 +1009,9 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		$row['received_date'] = current_time( 'Y-m-d' );
 	}
 
-	$wpdb->insert( $table, $row );
+	if ( ! $wpdb->insert( $table, $row ) || ! $wpdb->insert_id ) {
+		return new WP_Error( 'crm_work_db', __( 'ডাটাবেসে সংরক্ষণ করা যায়নি।', 'sojib68' ) . ' ' . $wpdb->last_error );
+	}
 	$new_id = (int) $wpdb->insert_id;
 	$wpdb->update( $table, array( 'work_code' => sojib68_crm_next_work_code( $new_id ) ), array( 'id' => $new_id ) );
 
