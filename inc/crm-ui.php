@@ -952,14 +952,20 @@ function sojib68_crm_render_namjari_form( $work, $action, $stage_cfg, $staff, $p
 				<label><?php esc_html_e( 'কাজ আসার তারিখ', 'sojib68' ); ?></label>
 				<input type="date" name="received_date" value="<?php echo $v( 'received_date', current_time( 'Y-m-d' ) ); ?>">
 			</div>
-			<div class="crm-field">
-				<label><?php esc_html_e( 'কিভাবে এসেছে (সোর্স)', 'sojib68' ); ?></label>
-				<select name="source">
-					<option value=""><?php esc_html_e( '— বাছাই করুন —', 'sojib68' ); ?></option>
-					<?php foreach ( sojib68_crm_lead_sources() as $key => $label ) : ?>
-						<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $raw( 'source' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
-					<?php endforeach; ?>
-				</select>
+			<div class="crm-field-pair">
+				<div class="crm-field">
+					<label><?php esc_html_e( 'কিভাবে এসেছে (সোর্স)', 'sojib68' ); ?></label>
+					<select name="source">
+						<option value=""><?php esc_html_e( '— বাছাই করুন —', 'sojib68' ); ?></option>
+						<?php foreach ( sojib68_crm_lead_sources() as $key => $label ) : ?>
+							<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $raw( 'source' ), $key ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<div class="crm-field">
+					<label><?php esc_html_e( 'মৌজা', 'sojib68' ); ?></label>
+					<input type="text" name="mouza" value="<?php echo $v( 'mouza' ); ?>" placeholder="<?php esc_attr_e( 'মৌজার নাম', 'sojib68' ); ?>">
+				</div>
 			</div>
 			<div class="crm-field crm-field--full">
 				<label><?php esc_html_e( 'আবেদনকারীগণের নাম', 'sojib68' ); ?></label>
@@ -1176,6 +1182,7 @@ function sojib68_crm_render_wa_template_editor( $work ) {
 		'{সেবা}'       => __( 'সেবার নাম (যেমন নামজারি)', 'sojib68' ),
 		'{আবেদন_নং}'   => __( 'আবেদন নং', 'sojib68' ),
 		'{নথি_নং}'     => __( 'নথি নং', 'sojib68' ),
+		'{মৌজা}'       => __( 'মৌজা', 'sojib68' ),
 		'{কাজের_আইডি}' => __( 'Work ID', 'sojib68' ),
 		'{অফিস_ফোন}'   => __( 'অফিসের ফোন', 'sojib68' ),
 	);

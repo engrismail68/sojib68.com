@@ -569,8 +569,8 @@ function sojib68_crm_works_search( $args = array() ) {
 	}
 	if ( ! empty( $args['q'] ) ) {
 		$like     = '%' . $wpdb->esc_like( sojib68_crm_bn_to_en_digits( $args['q'] ) ) . '%';
-		$where[]  = '(customer_name LIKE %s OR customer_phone LIKE %s OR work_code LIKE %s OR application_no LIKE %s OR nothi_no LIKE %s OR application_mobile LIKE %s)';
-		array_push( $params, $like, $like, $like, $like, $like, $like );
+		$where[]  = '(customer_name LIKE %s OR customer_phone LIKE %s OR work_code LIKE %s OR application_no LIKE %s OR nothi_no LIKE %s OR application_mobile LIKE %s OR mouza LIKE %s)';
+		array_push( $params, $like, $like, $like, $like, $like, $like, $like );
 	}
 
 	$per_page = isset( $args['per_page'] ) ? (int) $args['per_page'] : 30;
@@ -822,6 +822,7 @@ function sojib68_crm_wa_placeholders( $work ) {
 		'{সেবা}'      => $types[ $work['work_type'] ] ?? '',
 		'{আবেদন_নং}'  => (string) ( $work['application_no'] ?? '' ),
 		'{নথি_নং}'    => (string) ( $work['nothi_no'] ?? '' ),
+		'{মৌজা}'      => (string) ( $work['mouza'] ?? '' ),
 		'{কাজের_আইডি}' => (string) $work['work_code'],
 		'{অফিস_ফোন}'  => defined( 'SOJIB68_PHONE' ) ? (string) SOJIB68_PHONE : '',
 	);
@@ -1163,6 +1164,7 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	$row = array(
 		'source'             => sojib68_crm_sanitize_from_list( isset( $data['source'] ) ? $data['source'] : '', sojib68_crm_lead_sources(), '' ),
 		'application_date'   => sojib68_crm_work_clean_date( isset( $data['application_date'] ) ? $data['application_date'] : '' ),
+		'mouza'              => isset( $data['mouza'] ) ? sanitize_text_field( $data['mouza'] ) : '',
 		'application_no'     => isset( $data['application_no'] ) ? sanitize_text_field( $data['application_no'] ) : '',
 		'nothi_no'           => isset( $data['nothi_no'] ) ? sanitize_text_field( $data['nothi_no'] ) : '',
 		'application_mobile' => isset( $data['application_mobile'] ) ? sanitize_text_field( $data['application_mobile'] ) : '',

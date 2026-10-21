@@ -858,6 +858,9 @@
 	color: #fff;
 	font-size: 14px;
 }
+/* Two short fields sharing one grid cell (e.g. সোর্স + মৌজা). */
+.crm-field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; min-width: 0; }
+
 .crm-field__hint { display: block; margin-top: 4px; font-size: 13px; color: var(--crm-muted); }
 
 .crm-calc {

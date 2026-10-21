@@ -496,7 +496,7 @@ function sojib68_crm_handle_save_work( $type ) {
 		}
 	}
 
-	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'source', 'referred_by', 'assigned_to', 'status', 'stage', 'cancel_reason', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_method', 'delivery_recipient', 'application_date', 'application_no', 'nothi_no', 'application_mobile' );
+	$fields = array( 'customer_name', 'customer_phone', 'received_date', 'source', 'referred_by', 'assigned_to', 'status', 'stage', 'cancel_reason', 'pending_reason', 'next_action', 'next_action_date', 'docs_needed', 'docs_received', 'docs_pending', 'file_location', 'delivery_status', 'delivery_date', 'delivery_method', 'delivery_recipient', 'application_date', 'application_no', 'nothi_no', 'application_mobile', 'mouza' );
 	// Only fields this category's form actually shows are passed on; the rest keep their stored values.
 	$data = array();
 	foreach ( $fields as $f ) {
