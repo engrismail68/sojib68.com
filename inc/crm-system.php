@@ -579,8 +579,9 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		$page_key = 'dashboard';
 	}
 
-	$user  = wp_get_current_user();
-	$icons = array(
+	$user       = wp_get_current_user();
+	$idle_count = count( sojib68_crm_idle_works( sojib68_crm_current_user_scope() ) );
+	$icons      = array(
 		'dashboard' => 'grid',
 		'leads'     => 'users',
 		'works'     => 'briefcase',
@@ -636,6 +637,9 @@ function sojib68_crm_render_dashboard( $page_key ) {
 								>
 									<?php echo sojib68_crm_icon( $icons[ $key ] ?? 'grid', 19 ); // phpcs:ignore ?>
 									<span><?php echo esc_html( $label ); ?></span>
+									<?php if ( 'dashboard' === $key && $idle_count ) : ?>
+										<span class="crm-nav-badge" title="<?php esc_attr_e( 'আটকে থাকা ফাইল', 'sojib68' ); ?>"><?php echo esc_html( number_format_i18n( $idle_count ) ); ?></span>
+									<?php endif; ?>
 								</a>
 							</li>
 						<?php endforeach; ?>

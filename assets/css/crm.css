@@ -343,6 +343,80 @@
 }
 .crm-section-title:first-child { margin-top: 0; }
 
+/* ---------- Idle-file alert ---------- */
+
+.crm-idle {
+	--idle: #D97706;
+	--idle-soft: #FFF7E6;
+	background: var(--crm-panel);
+	border: 1px solid var(--crm-border);
+	border-left: 5px solid var(--idle);
+	border-radius: 16px;
+	padding: 16px 18px;
+	margin-bottom: 24px;
+	box-shadow: var(--crm-shadow);
+}
+.crm-idle--alert { --idle: #E11D48; --idle-soft: #FDE7EC; }
+.crm-idle__head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.crm-idle__icon {
+	display: grid;
+	place-items: center;
+	width: 42px;
+	height: 42px;
+	flex-shrink: 0;
+	border-radius: 12px;
+	background: var(--idle-soft);
+	color: var(--idle);
+}
+.crm-idle--alert .crm-idle__icon { animation: crm-pulse 1.8s ease-in-out infinite; }
+@keyframes crm-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.35); }
+	50% { box-shadow: 0 0 0 8px rgba(225, 29, 72, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .crm-idle--alert .crm-idle__icon { animation: none; } }
+.crm-idle__head strong { display: block; font-size: 15.5px; color: var(--crm-navy); }
+.crm-idle__head span { font-size: 13px; color: var(--crm-muted); }
+
+.crm-idle__list { list-style: none; margin: 0; padding: 0; }
+.crm-idle__list li {
+	display: grid;
+	grid-template-columns: auto 1fr auto auto;
+	gap: 12px;
+	align-items: center;
+	padding: 9px 0;
+	border-top: 1px solid var(--crm-border);
+	font-size: 13.5px;
+}
+.crm-idle__days {
+	min-width: 62px;
+	text-align: center;
+	font-weight: 700;
+	font-size: 12.5px;
+	border-radius: 999px;
+	padding: 3px 10px;
+}
+.crm-idle__days--warn { background: #FEF3E2; color: #B45309; }
+.crm-idle__days--alert { background: #FDE7EC; color: #BE123C; }
+.crm-idle__main strong { color: var(--crm-navy); margin-right: 6px; }
+.crm-idle__main em { display: block; font-style: normal; font-size: 12px; color: var(--crm-muted); }
+.crm-idle__who { font-size: 12.5px; color: var(--crm-navy); background: #EEF2F6; border-radius: 999px; padding: 3px 10px; }
+.crm-idle__who--none { background: #FDE7EC; color: #BE123C; font-weight: 600; }
+
+.crm-nav-badge {
+	margin-left: auto;
+	min-width: 22px;
+	height: 22px;
+	display: grid;
+	place-items: center;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: #E11D48;
+	color: #fff;
+	font-size: 11.5px;
+	font-weight: 700;
+	box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+}
+
 /* ---------- Stat tiles ---------- */
 
 .crm-stats-grid {
@@ -805,6 +879,8 @@
 	.crm-cash-add form { grid-template-columns: 1fr; }
 	.crm-acc-summary { grid-template-columns: repeat(2, 1fr); }
 	.crm-txn-form { grid-template-columns: 1fr 1fr; }
+	.crm-idle__list li { grid-template-columns: auto 1fr; }
+	.crm-idle__who, .crm-idle__list .btn { grid-column: 2; justify-self: start; }
 }
 
 @media (max-width: 760px) {

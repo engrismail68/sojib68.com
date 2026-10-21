@@ -513,6 +513,7 @@ function sojib68_crm_work_create_from_lead( $lead_id ) {
 		'referred_by'    => $lead['referred_by'],
 		'assigned_to'    => $lead['assigned_to'] ? (int) $lead['assigned_to'] : null,
 		'status'         => 'running',
+		'stage_changed_at' => current_time( 'mysql' ),
 		'created_at'     => current_time( 'mysql' ),
 		'updated_at'     => current_time( 'mysql' ),
 	);
@@ -584,6 +585,53 @@ function sojib68_crm_works_search( $args = array() ) {
 		'page'     => $page,
 		'per_page' => $per_page,
 	);
+}
+
+/* ---------------------------------------------------------------------
+ * Idle files — work whose stage hasn't moved for days (file sitting in
+ * the office after documents were taken from the client).
+ * ------------------------------------------------------------------ */
+
+define( 'SOJIB68_CRM_IDLE_WARN_DAYS', 5 );
+define( 'SOJIB68_CRM_IDLE_ALERT_DAYS', 7 );
+
+/**
+ * Open works (not delivered/cancelled) whose stage/status hasn't
+ * changed for at least SOJIB68_CRM_IDLE_WARN_DAYS, longest-idle first.
+ * Each row gets 'idle_days' and 'idle_level' ('warn' or 'alert').
+ * $scope_user_id restricts to one staff member (null = everyone).
+ */
+function sojib68_crm_idle_works( $scope_user_id = null ) {
+	global $wpdb;
+	$table  = sojib68_crm_works_table();
+	$now_ts = strtotime( current_time( 'mysql' ) );
+	$cutoff = gmdate( 'Y-m-d H:i:s', $now_ts - SOJIB68_CRM_IDLE_WARN_DAYS * DAY_IN_SECONDS );
+
+	$sql    = "SELECT * FROM {$table} WHERE status NOT IN ('delivered','cancelled') AND delivery_status != 'delivered' AND stage_changed_at IS NOT NULL AND stage_changed_at <= %s";
+	$params = array( $cutoff );
+	if ( null !== $scope_user_id ) {
+		$sql     .= ' AND assigned_to = %d';
+		$params[] = (int) $scope_user_id;
+	}
+	$sql .= ' ORDER BY stage_changed_at ASC';
+
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+	foreach ( $rows as &$r ) {
+		$r['idle_days']  = (int) floor( ( $now_ts - strtotime( $r['stage_changed_at'] ) ) / DAY_IN_SECONDS );
+		$r['idle_level'] = $r['idle_days'] >= SOJIB68_CRM_IDLE_ALERT_DAYS ? 'alert' : 'warn';
+	}
+	unset( $r );
+
+	return $rows ? $rows : array();
+}
+
+function sojib68_crm_work_stage_label( $work ) {
+	$cfg = sojib68_crm_category_stage_config( $work['work_type'] );
+	if ( $cfg && ! empty( $work['stage'] ) && isset( $cfg['stages'][ $work['stage'] ] ) ) {
+		return $cfg['stages'][ $work['stage'] ];
+	}
+	$statuses = sojib68_crm_work_statuses();
+	return isset( $statuses[ $work['status'] ] ) ? $statuses[ $work['status'] ] : $work['status'];
 }
 
 /* ---------------------------------------------------------------------
@@ -843,10 +891,17 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	}
 
 	if ( $id > 0 ) {
+		// Restart the idle clock only when the work actually moved (stage or status changed),
+		// not when someone just edits a note or a phone number.
+		$before = sojib68_crm_work_get( $id );
+		if ( ! $before || $before['stage'] !== $row['stage'] || $before['status'] !== $row['status'] ) {
+			$row['stage_changed_at'] = current_time( 'mysql' );
+		}
 		$wpdb->update( $table, $row, array( 'id' => (int) $id ) );
 		return (int) $id;
 	}
 
+	$row['stage_changed_at'] = current_time( 'mysql' );
 	$row['work_code']  = '';
 	$row['work_type']  = sojib68_crm_sanitize_from_list( $work_type, sojib68_crm_service_types(), 'other_land_service' );
 	$row['created_at'] = current_time( 'mysql' );

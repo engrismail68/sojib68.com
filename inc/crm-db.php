@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.3.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '2.4.0' );
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -115,6 +115,7 @@ function sojib68_crm_install() {
 		status VARCHAR(20) NOT NULL DEFAULT 'running',
 		agreed_poysha BIGINT(20) UNSIGNED NULL,
 		stage VARCHAR(40) NOT NULL DEFAULT '',
+		stage_changed_at DATETIME NULL,
 		cancel_reason TEXT NULL,
 		pending_reason VARCHAR(255) NOT NULL DEFAULT '',
 		next_action VARCHAR(255) NOT NULL DEFAULT '',
@@ -154,6 +155,9 @@ function sojib68_crm_install() {
 		KEY txn_date (txn_date)
 	) {$charset_collate};";
 	dbDelta( $sql_cash );
+
+	// Works created before stage tracking existed: start their idle clock from their last update.
+	$wpdb->query( "UPDATE {$works_table} SET stage_changed_at = COALESCE(updated_at, created_at) WHERE stage_changed_at IS NULL" );
 
 	update_option( 'sojib68_crm_db_version', SOJIB68_CRM_DB_VERSION );
 }

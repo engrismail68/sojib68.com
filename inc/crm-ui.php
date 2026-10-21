@@ -45,6 +45,8 @@ function sojib68_crm_render_dashboard_home() {
 	$services = sojib68_crm_service_types();
 	$leads_url = home_url( '/' . SOJIB68_CRM_BASE . '/leads' );
 	?>
+	<?php sojib68_crm_render_idle_alert( $scope ); ?>
+
 	<h2 class="crm-section-title"><?php esc_html_e( 'লিডের সারাংশ', 'sojib68' ); ?></h2>
 	<div class="crm-stats-grid">
 		<a class="crm-stat-tile" href="<?php echo esc_url( $leads_url ); ?>">
@@ -220,6 +222,75 @@ function sojib68_crm_render_cash_ledger( $cash ) {
 			</table>
 		</div>
 	<?php endif; ?>
+	<?php
+}
+
+function sojib68_crm_work_edit_url( $work ) {
+	$slug = $work['work_type'] . '-entry';
+	if ( sojib68_crm_entry_page_type( $slug ) ) {
+		return add_query_arg( 'id', (int) $work['id'], home_url( '/' . SOJIB68_CRM_BASE . '/' . $slug ) );
+	}
+	return add_query_arg( 'q', $work['work_code'], home_url( '/' . SOJIB68_CRM_BASE . '/works' ) );
+}
+
+/**
+ * "ফাইল আটকে আছে" panel at the top of the dashboard. Staff see only
+ * their own assigned files; admins see all, with unassigned files
+ * flagged since nobody else will ever be reminded about those.
+ */
+function sojib68_crm_render_idle_alert( $scope ) {
+	$idle = sojib68_crm_idle_works( $scope );
+	if ( empty( $idle ) ) {
+		return;
+	}
+
+	$types  = sojib68_crm_service_types();
+	$staff  = sojib68_crm_assignable_users();
+	$alerts = count( array_filter( $idle, function ( $w ) { return 'alert' === $w['idle_level']; } ) );
+	$level  = $alerts ? 'alert' : 'warn';
+	?>
+	<div class="crm-idle crm-idle--<?php echo esc_attr( $level ); ?>" role="alert">
+		<div class="crm-idle__head">
+			<span class="crm-idle__icon"><?php echo sojib68_crm_icon( 'clock', 22 ); // phpcs:ignore ?></span>
+			<div>
+				<strong>
+					<?php
+					echo esc_html( sprintf(
+						/* translators: 1: number of files, 2: days */
+						__( '%1$s টি ফাইল %2$s দিনের বেশি একই অবস্থায় পড়ে আছে', 'sojib68' ),
+						number_format_i18n( count( $idle ) ),
+						number_format_i18n( SOJIB68_CRM_IDLE_WARN_DAYS )
+					) );
+					?>
+				</strong>
+				<span>
+					<?php
+					echo $alerts
+						? esc_html( sprintf( /* translators: 1: count, 2: days */ __( 'এর মধ্যে %1$s টি %2$s দিন পার হয়েছে — আজই কাজ এগিয়ে নিন।', 'sojib68' ), number_format_i18n( $alerts ), number_format_i18n( SOJIB68_CRM_IDLE_ALERT_DAYS ) ) )
+						: esc_html__( 'কাজ শুরু করে ধাপ আপডেট করুন, তাহলে এই তালিকা থেকে সরে যাবে।', 'sojib68' );
+					?>
+				</span>
+			</div>
+		</div>
+		<ul class="crm-idle__list">
+			<?php foreach ( $idle as $w ) : ?>
+				<li>
+					<span class="crm-idle__days crm-idle__days--<?php echo esc_attr( $w['idle_level'] ); ?>"><?php echo esc_html( sprintf( /* translators: %s: days */ __( '%s দিন', 'sojib68' ), number_format_i18n( $w['idle_days'] ) ) ); ?></span>
+					<span class="crm-idle__main">
+						<strong><?php echo esc_html( $w['work_code'] ); ?></strong>
+						<?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : $w['customer_phone'] ); ?>
+						<em><?php echo esc_html( ( $types[ $w['work_type'] ] ?? $w['work_type'] ) . ' · ' . sojib68_crm_work_stage_label( $w ) ); ?></em>
+					</span>
+					<?php if ( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ) : ?>
+						<span class="crm-idle__who"><?php echo esc_html( $staff[ $w['assigned_to'] ] ); ?></span>
+					<?php else : ?>
+						<span class="crm-idle__who crm-idle__who--none"><?php esc_html_e( 'দায়িত্ব দেওয়া হয়নি', 'sojib68' ); ?></span>
+					<?php endif; ?>
+					<a class="btn btn-outline btn-sm" href="<?php echo esc_url( sojib68_crm_work_edit_url( $w ) ); ?>"><?php esc_html_e( 'খুলুন', 'sojib68' ); ?></a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
 	<?php
 }
 
