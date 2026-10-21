@@ -23,6 +23,7 @@ function sojib68_crm_icon( $name, $size = 20 ) {
 		'clock'    => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
 		'briefcase'=> '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
 		'back'     => '<path d="M19 12H5M11 18l-6-6 6-6"/>',
+		'bell'     => '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
 		'eye'      => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
 	);
 
@@ -238,9 +239,22 @@ function sojib68_crm_work_edit_url( $work ) {
  * their own assigned files; admins see all, with unassigned files
  * flagged since nobody else will ever be reminded about those.
  */
-function sojib68_crm_render_idle_alert( $scope ) {
+function sojib68_crm_render_idle_alert( $scope, $show_empty = false ) {
 	$idle = sojib68_crm_idle_works( $scope );
 	if ( empty( $idle ) ) {
+		if ( $show_empty ) {
+			?>
+			<div class="crm-idle crm-idle--ok">
+				<div class="crm-idle__head">
+					<span class="crm-idle__icon"><?php echo sojib68_crm_icon( 'check', 22 ); // phpcs:ignore ?></span>
+					<div>
+						<strong><?php esc_html_e( 'এখন কোনো নোটিফিকেশন নেই', 'sojib68' ); ?></strong>
+						<span><?php echo esc_html( sprintf( /* translators: 1: warn days, 2: alert days */ __( 'কোনো ফাইল %1$s দিনের বেশি একই ধাপে আটকে নেই। আটকে গেলে এখানে হলুদ (%1$s দিন) বা লাল (%2$s দিন) সতর্কবার্তা আসবে।', 'sojib68' ), number_format_i18n( SOJIB68_CRM_IDLE_WARN_DAYS ), number_format_i18n( SOJIB68_CRM_IDLE_ALERT_DAYS ) ) ); ?></span>
+					</div>
+				</div>
+			</div>
+			<?php
+		}
 		return;
 	}
 

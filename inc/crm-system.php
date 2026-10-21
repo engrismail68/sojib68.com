@@ -557,6 +557,7 @@ function sojib68_crm_handle_cash_add() {
 function sojib68_crm_menu_items() {
 	return array(
 		'dashboard' => __( 'ড্যাশবোর্ড', 'sojib68' ),
+		'notifications' => __( 'নোটিফিকেশন', 'sojib68' ),
 		'leads'     => __( 'সব লিড', 'sojib68' ),
 		'works'     => __( 'সব কাজ', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
@@ -583,6 +584,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 	$idle_count = count( sojib68_crm_idle_works( sojib68_crm_current_user_scope() ) );
 	$icons      = array(
 		'dashboard' => 'grid',
+		'notifications' => 'bell',
 		'leads'     => 'users',
 		'works'     => 'briefcase',
 		'entry-new' => 'plus',
@@ -590,6 +592,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 	);
 	$subs  = array(
 		'dashboard' => __( 'লিড, কাজ ও ক্লায়েন্টের এক নজরে সারসংক্ষেপ', 'sojib68' ),
+		'notifications' => sprintf( /* translators: %s: days */ __( 'যে ফাইল %s দিনের বেশি একই ধাপে পড়ে আছে, সেগুলো এখানে আসে', 'sojib68' ), number_format_i18n( SOJIB68_CRM_IDLE_WARN_DAYS ) ),
 		'leads'     => __( 'ফেসবুক, হোয়াটসঅ্যাপ, ফোন ও সরাসরি — সব লিড এক জায়গায়', 'sojib68' ),
 		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
@@ -637,7 +640,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 								>
 									<?php echo sojib68_crm_icon( $icons[ $key ] ?? 'grid', 19 ); // phpcs:ignore ?>
 									<span><?php echo esc_html( $label ); ?></span>
-									<?php if ( 'dashboard' === $key && $idle_count ) : ?>
+									<?php if ( 'notifications' === $key && $idle_count ) : ?>
 										<span class="crm-nav-badge" title="<?php esc_attr_e( 'আটকে থাকা ফাইল', 'sojib68' ); ?>"><?php echo esc_html( number_format_i18n( $idle_count ) ); ?></span>
 									<?php endif; ?>
 								</a>
@@ -649,6 +652,10 @@ function sojib68_crm_render_dashboard( $page_key ) {
 
 			<div class="crm-main">
 				<header class="crm-topbar">
+					<a href="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/notifications' ) ); ?>" class="crm-bell<?php echo $idle_count ? ' has-alerts' : ''; ?>" title="<?php esc_attr_e( 'নোটিফিকেশন', 'sojib68' ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: count */ __( 'নোটিফিকেশন: %s টি', 'sojib68' ), number_format_i18n( $idle_count ) ) ); ?>">
+						<?php echo sojib68_crm_icon( 'bell', 20 ); // phpcs:ignore ?>
+						<?php if ( $idle_count ) : ?><span class="crm-bell__count"><?php echo esc_html( number_format_i18n( $idle_count ) ); ?></span><?php endif; ?>
+					</a>
 					<span class="crm-topbar-user">
 						<?php echo esc_html( sprintf( /* translators: %s: display name */ __( '%s হিসেবে লগইন করা আছেন', 'sojib68' ), $user->display_name ) ); ?>
 					</span>
@@ -687,6 +694,11 @@ function sojib68_crm_render_dashboard( $page_key ) {
 
 function sojib68_crm_render_section( $page_key ) {
 	switch ( $page_key ) {
+		case 'notifications':
+			ob_start();
+			sojib68_crm_render_idle_alert( sojib68_crm_current_user_scope(), true );
+			return ob_get_clean();
+
 		case 'dashboard':
 			ob_start();
 			sojib68_crm_render_dashboard_home();
