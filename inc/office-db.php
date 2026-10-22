@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_DEEDS_DB_VERSION', '1.3.0' ); // 1.3.0: + deeds.is_legacy (পুরাতন পাওনা); 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
+define( 'SOJIB68_DEEDS_DB_VERSION', '1.4.0' ); // 1.4.0: + deeds.is_legacy (পুরাতন হিসাব) and undo of the removed bulk-marking page; 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
 
 function sojib68_deeds_table( $name ) {
 	global $wpdb;
@@ -74,7 +74,6 @@ function sojib68_deeds_install() {
 		KEY deed_no_normalized (deed_no_normalized),
 		KEY serial_no (serial_no),
 		KEY original_status (original_status),
-		KEY is_legacy (is_legacy),
 		KEY reg_year (reg_year),
 		KEY reg_date (reg_date),
 		KEY deleted_at (deleted_at)
@@ -186,6 +185,7 @@ function sojib68_deeds_install() {
 	}
 
 	sojib68_deeds_seed_defaults();
+	sojib68_deeds_undo_bulk_legacy();
 
 	// Backfills serial_no for every existing deed — covers both a fresh
 	// install and any version bump that changes how deeds are ordered.
@@ -218,6 +218,47 @@ function sojib68_deeds_seed_defaults() {
 				'created_at' => current_time( 'mysql' ),
 			) );
 		}
+	}
+}
+
+/**
+ * A short-lived "পুরাতন পাওনা" page let deeds be marked পুরাতন হিসাব in
+ * bulk; it was removed, and only the entry form's own checkbox remains.
+ * Put every deed that page marked back the way it was. A bulk mark left
+ * a 'legacy_on' audit entry with no form save (create/update) next to
+ * it; a tick made on the entry form always has one, so those are kept.
+ */
+function sojib68_deeds_undo_bulk_legacy() {
+	global $wpdb;
+
+	$deeds = sojib68_deeds_table( 'deeds' );
+	$audit = sojib68_deeds_table( 'deed_audit' );
+
+	// The latest mark per deed decides how it came to be পুরাতন হিসাব.
+	$rows  = $wpdb->get_results( "SELECT a.deed_id, a.changed_at FROM $audit a INNER JOIN $deeds d ON d.id = a.deed_id WHERE a.action = 'legacy_on' AND d.is_legacy = 1 ORDER BY a.id" );
+	$marks = array();
+	foreach ( $rows as $row ) {
+		$marks[ (int) $row->deed_id ] = $row;
+	}
+
+	$undo = array();
+	foreach ( $marks as $mark ) {
+		$saves = $wpdb->get_col( $wpdb->prepare( "SELECT changed_at FROM $audit WHERE deed_id = %d AND action IN ('create','update')", $mark->deed_id ) );
+		$by_form = false;
+		foreach ( $saves as $at ) {
+			if ( abs( strtotime( $at ) - strtotime( $mark->changed_at ) ) <= 5 ) {
+				$by_form = true;
+				break;
+			}
+		}
+		if ( ! $by_form ) {
+			$undo[] = (int) $mark->deed_id;
+		}
+	}
+
+	foreach ( $undo as $deed_id ) {
+		$wpdb->query( $wpdb->prepare( "UPDATE $deeds SET is_legacy = 0 WHERE id = %d", $deed_id ) );
+		sojib68_deed_audit_log( $deed_id, null, 'legacy_off', 'bulk mark undone' );
 	}
 }
 

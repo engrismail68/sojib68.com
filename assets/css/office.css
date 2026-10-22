@@ -691,14 +691,12 @@
 .gdrive-client-form .btn { margin-top: 10px; }
 
 /* ---------------------------------------------------------------------
- * পুরাতন পাওনা (old-notebook dues) — warm "old ledger" amber-brown
+ * "এটি পুরাতন হিসাব" — old-notebook deed (only the বকেয়া is known)
  * ------------------------------------------------------------------ */
-:root { --o-legacy: #8a5a12; --o-legacy-deep: #6b440a; --o-legacy-bg: #fbf3e2; --o-legacy-line: #ecd9b3; }
-
 .legacy-toggle {
 	position: relative; display: flex; align-items: flex-start; gap: 12px;
 	margin: 0 0 18px; padding: 14px 16px; border-radius: 12px; cursor: pointer;
-	border: 1.5px dashed var(--o-legacy-line); background: #fffcf5;
+	border: 1.5px dashed #ecd9b3; background: #fffcf5;
 	transition: background .15s, border-color .15s;
 }
 .legacy-toggle:hover { border-color: #d9b878; }
@@ -707,99 +705,16 @@
 	flex-shrink: 0; width: 22px; height: 22px; margin-top: 1px; border-radius: 6px;
 	border: 2px solid #c9a35e; background: #fff; position: relative;
 }
-.legacy-toggle input:checked + .legacy-toggle__box { background: var(--o-legacy); border-color: var(--o-legacy); }
+.legacy-toggle input:checked + .legacy-toggle__box { background: #8a5a12; border-color: #8a5a12; }
 .legacy-toggle input:checked + .legacy-toggle__box::after {
 	content: ''; position: absolute; left: 6px; top: 2px; width: 6px; height: 11px;
 	border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
 }
 .legacy-toggle input:focus-visible + .legacy-toggle__box { outline: 3px solid rgba(138, 90, 18, .3); outline-offset: 2px; }
-.legacy-toggle:has(input:checked) { border-style: solid; border-color: var(--o-legacy); background: var(--o-legacy-bg); }
+.legacy-toggle:has(input:checked) { border-style: solid; border-color: #8a5a12; background: #fbf3e2; }
 .legacy-toggle__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.legacy-toggle__text strong { color: var(--o-legacy-deep); font-size: .98rem; }
+.legacy-toggle__text strong { color: #6b440a; font-size: .98rem; }
 .legacy-toggle__text small { color: var(--o-muted); font-size: .82rem; line-height: 1.5; }
-
-.deed-field--legacy label { color: var(--o-legacy-deep); font-weight: 700; }
+.deed-field--legacy label { color: #6b440a; font-weight: 700; }
 .deed-field--legacy input { border-color: #d9b878; background: #fffcf5; }
-.deed-field--legacy input:focus { border-color: var(--o-legacy); box-shadow: 0 0 0 3px rgba(138, 90, 18, .15); }
-.deed-note--legacy { background: var(--o-legacy-bg); color: var(--o-legacy-deep); }
-.deed-note--legacy svg { color: var(--o-legacy); }
-.deed-result__item.is-legacy strong { color: var(--o-legacy); font-size: 1.3rem; }
-.deed-summary-legacy {
-	margin-top: 10px; padding: 8px 12px; border-radius: 10px; text-align: center;
-	background: var(--o-legacy-bg); color: var(--o-legacy-deep); font-size: .82rem; font-weight: 700;
-}
-.deed-chip--legacy { background: var(--o-legacy-bg); color: var(--o-legacy-deep); box-shadow: inset 0 0 0 1px var(--o-legacy-line); }
-
-.legacy-panel {
-	margin: 22px 0 6px; padding: 18px 20px; border-radius: var(--o-radius);
-	background: linear-gradient(135deg, #fffaf0, var(--o-legacy-bg)); border: 1px solid var(--o-legacy-line);
-	box-shadow: var(--o-shadow);
-}
-.legacy-panel__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
-.legacy-panel__head h2 { margin: 0; font-size: 1.1rem; color: var(--o-legacy-deep); }
-.legacy-panel__head p { margin: 3px 0 0; font-size: .84rem; color: var(--o-muted); }
-.legacy-panel__head .btn { display: inline-flex; align-items: center; gap: 6px; }
-.legacy-panel__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.legacy-panel__grid > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px 14px; border-radius: 12px; background: rgba(255, 255, 255, .75); border: 1px solid var(--o-legacy-line); }
-.legacy-panel__grid span { font-size: .78rem; font-weight: 600; color: var(--o-muted); }
-.legacy-panel__grid strong { font-family: 'Figtree', sans-serif; font-size: 1.25rem; color: var(--o-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.legacy-panel__grid .is-in strong { color: #14672b; }
-.legacy-panel__grid .is-due strong { color: #b3261e; }
-.legacy-panel__bar { margin-top: 14px; height: 8px; border-radius: 999px; background: #efe2c6; overflow: hidden; }
-.legacy-panel__bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #c9a35e, var(--o-legacy)); }
-@media (max-width: 620px) { .legacy-panel__grid { grid-template-columns: 1fr; } .legacy-panel__grid > div { flex-direction: row; align-items: baseline; justify-content: space-between; } }
-
-.legacy-invite {
-	display: flex; align-items: center; gap: 14px; margin: 22px 0 6px; padding: 14px 18px;
-	border-radius: var(--o-radius); background: var(--o-legacy-bg); border: 1px dashed #d9b878; color: var(--o-legacy-deep);
-}
-.legacy-invite > svg { flex-shrink: 0; }
-.legacy-invite div { flex: 1; min-width: 0; }
-.legacy-invite p { margin: 2px 0 0; font-size: .84rem; color: var(--o-body); }
-.legacy-invite .btn { flex-shrink: 0; }
-@media (max-width: 620px) { .legacy-invite { flex-wrap: wrap; } .legacy-invite .btn { width: 100%; text-align: center; } }
-
-.period-card__legacy {
-	display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-	margin: 12px 0 0; padding-top: 10px; border-top: 1px dashed var(--o-line);
-	font-size: .8rem; font-weight: 600; color: var(--o-legacy-deep);
-}
-.period-card__legacy strong { font-family: 'Figtree', sans-serif; font-variant-numeric: tabular-nums; }
-
-.legacy-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 16px; }
-.legacy-tabs a {
-	padding: 9px 16px; border-radius: 999px; font-size: .88rem; font-weight: 600; text-decoration: none;
-	color: var(--o-body); background: #fff; border: 1px solid var(--o-line);
-}
-.legacy-tabs a:hover { border-color: #d9b878; }
-.legacy-tabs a.is-active { background: var(--o-legacy); border-color: var(--o-legacy); color: #fff; }
-
-.legacy-explain { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: #eaf3fb; color: #1d4f7a; }
-.legacy-explain svg { flex-shrink: 0; margin-top: 2px; }
-.legacy-explain p { margin: 0; font-size: .86rem; line-height: 1.6; }
-
-.legacy-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
-.legacy-filter label { font-size: .86rem; font-weight: 600; color: var(--o-body); }
-.legacy-filter input {
-	width: 210px; max-width: 100%; min-height: 42px; padding: 0 12px;
-	border: 1px solid #d9d7cb; border-radius: 10px; background: #fff; font-family: inherit; font-size: .92rem;
-}
-.legacy-filter input:focus { outline: none; border-color: var(--o-legacy); box-shadow: 0 0 0 3px rgba(138, 90, 18, .15); }
-.legacy-filter .btn { min-height: 42px; }
-.legacy-filter .btn { display: inline-flex; align-items: center; gap: 6px; }
-
-.legacy-bar {
-	position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
-	margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: #fff;
-	border: 1px solid var(--o-line); box-shadow: var(--o-shadow);
-}
-.legacy-bar__count { margin-left: auto; font-size: .86rem; font-weight: 700; color: var(--o-legacy-deep); }
-.legacy-bar .btn[disabled] { opacity: .5; cursor: not-allowed; }
-.legacy-table .chk { width: 44px; text-align: center; }
-.legacy-table .chk input { width: 19px; height: 19px; accent-color: var(--o-legacy); cursor: pointer; }
-.legacy-table tbody tr.is-picked { background: var(--o-legacy-bg); }
-@media (max-width: 760px) {
-	.legacy-bar__count { margin-left: 0; }
-	.legacy-bar .btn { width: 100%; }
-	.legacy-table td.chk { justify-content: flex-start; }
-}
+.deed-field--legacy input:focus { border-color: #8a5a12; box-shadow: 0 0 0 3px rgba(138, 90, 18, .15); }

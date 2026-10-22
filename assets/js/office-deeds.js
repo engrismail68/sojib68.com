@@ -89,6 +89,7 @@
 	var legacyToggle = form.querySelector( '[data-legacy-toggle]' );
 	var totalInput = document.getElementById( 'f-total-due' );
 	var legacyInput = document.getElementById( 'f-legacy-due' );
+	var collectedInput = document.getElementById( 'f-collected' );
 
 	function isLegacy() {
 		return !! ( legacyToggle && legacyToggle.checked );
@@ -103,10 +104,12 @@
 		}
 		if ( totalInput ) { totalInput.disabled = on; }
 		if ( legacyInput ) { legacyInput.disabled = ! on; }
+		// New deed: an old-notebook entry has no আদায় to record here.
+		if ( collectedInput && ! collectedInput.readOnly ) { collectedInput.disabled = on; }
 		form.querySelectorAll( '[data-legacy-show]' ).forEach( function ( el ) {
 			el.hidden = el.getAttribute( 'data-legacy-show' ) !== ( on ? '1' : '0' );
 		} );
-		setSum( 'total_label', on ? 'পুরাতন পাওনা' : 'মোট টাকা' );
+		setSum( 'total_label', on ? 'পুরাতন বকেয়া' : 'মোট টাকা' );
 	}
 
 	if ( legacyToggle ) {
@@ -124,7 +127,9 @@
 
 		var received = 0;
 		form.querySelectorAll( '[data-money="receipt"]' ).forEach( function ( el ) {
-			received += toNumber( el.value ) || 0;
+			if ( ! el.disabled ) {
+				received += toNumber( el.value ) || 0;
+			}
 		} );
 
 		var expenses = 0;
