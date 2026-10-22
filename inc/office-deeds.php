@@ -257,10 +257,14 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 	// known. That amount is typed into its own "পুরাতন বকেয়া টাকা" box and
 	// stored in the same column as মোট টাকা, so it counts in মোট বকেয়া and
 	// ticking/unticking never moves or loses any amount.
-	$is_legacy = ! empty( $data['is_legacy'] ) ? 1 : 0;
-	$total_due = $is_legacy && array_key_exists( 'legacy_due', $data )
-		? ( $data['legacy_due'] ?? '' )
-		: ( $data['client_total_due'] ?? '' );
+	// The form submits only the box that is showing; if a stale cached
+	// script ever sends the other one instead, use that rather than lose it.
+	$is_legacy  = ! empty( $data['is_legacy'] ) ? 1 : 0;
+	$legacy_due = trim( (string) ( $data['legacy_due'] ?? '' ) );
+	$new_due    = trim( (string) ( $data['client_total_due'] ?? '' ) );
+	$total_due  = $is_legacy
+		? ( '' !== $legacy_due ? $legacy_due : $new_due )
+		: ( '' !== $new_due ? $new_due : $legacy_due );
 
 	$was_legacy = $is_update
 		? (int) $wpdb->get_var( $wpdb->prepare( "SELECT is_legacy FROM $deeds_table WHERE id = %d", $deed_id ) )

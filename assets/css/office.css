@@ -718,3 +718,13 @@
 .deed-field--legacy label { color: #6b440a; font-weight: 700; }
 .deed-field--legacy input { border-color: #d9b878; background: #fffcf5; }
 .deed-field--legacy input:focus { border-color: #8a5a12; box-shadow: 0 0 0 3px rgba(138, 90, 18, .15); }
+/* Same swap without waiting for JS (e.g. a stale cached script); the server accepts either box. */
+.deed-form:has([data-legacy-toggle]:checked) [data-legacy-show="0"] { display: none !important; }
+.deed-form:has([data-legacy-toggle]:checked) [data-legacy-show="1"][hidden] { display: flex !important; }
+.deed-form:has([data-legacy-toggle]:not(:checked)) [data-legacy-show="1"] { display: none !important; }
+.deed-form:has([data-legacy-toggle]:not(:checked)) [data-legacy-show="0"][hidden] { display: flex !important; }
+.deed-form:has([data-legacy-toggle]:not(:checked)) .deed-expense-wrap[hidden] { display: block !important; }
+
+.deed-collect-toggle { margin-top: 12px; }
+.deed-collect-toggle > .deed-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.deed-collect-toggle .collect-panel { margin-top: 10px; }

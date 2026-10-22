@@ -383,7 +383,7 @@ function sojib68_office_render_entry_form() {
 						<div class="deed-field col-6" data-legacy-show="0" <?php echo $show_new; // phpcs:ignore ?>>
 							<label for="f-collected"><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></label>
 							<input type="text" id="f-collected" inputmode="decimal" data-money="receipt" <?php echo $deed ? 'readonly' : 'name="receipts[0][amount]"'; ?> <?php disabled( ! $deed && $is_legacy ); ?> value="<?php echo esc_attr( $collected_poysha ? sojib68_poysha_to_display( $collected_poysha ) : '' ); ?>">
-							<?php if ( $deed ) : ?><small class="deed-fieldnote"><?php esc_html_e( 'নিচের "আদায়ের ইতিহাস" থেকে বাড়ান', 'sojib68' ); ?></small><?php endif; ?>
+							<?php if ( $deed ) : ?><small class="deed-fieldnote"><?php esc_html_e( 'নিচের "টাকা আদায় যোগ করুন" থেকে বাড়ান', 'sojib68' ); ?></small><?php endif; ?>
 						</div>
 					</div>
 
@@ -391,11 +391,14 @@ function sojib68_office_render_entry_form() {
 						<h3 class="deed-subhead"><?php esc_html_e( 'আদায়ের ইতিহাস', 'sojib68' ); ?></h3>
 						<?php
 						sojib68_render_payment_history( $deed->receipts );
-						sojib68_render_collect_form( $deed->id, $deed->due_poysha );
 						?>
+						<div class="deed-collect-toggle" data-collect-wrap>
+							<button type="button" class="deed-link" data-toggle-collect><?php echo sojib68_office_icon( 'plus', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'টাকা আদায় যোগ করুন', 'sojib68' ); ?></button>
+							<div class="collect-panel" hidden><?php sojib68_render_collect_form( $deed->id, $deed->due_poysha ); ?></div>
+						</div>
 					<?php endif; ?>
 
-					<div data-legacy-show="0" <?php echo $show_new; // phpcs:ignore ?>>
+					<div class="deed-expense-wrap" data-legacy-show="0" <?php echo $show_new; // phpcs:ignore ?>>
 					<h3 class="deed-subhead"><?php esc_html_e( 'খরচ', 'sojib68' ); ?></h3>
 					<div class="deed-grid">
 						<?php $n = 0; foreach ( $expense_labels as $cat => $label ) : ?>
@@ -522,7 +525,7 @@ function sojib68_office_render_entry_form() {
 	<template id="tpl-lands"><?php sojib68_render_land_row( '__INDEX__', null ); ?></template>
 
 	<script>window.sojib68DeedAjax = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?> };</script>
-	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deeds.js' ) ); ?>"></script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deeds.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-deeds.js' ) ); ?>"></script>
 	<?php sojib68_office_dues_script(); ?>
 	<?php sojib68_office_deed_actions_script(); ?>
 	<?php
@@ -843,7 +846,7 @@ function sojib68_office_render_all_deeds() {
 function sojib68_office_dues_script() {
 	?>
 	<script>window.sojib68Dues = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_deed_form' ) ); ?> };</script>
-	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-dues.js' ) ); ?>"></script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-dues.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-dues.js' ) ); ?>"></script>
 	<?php
 }
 
@@ -851,7 +854,7 @@ function sojib68_office_dues_script() {
 function sojib68_office_deed_actions_script() {
 	?>
 	<script>window.sojib68DeedActions = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_deed_form' ) ); ?> };</script>
-	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deed-actions.js' ) ); ?>"></script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/office-deed-actions.js' ) ); ?>?v=<?php echo (int) @filemtime( get_theme_file_path( 'assets/js/office-deed-actions.js' ) ); ?>"></script>
 	<?php
 }
 
