@@ -166,11 +166,32 @@
 	form.addEventListener( 'input', updateSummary );
 	form.addEventListener( 'change', updateSummary );
 	updateSummary();
-	window.addEventListener( 'pageshow', function () {
+
+	// Browsers can refill fields after a reload/back or by autofill without
+	// firing any event, at an unpredictable moment. So re-check whenever the
+	// page settles, and keep watching the money fields: if any value differs
+	// from what the summary last saw, bring everything back in sync.
+	var lastSeen = '';
+	function snapshot() {
+		var parts = [ legacyToggle && legacyToggle.checked ? 1 : 0 ];
+		form.querySelectorAll( '#f-deed-value, #f-total-due, #f-legacy-due, [data-money]' ).forEach( function ( el ) {
+			parts.push( el.disabled ? '-' : el.value );
+		} );
+		return parts.join( '|' );
+	}
+	function resync() {
+		var now = snapshot();
+		if ( now === lastSeen ) {
+			return;
+		}
 		if ( legacyToggle ) { applyLegacy( false ); }
 		updateSummary();
-	} );
-	setTimeout( updateSummary, 300 );
+		lastSeen = snapshot();
+	}
+	window.addEventListener( 'pageshow', function () { lastSeen = ''; resync(); } );
+	window.addEventListener( 'load', function () { lastSeen = ''; resync(); } );
+	setTimeout( resync, 300 );
+	setInterval( resync, 700 );
 
 	/* ---------------- Add custom office / deed type (AJAX, form data preserved) ---------------- */
 

@@ -234,7 +234,7 @@ function sojib68_office_render_entry_form() {
 	$receipts = $deed && $deed->receipts ? $deed->receipts : array();
 	$expenses = $deed && $deed->expenses ? $deed->expenses : array();
 	?>
-	<form id="deed-form" class="deed-form" data-base-url="<?php echo esc_attr( home_url( '/' . SOJIB68_OFFICE_BASE . '/' ) ); ?>" novalidate>
+	<form id="deed-form" class="deed-form" autocomplete="off" data-base-url="<?php echo esc_attr( home_url( '/' . SOJIB68_OFFICE_BASE . '/' ) ); ?>" novalidate>
 		<?php wp_nonce_field( 'sojib68_deed_form', 'nonce' ); ?>
 		<input type="hidden" name="deed_id" value="<?php echo esc_attr( $deed_id ); ?>">
 		<input type="hidden" name="submission_token" value="<?php echo esc_attr( $submission_token ); ?>">
