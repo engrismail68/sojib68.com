@@ -84,9 +84,43 @@
 		form.querySelectorAll( '[data-sum="' + key + '"]' ).forEach( function ( el ) { el.textContent = text; } );
 	}
 
+	/* ---------------- পুরাতন হিসাব toggle ---------------- */
+
+	var legacyToggle = form.querySelector( '[data-legacy-toggle]' );
+	var totalInput = document.getElementById( 'f-total-due' );
+	var legacyInput = document.getElementById( 'f-legacy-due' );
+
+	function isLegacy() {
+		return !! ( legacyToggle && legacyToggle.checked );
+	}
+
+	// Only the visible amount box is enabled (and so submitted); the typed
+	// amount is carried across so switching never loses what was written.
+	function applyLegacy( carry ) {
+		var on = isLegacy();
+		if ( carry && totalInput && legacyInput ) {
+			if ( on ) { legacyInput.value = totalInput.value; } else { totalInput.value = legacyInput.value; }
+		}
+		if ( totalInput ) { totalInput.disabled = on; }
+		if ( legacyInput ) { legacyInput.disabled = ! on; }
+		form.querySelectorAll( '[data-legacy-show]' ).forEach( function ( el ) {
+			el.hidden = el.getAttribute( 'data-legacy-show' ) !== ( on ? '1' : '0' );
+		} );
+		setSum( 'total_label', on ? 'পুরাতন পাওনা' : 'মোট টাকা' );
+	}
+
+	if ( legacyToggle ) {
+		legacyToggle.addEventListener( 'change', function () {
+			applyLegacy( true );
+			updateSummary();
+			if ( isLegacy() && legacyInput ) { legacyInput.focus(); }
+		} );
+		applyLegacy( false );
+	}
+
 	function updateSummary() {
 		var value = toNumber( ( document.getElementById( 'f-deed-value' ) || {} ).value );
-		var totalDue = toNumber( ( document.getElementById( 'f-total-due' ) || {} ).value );
+		var totalDue = toNumber( ( ( isLegacy() ? legacyInput : totalInput ) || {} ).value );
 
 		var received = 0;
 		form.querySelectorAll( '[data-money="receipt"]' ).forEach( function ( el ) {
@@ -127,7 +161,10 @@
 	form.addEventListener( 'input', updateSummary );
 	form.addEventListener( 'change', updateSummary );
 	updateSummary();
-	window.addEventListener( 'pageshow', updateSummary );
+	window.addEventListener( 'pageshow', function () {
+		if ( legacyToggle ) { applyLegacy( false ); }
+		updateSummary();
+	} );
 	setTimeout( updateSummary, 300 );
 
 	/* ---------------- Add custom office / deed type (AJAX, form data preserved) ---------------- */

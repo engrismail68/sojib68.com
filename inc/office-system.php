@@ -187,6 +187,11 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'old-dues' === $segments[1] && 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+			sojib68_office_handle_old_dues_post();
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_office_render_dashboard( $page_key );
 		exit;
@@ -348,6 +353,7 @@ function sojib68_office_menu_items() {
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
+		'old-dues'   => __( 'পুরাতন পাওনা', 'sojib68' ),
 		'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ),
 	);
 
@@ -365,12 +371,13 @@ function sojib68_office_render_dashboard( $page_key ) {
 	}
 
 	$user  = wp_get_current_user();
-	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'recycle-bin' => 'trash', 'export' => 'receipt' );
+	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'old-dues' => 'archive', 'recycle-bin' => 'trash', 'export' => 'receipt' );
 	$subs  = array(
 		'dashboard'    => __( 'আপনার সব দলিল ও হিসাবের এক নজরে সারসংক্ষেপ', 'sojib68' ),
 		'entry-new'    => __( 'যতটুকু তথ্য জানেন ততটুকুই লিখুন — সব ঘর ঐচ্ছিক', 'sojib68' ),
 		'all-deeds'    => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
 		'dues'         => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
+		'old-dues'     => __( 'পুরনো খাতার দলিল — শুধু পাওনার হিসাব, প্রফিট থেকে আলাদা', 'sojib68' ),
 		'recycle-bin'  => __( 'মুছে ফেলা দলিল ৭ দিন পর্যন্ত এখানে থাকে, চাইলে ফিরিয়ে আনুন', 'sojib68' ),
 		'export'       => __( 'সব দলিল ও হিসাবের ডাউনলোডযোগ্য কপি রাখুন — শুধু প্রশাসকের জন্য', 'sojib68' ),
 	);
@@ -492,6 +499,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'dues':
 			ob_start();
 			sojib68_office_render_dues();
+			return ob_get_clean();
+
+		case 'old-dues':
+			ob_start();
+			sojib68_office_render_old_dues();
 			return ob_get_clean();
 
 		case 'recycle-bin':

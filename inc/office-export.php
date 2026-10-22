@@ -281,7 +281,7 @@ function sojib68_office_stream_summary_csv() {
 		'ক্রমিক', 'দলিল নং', 'রেজিস্ট্রেশন তারিখ', 'সাল', 'অফিস', 'ধরন',
 		'দাতা', 'গ্রহীতা', 'জমি (মৌজা)', 'দলিলের মূল্য (টাকা)',
 		'মোট প্রাপ্য (টাকা)', 'আদায় (টাকা)', 'বাকি (টাকা)', 'মোট খরচ (টাকা)', 'প্রফিট (টাকা)',
-		'মূল দলিলের অবস্থা', 'মন্তব্য',
+		'মূল দলিলের অবস্থা', 'হিসাবের ধরন', 'মন্তব্য',
 	) );
 
 	$result = sojib68_deed_search( array(), 1, 1000000 );
@@ -290,7 +290,8 @@ function sojib68_office_stream_summary_csv() {
 
 	foreach ( $result['rows'] as $row ) {
 		$expenses_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(amount_poysha),0) FROM $expenses_table WHERE deed_id = %d", $row->id ) );
-		$profit         = null !== $row->total_received_poysha ? ( (int) $row->total_received_poysha - $expenses_total ) : null;
+		// পুরাতন পাওনা has no income/expense detail, so it has no profit figure.
+		$profit         = ! (int) $row->is_legacy ? ( (int) $row->total_received_poysha - $expenses_total ) : null;
 
 		fputcsv( $out, array(
 			$row->serial_no ? (int) $row->serial_no : '',
@@ -309,6 +310,7 @@ function sojib68_office_stream_summary_csv() {
 			sojib68_poysha_to_display( $expenses_total ),
 			null !== $profit ? sojib68_poysha_to_display( $profit ) : '',
 			isset( $status_labels[ $row->original_status ] ) ? $status_labels[ $row->original_status ] : '',
+			(int) $row->is_legacy ? 'পুরাতন পাওনা' : 'নতুন হিসাব',
 			(string) $row->notes,
 		) );
 	}

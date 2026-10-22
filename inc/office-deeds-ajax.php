@@ -100,6 +100,8 @@ function sojib68_deed_collect_post_data() {
 		'deed_type'           => sanitize_text_field( $text( 'deed_type' ) ),
 		'deed_value'          => sanitize_text_field( $text( 'deed_value' ) ),
 		'client_total_due'    => sanitize_text_field( $text( 'client_total_due' ) ),
+		'is_legacy'           => '1' === (string) $text( 'is_legacy' ) ? 1 : 0,
+		'legacy_due'          => sanitize_text_field( $text( 'legacy_due' ) ),
 		'fee_agreed'          => sanitize_text_field( $text( 'fee_agreed' ) ),
 		'fee_collected'       => sanitize_text_field( $text( 'fee_collected' ) ),
 		'dues_verified'       => sanitize_text_field( $text( 'dues_verified' ) ),

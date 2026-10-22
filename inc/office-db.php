@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_DEEDS_DB_VERSION', '1.2.0' ); // 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
+define( 'SOJIB68_DEEDS_DB_VERSION', '1.3.0' ); // 1.3.0: + deeds.is_legacy (পুরাতন পাওনা); 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
 
 function sojib68_deeds_table( $name ) {
 	global $wpdb;
@@ -57,6 +57,7 @@ function sojib68_deeds_install() {
 		fee_agreed_poysha bigint(20) DEFAULT NULL,
 		fee_collected_poysha bigint(20) DEFAULT NULL,
 		dues_verified tinyint(1) NOT NULL DEFAULT 0,
+		is_legacy tinyint(1) NOT NULL DEFAULT 0,
 		original_status varchar(20) NOT NULL DEFAULT 'not_received',
 		original_received_date date DEFAULT NULL,
 		original_delivered_date date DEFAULT NULL,
@@ -73,6 +74,7 @@ function sojib68_deeds_install() {
 		KEY deed_no_normalized (deed_no_normalized),
 		KEY serial_no (serial_no),
 		KEY original_status (original_status),
+		KEY is_legacy (is_legacy),
 		KEY reg_year (reg_year),
 		KEY reg_date (reg_date),
 		KEY deleted_at (deleted_at)

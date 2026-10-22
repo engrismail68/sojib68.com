@@ -91,6 +91,7 @@ function sojib68_office_icon( $name, $size = 20 ) {
 		'info'       => '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>',
 		'check'      => '<path d="m5 12 5 5 9-10"/>',
 		'logout'     => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+		'archive'    => '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/>',
 	);
 
 	if ( ! isset( $paths[ $name ] ) ) {
@@ -150,15 +151,27 @@ function sojib68_deed_card_close() {
 function sojib68_office_render_dashboard_home() {
 	sojib68_office_render_period_stats();
 
-	$stats = sojib68_office_dashboard_stats();
+	$stats      = sojib68_office_dashboard_stats();
+	$legacy     = $stats['legacy'];
+	$has_legacy = $legacy['count'] > 0;
+	$legacy_url = home_url( '/' . SOJIB68_OFFICE_BASE . '/old-dues' );
+
+	$due_sub = $has_legacy
+		? sprintf(
+			/* translators: 1: current dues, 2: old dues */
+			__( 'নতুন %1$s · পুরাতন %2$s', 'sojib68' ),
+			'৳ ' . sojib68_poysha_to_display( $stats['new_due'] ),
+			'৳ ' . sojib68_poysha_to_display( $stats['legacy_due'] )
+		)
+		: '';
 
 	$tiles = array(
 		array( 'tone' => 'green',  'icon' => 'file',     'label' => __( 'মোট দলিল এন্ট্রি', 'sojib68' ),                  'value' => esc_html( number_format( $stats['total_deeds'] ) ), 'class' => '' ),
 		array( 'tone' => 'indigo', 'icon' => 'tag',      'label' => __( 'মোট দলিলের মূল্য', 'sojib68' ),                  'value' => sojib68_money_html( $stats['total_deed_value'] ), 'class' => '' ),
-		array( 'tone' => 'teal',   'icon' => 'wallet',   'label' => __( 'গ্রাহক থেকে মোট টাকা আদায়', 'sojib68' ),          'value' => sojib68_money_html( $stats['total_collected'] ), 'class' => '' ),
+		array( 'tone' => 'teal',   'icon' => 'wallet',   'label' => __( 'গ্রাহক থেকে মোট টাকা আদায়', 'sojib68' ),          'value' => sojib68_money_html( $stats['total_collected'] ), 'class' => '', 'sub' => $has_legacy ? __( 'পুরাতন পাওনা আদায় বাদে', 'sojib68' ) : '' ),
 		array( 'tone' => 'red',    'icon' => 'receipt',  'label' => __( 'অফিস, ফি ও অন্যান্য মোট ব্যয়', 'sojib68' ),      'value' => sojib68_money_html( $stats['total_expenses'] ), 'class' => '' ),
-		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => __( 'আদায় − মোট খরচ', 'sojib68' ) ),
-		array( 'tone' => 'amber',  'icon' => 'clock',    'label' => __( 'মোট বকেয়া', 'sojib68' ),                         'value' => sojib68_money_html( $stats['total_due'] ), 'class' => $stats['total_due'] > 0 ? 'is-due' : '' ),
+		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => $has_legacy ? __( 'আদায় − মোট খরচ (পুরাতন পাওনা বাদে)', 'sojib68' ) : __( 'আদায় − মোট খরচ', 'sojib68' ) ),
+		array( 'tone' => 'amber',  'icon' => 'clock',    'label' => __( 'মোট বকেয়া', 'sojib68' ),                         'value' => sojib68_money_html( $stats['total_due'] ), 'class' => $stats['total_due'] > 0 ? 'is-due' : '', 'sub' => $due_sub ),
 	);
 	?>
 	<div class="office-stats-grid">
@@ -177,6 +190,34 @@ function sojib68_office_render_dashboard_home() {
 	<p class="deed-cta">
 		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' ) ); ?>" class="btn btn-outline"><?php echo sojib68_office_icon( 'clock', 17 ); // phpcs:ignore ?> <?php esc_html_e( 'বকেয়া আদায় পেজে যান', 'sojib68' ); ?></a>
 	</p>
+
+	<?php if ( $has_legacy ) : ?>
+		<section class="legacy-panel">
+			<div class="legacy-panel__head">
+				<div>
+					<h2><?php esc_html_e( 'পুরাতন পাওনা', 'sojib68' ); ?></h2>
+					<p><?php echo esc_html( sprintf( /* translators: %s: deed count in Bangla digits */ __( 'পুরনো খাতার %s টি দলিল — শুধু পাওনার হিসাব, প্রফিটে যোগ হয় না', 'sojib68' ), sojib68_bn_digits( $legacy['count'] ) ) ); ?></p>
+				</div>
+				<a href="<?php echo esc_url( $legacy_url ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'বিস্তারিত', 'sojib68' ); ?></a>
+			</div>
+			<div class="legacy-panel__grid">
+				<div><span><?php esc_html_e( 'মোট পুরাতন পাওনা', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $legacy['total'] ); // phpcs:ignore ?></strong></div>
+				<div class="is-in"><span><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $legacy['collected'] ); // phpcs:ignore ?></strong></div>
+				<div class="is-due"><span><?php esc_html_e( 'এখনো বাকি', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $legacy['due'] ); // phpcs:ignore ?></strong></div>
+			</div>
+			<?php $pct = $legacy['total'] > 0 ? max( 0, min( 100, round( $legacy['collected'] * 100 / $legacy['total'] ) ) ) : 0; ?>
+			<div class="legacy-panel__bar" role="img" aria-label="<?php echo esc_attr( $pct . '%' ); ?>"><span style="width: <?php echo (int) $pct; ?>%"></span></div>
+		</section>
+	<?php else : ?>
+		<div class="legacy-invite">
+			<?php echo sojib68_office_icon( 'info', 20 ); // phpcs:ignore ?>
+			<div>
+				<strong><?php esc_html_e( 'পুরনো খাতার দলিল কি এখানে আছে?', 'sojib68' ); ?></strong>
+				<p><?php esc_html_e( 'যেসব দলিলে শুধু পাওনা টাকা লেখা, খরচ লেখা নেই — সেগুলো "পুরাতন পাওনা" হিসেবে আলাদা করুন, তাহলে প্রফিট সঠিক দেখাবে।', 'sojib68' ); ?></p>
+			</div>
+			<a href="<?php echo esc_url( $legacy_url ); ?>" class="btn btn-primary btn-sm"><?php esc_html_e( 'আলাদা করুন', 'sojib68' ); ?></a>
+		</div>
+	<?php endif; ?>
 
 	<?php
 	$original_counts = sojib68_office_original_status_counts();
@@ -200,7 +241,7 @@ function sojib68_office_render_dashboard_home() {
 
 	<p class="deed-note">
 		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
-		<span><?php esc_html_e( 'প্রফিট = গ্রাহকের কাছ থেকে মোট আদায় − মোট খরচ (ব্যাংক চালান, অফিসের ফিস, স্ট্যাম্প ইত্যাদি)।', 'sojib68' ); ?></span>
+		<span><?php esc_html_e( 'প্রফিট = গ্রাহকের কাছ থেকে মোট আদায় − মোট খরচ (ব্যাংক চালান, অফিসের ফিস, স্ট্যাম্প ইত্যাদি)। পুরাতন পাওনার আদায় এই হিসাবে ধরা হয় না।', 'sojib68' ); ?></span>
 	</p>
 
 	<?php sojib68_office_render_report_section(); ?>
@@ -355,12 +396,27 @@ function sojib68_office_render_entry_form() {
 					'stamp'        => __( 'স্ট্যাম্প', 'sojib68' ),
 					'other'        => __( 'অন্যান্য খরচ', 'sojib68' ),
 				);
+				$is_legacy     = $deed && (int) $deed->is_legacy;
+				$total_display = $deed ? sojib68_poysha_to_display( $deed->client_total_due_poysha ) : '';
 				sojib68_deed_card_open( 'green', 'wallet', __( 'গ্রাহকের হিসাব', 'sojib68' ), __( 'টাকা লিখলেই প্রফিট ও বাকি নিজে নিজেই বেরিয়ে আসবে', 'sojib68' ) );
 				?>
+					<label class="legacy-toggle" for="f-is-legacy">
+						<input type="checkbox" id="f-is-legacy" name="is_legacy" value="1" data-legacy-toggle <?php checked( $is_legacy ); ?>>
+						<span class="legacy-toggle__box" aria-hidden="true"></span>
+						<span class="legacy-toggle__text">
+							<strong><?php esc_html_e( 'এটি পুরাতন হিসাব', 'sojib68' ); ?></strong>
+							<small><?php esc_html_e( 'পুরনো খাতার দলিল — শুধু পাওনা টাকা জানা আছে, আয়-ব্যয়ের বিস্তারিত নেই। এর আদায় প্রফিটে যোগ হবে না।', 'sojib68' ); ?></small>
+						</span>
+					</label>
+
 					<div class="deed-grid">
-						<div class="deed-field col-6">
+						<div class="deed-field col-6" data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>>
 							<label for="f-total-due"><?php esc_html_e( 'মোট টাকা (গ্রাহকের কাছে প্রাপ্য)', 'sojib68' ); ?></label>
-							<input type="text" id="f-total-due" inputmode="decimal" name="client_total_due" value="<?php echo esc_attr( $deed ? sojib68_poysha_to_display( $deed->client_total_due_poysha ) : '' ); ?>">
+							<input type="text" id="f-total-due" inputmode="decimal" name="client_total_due" value="<?php echo esc_attr( $total_display ); ?>" <?php disabled( $is_legacy ); ?>>
+						</div>
+						<div class="deed-field col-6 deed-field--legacy" data-legacy-show="1" <?php echo $is_legacy ? '' : 'hidden'; ?>>
+							<label for="f-legacy-due"><?php esc_html_e( 'পুরাতন পাওনা টাকা', 'sojib68' ); ?></label>
+							<input type="text" id="f-legacy-due" inputmode="decimal" name="legacy_due" value="<?php echo esc_attr( $total_display ); ?>" <?php disabled( ! $is_legacy ); ?>>
 						</div>
 						<div class="deed-field col-6">
 							<label for="f-collected"><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></label>
@@ -377,6 +433,12 @@ function sojib68_office_render_entry_form() {
 						?>
 					<?php endif; ?>
 
+					<p class="deed-note deed-note--legacy" data-legacy-show="1" <?php echo $is_legacy ? '' : 'hidden'; ?>>
+						<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
+						<span><?php esc_html_e( 'পুরাতন হিসাবে খরচের ঘর লাগে না। এই দলিলের আদায় ড্যাশবোর্ডে "পুরাতন পাওনা আদায়" হিসেবে আলাদা দেখাবে — প্রফিটে নয়। টিক তুলে দিলে সব টাকা আগের মতোই ফিরে আসবে।', 'sojib68' ); ?></span>
+					</p>
+
+					<div data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>>
 					<h3 class="deed-subhead"><?php esc_html_e( 'খরচ', 'sojib68' ); ?></h3>
 					<div class="deed-grid">
 						<?php $n = 0; foreach ( $expense_labels as $cat => $label ) : ?>
@@ -387,10 +449,12 @@ function sojib68_office_render_entry_form() {
 							</div>
 						<?php $n++; endforeach; ?>
 					</div>
+					</div>
 
 					<div class="deed-result">
-						<div class="deed-result__item"><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
-						<div class="deed-result__item is-profit"><span><?php esc_html_e( 'প্রফিট (আদায় − খরচ)', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
+						<div class="deed-result__item" data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
+						<div class="deed-result__item is-profit" data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>><span><?php esc_html_e( 'প্রফিট (আদায় − খরচ)', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
+						<div class="deed-result__item is-legacy" data-legacy-show="1" <?php echo $is_legacy ? '' : 'hidden'; ?>><span><?php esc_html_e( 'পুরাতন পাওনা আদায়', 'sojib68' ); ?></span><strong data-sum="received">0</strong></div>
 						<div class="deed-result__item is-due"><span data-sum="due_label"><?php esc_html_e( 'বাকি (মোট − আদায়)', 'sojib68' ); ?></span><strong data-sum="due">—</strong></div>
 					</div>
 				<?php sojib68_deed_card_close(); ?>
@@ -461,15 +525,16 @@ function sojib68_office_render_entry_form() {
 					</div>
 					<div class="deed-summary-list">
 						<div class="deed-summary-row"><span><?php esc_html_e( 'দলিলের মূল্য', 'sojib68' ); ?></span><strong data-sum="value">—</strong></div>
-						<div class="deed-summary-row"><span><?php esc_html_e( 'মোট টাকা', 'sojib68' ); ?></span><strong data-sum="total_due">—</strong></div>
+						<div class="deed-summary-row"><span data-sum="total_label"><?php echo esc_html( $is_legacy ? __( 'পুরাতন পাওনা', 'sojib68' ) : __( 'মোট টাকা', 'sojib68' ) ); ?></span><strong data-sum="total_due">—</strong></div>
 						<div class="deed-summary-row"><span><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></span><strong data-sum="received">0</strong></div>
 						<div class="deed-summary-row deed-summary-row--big">
 							<span data-sum="due_label"><?php esc_html_e( 'বাকি', 'sojib68' ); ?></span>
 							<strong data-sum="due">—</strong>
 						</div>
 						<div class="deed-summary-status"><span class="deed-chip deed-chip--unknown" data-sum="status"><?php esc_html_e( 'প্রাপ্য অজানা', 'sojib68' ); ?></span></div>
-						<div class="deed-summary-row"><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
-						<div class="deed-summary-row deed-summary-row--big"><span><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
+						<div class="deed-summary-row" data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>><span><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span><strong data-sum="expenses">0</strong></div>
+						<div class="deed-summary-row deed-summary-row--big" data-legacy-show="0" <?php echo $is_legacy ? 'hidden' : ''; ?>><span><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></span><strong data-sum="profit">—</strong></div>
+						<div class="deed-summary-legacy" data-legacy-show="1" <?php echo $is_legacy ? '' : 'hidden'; ?>><?php esc_html_e( 'পুরাতন হিসাব — প্রফিটে যোগ হয় না', 'sojib68' ); ?></div>
 					</div>
 					<p class="deed-summary-foot"><?php esc_html_e( 'প্রফিট = আদায় − খরচ। বাকি = মোট − আদায়। দলিলের মূল্য এই হিসাবে যোগ হয় না।', 'sojib68' ); ?></p>
 				</div>
@@ -584,7 +649,7 @@ function sojib68_render_land_row( $i, $row ) {
  * ------------------------------------------------------------------ */
 
 function sojib68_office_collect_filters() {
-	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
+	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status', 'legacy' );
 	$filters = array();
 	foreach ( $keys as $key ) {
 		$val = isset( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : '';
@@ -604,7 +669,7 @@ function sojib68_office_render_all_deeds() {
 	$types   = sojib68_deed_types_list();
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
 
-	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
+	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status', 'legacy' );
 	$advanced_active = count( array_intersect_key( $filters, array_flip( $advanced_keys ) ) );
 	$f               = function ( $key ) use ( $filters ) {
 		return isset( $filters[ $key ] ) ? $filters[ $key ] : '';
@@ -666,6 +731,14 @@ function sojib68_office_render_all_deeds() {
 							<option value=""><?php esc_html_e( 'সব', 'sojib68' ); ?></option>
 							<option value="1" <?php selected( $f( 'has_due' ), '1' ); ?>><?php esc_html_e( 'বকেয়া আছে', 'sojib68' ); ?></option>
 							<option value="0" <?php selected( $f( 'has_due' ), '0' ); ?>><?php esc_html_e( 'বকেয়া নেই', 'sojib68' ); ?></option>
+						</select>
+					</div>
+					<div class="deed-field col-3 m-6">
+						<label><?php esc_html_e( 'হিসাবের ধরন', 'sojib68' ); ?></label>
+						<select name="legacy">
+							<option value=""><?php esc_html_e( 'সব', 'sojib68' ); ?></option>
+							<option value="0" <?php selected( $f( 'legacy' ), '0' ); ?>><?php esc_html_e( 'নতুন হিসাব', 'sojib68' ); ?></option>
+							<option value="1" <?php selected( $f( 'legacy' ), '1' ); ?>><?php esc_html_e( 'পুরাতন পাওনা', 'sojib68' ); ?></option>
 						</select>
 					</div>
 					<div class="deed-field col-3 m-6">
@@ -761,6 +834,9 @@ function sojib68_office_render_all_deeds() {
 									echo '<span class="deed-chip deed-chip--advance">' . esc_html__( 'অগ্রিম', 'sojib68' ) . ' ৳ ' . esc_html( sojib68_poysha_to_display( abs( $row->due_poysha ) ) ) . '</span>';
 								} else {
 									echo '<span class="deed-chip deed-chip--settled">' . esc_html__( 'পরিশোধিত', 'sojib68' ) . '</span>';
+								}
+								if ( (int) $row->is_legacy ) {
+									echo ' <span class="deed-chip deed-chip--legacy">' . esc_html__( 'পুরাতন পাওনা', 'sojib68' ) . '</span>';
 								}
 								?>
 							</td>
@@ -910,10 +986,12 @@ function sojib68_render_collect_form( $deed_id, $due_poysha = null ) {
 function sojib68_office_render_dues() {
 	$q     = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
 	$sort  = isset( $_GET['sort'] ) ? sanitize_key( wp_unslash( $_GET['sort'] ) ) : 'due_desc';
+	$kind  = isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : '';
+	$kind  = in_array( $kind, array( 'new', 'legacy' ), true ) ? $kind : '';
 	$paged = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
 
 	$summary = sojib68_dues_summary();
-	$result  = sojib68_dues_list( array( 'q' => $q, 'sort' => $sort ), $paged, 15 );
+	$result  = sojib68_dues_list( array( 'q' => $q, 'sort' => $sort, 'kind' => $kind ), $paged, 15 );
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' );
 	?>
 	<div class="office-stats-grid office-stats-grid--3">
@@ -921,6 +999,9 @@ function sojib68_office_render_dues() {
 			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'clock', 22 ); // phpcs:ignore ?></span>
 			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট বকেয়া', 'sojib68' ); ?></span>
 			<span class="office-stat-tile__value"><?php echo sojib68_money_html( $summary['total_due'] ); // phpcs:ignore ?></span>
+			<?php if ( $summary['legacy_due'] > 0 ) : ?>
+				<span class="office-stat-tile__sub"><?php echo esc_html( sprintf( /* translators: 1: current dues, 2: old dues */ __( 'নতুন %1$s · পুরাতন %2$s', 'sojib68' ), '৳ ' . sojib68_poysha_to_display( $summary['new_due'] ), '৳ ' . sojib68_poysha_to_display( $summary['legacy_due'] ) ) ); ?></span>
+			<?php endif; ?>
 		</div>
 		<div class="office-stat-tile tone-amber">
 			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'file', 22 ); // phpcs:ignore ?></span>
@@ -943,6 +1024,11 @@ function sojib68_office_render_dues() {
 			<option value="due_desc" <?php selected( $sort, 'due_desc' ); ?>><?php esc_html_e( 'বেশি বকেয়া আগে', 'sojib68' ); ?></option>
 			<option value="oldest" <?php selected( $sort, 'oldest' ); ?>><?php esc_html_e( 'পুরোনো দলিল আগে', 'sojib68' ); ?></option>
 			<option value="newest" <?php selected( $sort, 'newest' ); ?>><?php esc_html_e( 'নতুন দলিল আগে', 'sojib68' ); ?></option>
+		</select>
+		<select name="kind" onchange="this.form.submit()">
+			<option value=""><?php esc_html_e( 'সব বকেয়া', 'sojib68' ); ?></option>
+			<option value="new" <?php selected( $kind, 'new' ); ?>><?php esc_html_e( 'শুধু নতুন হিসাব', 'sojib68' ); ?></option>
+			<option value="legacy" <?php selected( $kind, 'legacy' ); ?>><?php esc_html_e( 'শুধু পুরাতন পাওনা', 'sojib68' ); ?></option>
 		</select>
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'খুঁজুন', 'sojib68' ); ?></button>
 	</form>
@@ -969,6 +1055,7 @@ function sojib68_office_render_dues() {
 							<h3 class="due-card__title">
 								<?php echo esc_html( $row->deed_no ? sprintf( /* translators: %s: deed no */ __( 'দলিল #%s', 'sojib68' ), $row->deed_no ) : __( 'দলিল নং নেই', 'sojib68' ) ); ?>
 								<?php if ( $row->deed_type ) : ?><span class="deed-type-chip"><?php echo esc_html( $row->deed_type ); ?></span><?php endif; ?>
+								<?php if ( (int) $row->is_legacy ) : ?><span class="deed-chip deed-chip--legacy"><?php esc_html_e( 'পুরাতন পাওনা', 'sojib68' ); ?></span><?php endif; ?>
 							</h3>
 							<p class="due-card__sub"><?php echo esc_html( $row->reg_date ? $row->reg_date : ( $row->reg_year ? $row->reg_year : __( 'সাল অজানা', 'sojib68' ) ) ); ?></p>
 						</div>
@@ -1023,7 +1110,7 @@ function sojib68_office_render_dues() {
 		<?php if ( $result['total_pages'] > 1 ) : ?>
 			<nav class="deed-pagination" aria-label="<?php esc_attr_e( 'পাতা', 'sojib68' ); ?>">
 				<?php for ( $pg = 1; $pg <= $result['total_pages']; $pg++ ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( array( 'q' => $q, 'sort' => $sort, 'paged' => $pg ), $base ) ); ?>" class="<?php echo $pg === $result['paged'] ? 'is-active' : ''; ?>"><?php echo (int) $pg; ?></a>
+					<a href="<?php echo esc_url( add_query_arg( array( 'q' => $q, 'sort' => $sort, 'kind' => $kind, 'paged' => $pg ), $base ) ); ?>" class="<?php echo $pg === $result['paged'] ? 'is-active' : ''; ?>"><?php echo (int) $pg; ?></a>
 				<?php endfor; ?>
 			</nav>
 		<?php endif; ?>
@@ -1031,6 +1118,202 @@ function sojib68_office_render_dues() {
 
 	<?php sojib68_office_dues_script(); ?>
 	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * পুরাতন পাওনা — separate the old-notebook deeds (amount owed only)
+ * from current accounting, so their collections never show as profit.
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_render_old_dues() {
+	$summary   = sojib68_legacy_summary();
+	$tab       = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+	$tab       = in_array( $tab, array( 'marked', 'find' ), true ) ? $tab : ( $summary['count'] > 0 ? 'marked' : 'find' );
+	$upto_year = isset( $_GET['upto_year'] ) ? (int) sojib68_bn_to_en_digits( sanitize_text_field( wp_unslash( $_GET['upto_year'] ) ) ) : 0;
+	$upto_year = ( $upto_year >= 1900 && $upto_year <= 2100 ) ? $upto_year : 0;
+	$rows      = sojib68_legacy_deeds( 'marked' === $tab ? 'legacy' : 'candidates', 'find' === $tab ? $upto_year : 0 );
+	$base      = home_url( '/' . SOJIB68_OFFICE_BASE . '/old-dues' );
+	$edit_base = home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' );
+
+	$notice = isset( $_GET['done'] ) ? sanitize_key( wp_unslash( $_GET['done'] ) ) : '';
+	$count  = isset( $_GET['n'] ) ? (int) $_GET['n'] : 0;
+	if ( 'marked' === $notice ) {
+		echo '<div class="office-notice office-notice--success">' . esc_html( sprintf( /* translators: %s: count in Bangla digits */ __( '%s টি দলিল পুরাতন পাওনা হিসেবে আলাদা হয়েছে। কোনো টাকা বা আদায়ের তথ্য বদলায়নি।', 'sojib68' ), sojib68_bn_digits( $count ) ) ) . '</div>';
+	} elseif ( 'unmarked' === $notice ) {
+		echo '<div class="office-notice office-notice--success">' . esc_html( sprintf( /* translators: %s: count in Bangla digits */ __( '%s টি দলিল আবার নতুন হিসাবে ফিরেছে। কোনো টাকা বা আদায়ের তথ্য বদলায়নি।', 'sojib68' ), sojib68_bn_digits( $count ) ) ) . '</div>';
+	} elseif ( 'none' === $notice ) {
+		echo '<div class="office-notice office-notice--warning">' . esc_html__( 'কোনো দলিল বাছাই করা হয়নি।', 'sojib68' ) . '</div>';
+	}
+	?>
+	<section class="legacy-panel">
+		<div class="legacy-panel__head">
+			<div>
+				<h2><?php esc_html_e( 'পুরাতন পাওনার সারসংক্ষেপ', 'sojib68' ); ?></h2>
+				<p><?php echo esc_html( sprintf( /* translators: %s: deed count in Bangla digits */ __( '%s টি দলিল পুরাতন হিসাবে আছে — এদের আদায় প্রফিটে যোগ হয় না', 'sojib68' ), sojib68_bn_digits( $summary['count'] ) ) ); ?></p>
+			</div>
+			<?php if ( $summary['due'] > 0 ) : ?>
+				<a href="<?php echo esc_url( add_query_arg( 'kind', 'legacy', home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' ) ) ); ?>" class="btn btn-primary btn-sm"><?php echo sojib68_office_icon( 'wallet', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'পুরাতন পাওনা আদায় করুন', 'sojib68' ); ?></a>
+			<?php endif; ?>
+		</div>
+		<div class="legacy-panel__grid">
+			<div><span><?php esc_html_e( 'মোট পুরাতন পাওনা', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $summary['total'] ); // phpcs:ignore ?></strong></div>
+			<div class="is-in"><span><?php esc_html_e( 'আদায় হয়েছে', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $summary['collected'] ); // phpcs:ignore ?></strong></div>
+			<div class="is-due"><span><?php esc_html_e( 'এখনো বাকি', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $summary['due'] ); // phpcs:ignore ?></strong></div>
+		</div>
+	</section>
+
+	<nav class="legacy-tabs" aria-label="<?php esc_attr_e( 'পুরাতন পাওনা', 'sojib68' ); ?>">
+		<a href="<?php echo esc_url( add_query_arg( 'tab', 'marked', $base ) ); ?>" class="<?php echo 'marked' === $tab ? 'is-active' : ''; ?>"><?php echo esc_html( sprintf( /* translators: %s: count */ __( 'পুরাতন হিসাবের দলিল (%s)', 'sojib68' ), sojib68_bn_digits( $summary['count'] ) ) ); ?></a>
+		<a href="<?php echo esc_url( add_query_arg( 'tab', 'find', $base ) ); ?>" class="<?php echo 'find' === $tab ? 'is-active' : ''; ?>"><?php esc_html_e( 'পুরাতন দলিল খুঁজে আলাদা করুন', 'sojib68' ); ?></a>
+	</nav>
+
+	<?php if ( 'find' === $tab ) : ?>
+		<div class="legacy-explain">
+			<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
+			<p><?php esc_html_e( 'নিচে সেইসব দলিল দেখাচ্ছে যেগুলোতে টাকার হিসাব আছে কিন্তু একটাও খরচ লেখা নেই — পুরনো খাতা থেকে তোলা দলিল সাধারণত এমনই হয়। দেখে নিয়ে যেগুলো পুরাতন, সেগুলোতে টিক দিন। শুধু হিসাবের ধরন বদলাবে — মোট টাকা, আদায় বা অন্য কোনো তথ্য একটুও বদলাবে না, আর চাইলে যেকোনো সময় ফেরত নেওয়া যাবে।', 'sojib68' ); ?></p>
+		</div>
+
+		<form method="get" action="<?php echo esc_url( $base ); ?>" class="legacy-filter">
+			<input type="hidden" name="tab" value="find">
+			<label for="legacy-upto"><?php esc_html_e( 'যে সাল পর্যন্ত দলিল দেখতে চান', 'sojib68' ); ?></label>
+			<input type="text" id="legacy-upto" name="upto_year" inputmode="numeric" value="<?php echo esc_attr( $upto_year ? $upto_year : '' ); ?>" placeholder="<?php esc_attr_e( 'যেমন ২০২৪ (ফাঁকা = সব)', 'sojib68' ); ?>">
+			<button type="submit" class="btn btn-outline btn-sm"><?php echo sojib68_office_icon( 'filter', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখান', 'sojib68' ); ?></button>
+		</form>
+	<?php endif; ?>
+
+	<?php if ( empty( $rows ) ) : ?>
+		<div class="deed-empty-state">
+			<?php echo sojib68_office_icon( 'check', 34 ); // phpcs:ignore ?>
+			<p>
+				<?php
+				echo 'marked' === $tab
+					? esc_html__( 'এখনো কোনো দলিল পুরাতন হিসাবে আলাদা করা হয়নি। "পুরাতন দলিল খুঁজে আলাদা করুন" ট্যাবে যান।', 'sojib68' )
+					: esc_html__( 'আলাদা করার মতো কোনো দলিল পাওয়া যায়নি।', 'sojib68' );
+				?>
+			</p>
+		</div>
+	<?php else : ?>
+		<form method="post" action="<?php echo esc_url( $base ); ?>" class="legacy-form" data-legacy-form data-confirm="<?php echo esc_attr( 'marked' === $tab ? __( 'বাছাই করা দলিলগুলো নতুন হিসাবে ফেরত যাবে এবং এদের আদায় আবার প্রফিটে যোগ হবে। নিশ্চিত?', 'sojib68' ) : __( 'বাছাই করা দলিলগুলো পুরাতন পাওনা হিসেবে আলাদা হবে। টাকার কোনো তথ্য বদলাবে না। নিশ্চিত?', 'sojib68' ) ); ?>">
+			<?php wp_nonce_field( 'sojib68_legacy', 'legacy_nonce' ); ?>
+			<input type="hidden" name="legacy_op" value="<?php echo 'marked' === $tab ? 'unmark' : 'mark'; ?>">
+			<input type="hidden" name="tab" value="<?php echo esc_attr( $tab ); ?>">
+			<input type="hidden" name="upto_year" value="<?php echo esc_attr( $upto_year ? $upto_year : '' ); ?>">
+
+			<div class="legacy-bar">
+				<label class="deed-check"><input type="checkbox" data-legacy-all> <span><?php echo esc_html( sprintf( /* translators: %s: count */ __( 'সব বাছাই করুন (%s)', 'sojib68' ), sojib68_bn_digits( count( $rows ) ) ) ); ?></span></label>
+				<span class="legacy-bar__count" data-legacy-count><?php esc_html_e( '০ টি বাছাই', 'sojib68' ); ?></span>
+				<button type="submit" class="btn <?php echo 'marked' === $tab ? 'btn-outline' : 'btn-primary'; ?> btn-sm" data-legacy-submit disabled>
+					<?php echo 'marked' === $tab ? esc_html__( 'নতুন হিসাবে ফেরত নিন', 'sojib68' ) : esc_html__( 'পুরাতন পাওনা হিসেবে আলাদা করুন', 'sojib68' ); ?>
+				</button>
+			</div>
+
+			<div class="deed-table-card">
+				<table class="deed-table legacy-table">
+					<thead>
+						<tr>
+							<th class="chk"><span class="screen-reader-text"><?php esc_html_e( 'বাছাই', 'sojib68' ); ?></span></th>
+							<th><?php esc_html_e( 'ক্রমিক', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th>
+							<th><?php esc_html_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?></th>
+							<th class="num"><?php echo 'marked' === $tab ? esc_html__( 'পুরাতন পাওনা', 'sojib68' ) : esc_html__( 'মোট টাকা', 'sojib68' ); ?></th>
+							<th class="num"><?php esc_html_e( 'আদায়', 'sojib68' ); ?></th>
+							<th class="num"><?php esc_html_e( 'বাকি', 'sojib68' ); ?></th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $rows as $row ) : ?>
+							<tr>
+								<td class="chk"><input type="checkbox" name="ids[]" value="<?php echo (int) $row->id; ?>" data-legacy-id aria-label="<?php echo esc_attr( sprintf( /* translators: %d: record id */ __( 'রেকর্ড #%d বাছাই', 'sojib68' ), $row->id ) ); ?>"></td>
+								<td data-label="<?php esc_attr_e( 'ক্রমিক', 'sojib68' ); ?>"><?php echo esc_html( $row->serial_no ? sojib68_bn_digits( $row->serial_no ) : '—' ); ?></td>
+								<td data-label="<?php esc_attr_e( 'দলিল', 'sojib68' ); ?>">
+									<span class="deed-cell-main"><?php echo esc_html( $row->deed_no ? sprintf( /* translators: %s: deed no */ __( '#%s', 'sojib68' ), $row->deed_no ) : __( 'নং নেই', 'sojib68' ) ); ?></span>
+									<span class="deed-cell-sub"><?php echo esc_html( $row->reg_date ? $row->reg_date : ( $row->reg_year ? $row->reg_year : __( 'সাল অজানা', 'sojib68' ) ) ); ?><?php echo $row->deed_type ? ' · ' . esc_html( $row->deed_type ) : ''; ?></span>
+								</td>
+								<td data-label="<?php esc_attr_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?>">
+									<span class="deed-party"><?php echo esc_html( implode( ', ', $row->donor_names ) ?: '—' ); ?></span>
+									<span class="deed-party-arrow" aria-hidden="true">→</span>
+									<span class="deed-party"><?php echo esc_html( implode( ', ', $row->grantee_names ) ?: '—' ); ?></span>
+								</td>
+								<td class="num" data-label="<?php echo 'marked' === $tab ? esc_attr__( 'পুরাতন পাওনা', 'sojib68' ) : esc_attr__( 'মোট টাকা', 'sojib68' ); ?>"><span><?php echo sojib68_money_html( $row->client_total_due_poysha ); // phpcs:ignore ?></span></td>
+								<td class="num" data-label="<?php esc_attr_e( 'আদায়', 'sojib68' ); ?>"><span><?php echo sojib68_money_html( $row->received_poysha ); // phpcs:ignore ?></span></td>
+								<td class="num" data-label="<?php esc_attr_e( 'বাকি', 'sojib68' ); ?>">
+									<?php if ( null !== $row->due_poysha && $row->due_poysha > 0 ) : ?>
+										<span class="deed-chip deed-chip--due">৳ <?php echo esc_html( sojib68_poysha_to_display( $row->due_poysha ) ); ?></span>
+									<?php elseif ( null !== $row->due_poysha ) : ?>
+										<span class="deed-chip deed-chip--settled"><?php esc_html_e( 'পরিশোধিত', 'sojib68' ); ?></span>
+									<?php else : ?>
+										<span class="deed-chip deed-chip--unknown"><?php esc_html_e( 'অজানা', 'sojib68' ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td class="act"><a href="<?php echo esc_url( add_query_arg( 'id', $row->id, $edit_base ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		</form>
+
+		<script>
+		( function () {
+			'use strict';
+			var form = document.querySelector( '[data-legacy-form]' );
+			if ( ! form ) { return; }
+			var all = form.querySelector( '[data-legacy-all]' );
+			var boxes = form.querySelectorAll( '[data-legacy-id]' );
+			var count = form.querySelector( '[data-legacy-count]' );
+			var submit = form.querySelector( '[data-legacy-submit]' );
+			var BN = '০১২৩৪৫৬৭৮৯';
+			function bn( n ) { return String( n ).replace( /[0-9]/g, function ( d ) { return BN.charAt( +d ); } ); }
+			function sync() {
+				var n = 0;
+				boxes.forEach( function ( b ) { if ( b.checked ) { n++; } b.closest( 'tr' ).classList.toggle( 'is-picked', b.checked ); } );
+				count.textContent = bn( n ) + ' টি বাছাই';
+				submit.disabled = 0 === n;
+				all.checked = n > 0 && n === boxes.length;
+				all.indeterminate = n > 0 && n < boxes.length;
+			}
+			all.addEventListener( 'change', function () {
+				boxes.forEach( function ( b ) { b.checked = all.checked; } );
+				sync();
+			} );
+			boxes.forEach( function ( b ) { b.addEventListener( 'change', sync ); } );
+			form.addEventListener( 'submit', function ( e ) {
+				if ( ! window.confirm( form.getAttribute( 'data-confirm' ) ) ) { e.preventDefault(); }
+			} );
+			sync();
+		} )();
+		</script>
+	<?php endif; ?>
+	<?php
+}
+
+/** POST handler for the পুরাতন পাওনা page (runs before any output, then redirects). */
+function sojib68_office_handle_old_dues_post() {
+	$base = home_url( '/' . SOJIB68_OFFICE_BASE . '/old-dues' );
+
+	if ( ! isset( $_POST['legacy_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['legacy_nonce'] ) ), 'sojib68_legacy' ) ) {
+		wp_safe_redirect( $base );
+		exit;
+	}
+
+	$op   = isset( $_POST['legacy_op'] ) && 'unmark' === $_POST['legacy_op'] ? 'unmark' : 'mark';
+	$ids  = isset( $_POST['ids'] ) && is_array( $_POST['ids'] ) ? array_map( 'intval', wp_unslash( $_POST['ids'] ) ) : array();
+	$args = array( 'tab' => 'unmark' === $op ? 'marked' : 'find' );
+	$upto = isset( $_POST['upto_year'] ) ? (int) $_POST['upto_year'] : 0;
+	if ( $upto && 'find' === $args['tab'] ) {
+		$args['upto_year'] = $upto;
+	}
+
+	if ( ! $ids ) {
+		$args['done'] = 'none';
+	} else {
+		$args['n']    = sojib68_deeds_set_legacy( $ids, 'mark' === $op, get_current_user_id() );
+		$args['done'] = 'mark' === $op ? 'marked' : 'unmarked';
+	}
+
+	wp_safe_redirect( add_query_arg( $args, $base ) );
+	exit;
 }
 
 /* ---------------------------------------------------------------------
@@ -1530,6 +1813,9 @@ function sojib68_office_render_period_card( $tone, $icon, $title, $stats ) {
 			<div><span><?php esc_html_e( 'আয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['collected'] ); // phpcs:ignore ?></strong></div>
 			<div><span><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['expenses'] ); // phpcs:ignore ?></strong></div>
 		</div>
+		<?php if ( ! empty( $stats['legacy_collected'] ) ) : ?>
+			<p class="period-card__legacy"><?php esc_html_e( 'পুরাতন পাওনা আদায়', 'sojib68' ); ?> <strong><?php echo sojib68_money_html( $stats['legacy_collected'] ); // phpcs:ignore ?></strong></p>
+		<?php endif; ?>
 	</div>
 	<?php
 }

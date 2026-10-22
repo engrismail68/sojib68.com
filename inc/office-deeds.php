@@ -253,6 +253,18 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 	$reg_year            = ! empty( $data['reg_year'] ) ? (int) sojib68_bn_to_en_digits( $data['reg_year'] ) : null;
 	$reg_date            = ! empty( $data['reg_date'] ) ? $data['reg_date'] : null;
 
+	// পুরাতন হিসাব: only the amount still owed is known, typed into its own
+	// "পুরাতন পাওনা টাকা" box. It is stored in the same column as মোট টাকা,
+	// so ticking/unticking the flag never moves or loses any amount.
+	$is_legacy = ! empty( $data['is_legacy'] ) ? 1 : 0;
+	$total_due = $is_legacy && array_key_exists( 'legacy_due', $data )
+		? ( $data['legacy_due'] ?? '' )
+		: ( $data['client_total_due'] ?? '' );
+
+	$was_legacy = $is_update
+		? (int) $wpdb->get_var( $wpdb->prepare( "SELECT is_legacy FROM $deeds_table WHERE id = %d", $deed_id ) )
+		: 0;
+
 	$deed_row = array(
 		'sub_registry_office'      => '' !== $office ? $office : null,
 		'reg_date'                 => $reg_date,
@@ -261,10 +273,11 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 		'deed_no_normalized'       => '' !== $deed_no_normalized ? $deed_no_normalized : null,
 		'deed_type'                => ! empty( $data['deed_type'] ) ? trim( $data['deed_type'] ) : null,
 		'deed_value_poysha'        => sojib68_money_to_poysha( $data['deed_value'] ?? '' ),
-		'client_total_due_poysha'  => sojib68_money_to_poysha( $data['client_total_due'] ?? '' ),
+		'client_total_due_poysha'  => sojib68_money_to_poysha( $total_due ),
 		'fee_agreed_poysha'        => sojib68_money_to_poysha( $data['fee_agreed'] ?? '' ),
 		'fee_collected_poysha'     => sojib68_money_to_poysha( $data['fee_collected'] ?? '' ),
 		'dues_verified'            => ! empty( $data['dues_verified'] ) ? 1 : 0,
+		'is_legacy'                => $is_legacy,
 		'original_status'          => array_key_exists( (string) ( $data['original_status'] ?? '' ), sojib68_deed_original_status_options() ) ? $data['original_status'] : 'not_received',
 		'original_received_date'   => ! empty( $data['original_received_date'] ) ? $data['original_received_date'] : null,
 		'original_delivered_date'  => ! empty( $data['original_delivered_date'] ) ? $data['original_delivered_date'] : null,
@@ -315,6 +328,9 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 	$wpdb->query( 'COMMIT' );
 
 	sojib68_deed_audit_log( $deed_id, $user_id, $is_update ? 'update' : 'create' );
+	if ( $is_legacy !== $was_legacy && ( $is_update || $is_legacy ) ) {
+		sojib68_deed_audit_log( $deed_id, $user_id, $is_legacy ? 'legacy_on' : 'legacy_off' );
+	}
 
 	// Re-derive every deed's chronological "ক্রমিক নং" (serial number)
 	// from its date, not from save order — staff enter old and new
@@ -782,6 +798,10 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		$args[]  = $filters['original_status'];
 	}
 
+	if ( isset( $filters['legacy'] ) && in_array( (string) $filters['legacy'], array( '0', '1' ), true ) ) {
+		$where[] = 'd.is_legacy = ' . (int) $filters['legacy'];
+	}
+
 	$where_sql = implode( ' AND ', $where );
 
 	$per_page = max( 1, (int) $per_page );
@@ -860,34 +880,24 @@ function sojib68_office_dashboard_stats() {
 		"SELECT COALESCE(SUM(deed_value_poysha),0) FROM $deeds WHERE deleted_at IS NULL"
 	);
 
+	// আয়/ব্যয়/প্রফিট come from current-accounting deeds only. A পুরাতন
+	// হিসাব deed has no income/expense detail — just an amount owed — so
+	// money collected against it is shown separately, never as profit.
 	$total_collected = (int) $wpdb->get_var(
 		"SELECT COALESCE(SUM(r.amount_poysha),0) FROM $receipts r
-		 INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL"
+		 INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0"
 	);
 
 	$total_expenses = (int) $wpdb->get_var(
 		"SELECT COALESCE(SUM(e.amount_poysha),0) FROM $expenses e
-		 INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL"
+		 INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0"
 	);
 
 	// Profit = money actually collected from clients minus recorded expenses.
 	$total_profit = $total_collected - $total_expenses;
 
-	// Total outstanding due: per deed, max(0, due) — so an advance on
-	// one deed never offsets a due on another when summed.
-	$due_rows = $wpdb->get_results(
-		"SELECT d.client_total_due_poysha,
-			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
-		 FROM $deeds d
-		 WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
-	);
-	$total_due = 0;
-	foreach ( $due_rows as $row ) {
-		$due = (int) $row->client_total_due_poysha - (int) $row->received;
-		if ( $due > 0 ) {
-			$total_due += $due;
-		}
-	}
+	$legacy = sojib68_legacy_summary();
+	$dues   = sojib68_dues_totals();
 
 	return array(
 		'total_deeds'       => $total_deeds,
@@ -895,8 +905,158 @@ function sojib68_office_dashboard_stats() {
 		'total_collected'   => $total_collected,
 		'total_expenses'    => $total_expenses,
 		'total_profit'      => $total_profit,
-		'total_due'         => $total_due,
+		'total_due'         => $dues['new'] + $dues['legacy'],
+		'new_due'           => $dues['new'],
+		'legacy_due'        => $dues['legacy'],
+		'legacy'            => $legacy,
 	);
+}
+
+/**
+ * Outstanding dues split into current (নতুন) and পুরাতন পাওনা. Per deed
+ * max(0, due) — so an advance on one deed never offsets a due on
+ * another when summed.
+ */
+function sojib68_dues_totals() {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+
+	$rows = $wpdb->get_results(
+		"SELECT d.is_legacy, d.client_total_due_poysha,
+			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
+		 FROM $deeds d
+		 WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
+	);
+
+	$out = array( 'new' => 0, 'legacy' => 0, 'new_count' => 0, 'legacy_count' => 0 );
+	foreach ( $rows as $row ) {
+		$due = (int) $row->client_total_due_poysha - (int) $row->received;
+		if ( $due > 0 ) {
+			$key = (int) $row->is_legacy ? 'legacy' : 'new';
+			$out[ $key ]            += $due;
+			$out[ $key . '_count' ] += 1;
+		}
+	}
+	return $out;
+}
+
+/* ---------------------------------------------------------------------
+ * পুরাতন পাওনা (legacy dues)
+ *
+ * Deeds from the old notebooks where only the amount still owed is
+ * known. They are flagged with deeds.is_legacy = 1; the owed amount
+ * lives in client_total_due_poysha (same as মোট টাকা) and payments in
+ * the normal receipts table. The flag only changes how the money is
+ * reported, so marking/unmarking is always safe and reversible.
+ * ------------------------------------------------------------------ */
+
+/** Totals for every পুরাতন হিসাব deed: how much was owed, collected, still due. */
+function sojib68_legacy_summary() {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+
+	$rows = $wpdb->get_results(
+		"SELECT d.client_total_due_poysha,
+			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
+		 FROM $deeds d
+		 WHERE d.deleted_at IS NULL AND d.is_legacy = 1"
+	);
+
+	$out = array( 'count' => 0, 'total' => 0, 'collected' => 0, 'due' => 0, 'due_count' => 0 );
+	foreach ( $rows as $row ) {
+		$received = (int) $row->received;
+		$total    = (int) $row->client_total_due_poysha;
+		$out['count']++;
+		$out['total']     += $total;
+		$out['collected'] += $received;
+		if ( null !== $row->client_total_due_poysha && $total - $received > 0 ) {
+			$out['due'] += $total - $received;
+			$out['due_count']++;
+		}
+	}
+	return $out;
+}
+
+/**
+ * Deeds for the পুরাতন পাওনা page. $mode 'legacy' = already marked;
+ * 'candidates' = not marked yet, have an amount owed/collected but not a
+ * single expense recorded — the shape old-notebook entries have.
+ * $upto_year (optional) narrows to deeds registered in or before that
+ * year (a deed with only a year counts by that year).
+ */
+function sojib68_legacy_deeds( $mode, $upto_year = 0 ) {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+	$donors   = sojib68_deeds_table( 'deed_donors' );
+	$grantees = sojib68_deeds_table( 'deed_grantees' );
+
+	$received_sql = "COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0)";
+	$where        = array( 'd.deleted_at IS NULL' );
+	$args         = array();
+
+	if ( 'legacy' === $mode ) {
+		$where[] = 'd.is_legacy = 1';
+	} else {
+		$where[] = 'd.is_legacy = 0';
+		$where[] = "NOT EXISTS (SELECT 1 FROM $expenses e WHERE e.deed_id = d.id AND e.amount_poysha <> 0)";
+		$where[] = "(d.client_total_due_poysha IS NOT NULL OR $received_sql > 0)";
+	}
+
+	$upto_year = (int) $upto_year;
+	if ( $upto_year > 0 ) {
+		$where[] = '((d.reg_date IS NOT NULL AND d.reg_date <= %s) OR (d.reg_date IS NULL AND d.reg_year IS NOT NULL AND d.reg_year <= %d))';
+		$args[]  = $upto_year . '-12-31';
+		$args[]  = $upto_year;
+	}
+
+	$sql  = "SELECT d.id, d.serial_no, d.deed_no, d.reg_date, d.reg_year, d.deed_type, d.client_total_due_poysha, $received_sql AS received_poysha
+		FROM $deeds d WHERE " . implode( ' AND ', $where ) . '
+		ORDER BY d.serial_no IS NULL, d.serial_no ASC, d.id ASC';
+	$rows = $args ? $wpdb->get_results( $wpdb->prepare( $sql, $args ) ) : $wpdb->get_results( $sql );
+
+	foreach ( $rows as $row ) {
+		$row->received_poysha = (int) $row->received_poysha;
+		$row->due_poysha      = null !== $row->client_total_due_poysha ? (int) $row->client_total_due_poysha - $row->received_poysha : null;
+		$row->donor_names     = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $donors WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+		$row->grantee_names   = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $grantees WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+	}
+	return $rows;
+}
+
+/**
+ * Mark (or unmark) deeds as পুরাতন হিসাব. Only the flag changes — every
+ * amount and payment stays exactly as it was. Returns how many changed.
+ */
+function sojib68_deeds_set_legacy( array $ids, $flag, $user_id ) {
+	global $wpdb;
+
+	$deeds = sojib68_deeds_table( 'deeds' );
+	$flag  = $flag ? 1 : 0;
+	$ids   = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+
+	$changed = 0;
+	foreach ( $ids as $id ) {
+		$n = $wpdb->query( $wpdb->prepare(
+			"UPDATE $deeds SET is_legacy = %d, updated_by = %d, updated_at = %s WHERE id = %d AND deleted_at IS NULL AND is_legacy <> %d",
+			$flag,
+			(int) $user_id,
+			current_time( 'mysql' ),
+			$id,
+			$flag
+		) );
+		if ( $n ) {
+			$changed++;
+			sojib68_deed_audit_log( $id, $user_id, $flag ? 'legacy_on' : 'legacy_off' );
+		}
+	}
+	return $changed;
 }
 
 /* ---------------------------------------------------------------------
@@ -932,11 +1092,16 @@ function sojib68_office_report_raw_rows( $year ) {
 	return array(
 		'deeds'    => $wpdb->get_results( $wpdb->prepare( "SELECT reg_date, deed_value_poysha FROM $deeds WHERE deleted_at IS NULL AND reg_date LIKE %s", $like ) ),
 		'receipts' => $wpdb->get_results( $wpdb->prepare(
-			"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND r.received_date LIKE %s",
+			"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND r.received_date LIKE %s",
 			$like
 		) ),
 		'expenses' => $wpdb->get_results( $wpdb->prepare(
-			"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND e.paid_date LIKE %s",
+			"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND e.paid_date LIKE %s",
+			$like
+		) ),
+		// পুরাতন পাওনা আদায় — reported on its own, never as আয়/প্রফিট.
+		'legacy_receipts' => $wpdb->get_results( $wpdb->prepare(
+			"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 1 AND r.received_date LIKE %s",
 			$like
 		) ),
 	);
@@ -1037,7 +1202,7 @@ function sojib68_office_yearly_stats( $years_back = 6 ) {
 	}
 
 	$receipt_rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND r.received_date >= %s",
+		"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND r.received_date >= %s",
 		$start_year . '-01-01'
 	) );
 	foreach ( $receipt_rows as $row ) {
@@ -1048,7 +1213,7 @@ function sojib68_office_yearly_stats( $years_back = 6 ) {
 	}
 
 	$expense_rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND e.paid_date >= %s",
+		"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND e.paid_date >= %s",
 		$start_year . '-01-01'
 	) );
 	foreach ( $expense_rows as $row ) {
@@ -1140,21 +1305,9 @@ function sojib68_dues_summary() {
 	$deeds    = sojib68_deeds_table( 'deeds' );
 	$receipts = sojib68_deeds_table( 'deed_receipts' );
 
-	$rows = $wpdb->get_results(
-		"SELECT d.client_total_due_poysha AS total,
-			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
-		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
-	);
-
-	$total_due = 0;
-	$count     = 0;
-	foreach ( $rows as $row ) {
-		$due = (int) $row->total - (int) $row->received;
-		if ( $due > 0 ) {
-			$total_due += $due;
-			$count++;
-		}
-	}
+	$totals    = sojib68_dues_totals();
+	$total_due = $totals['new'] + $totals['legacy'];
+	$count     = $totals['new_count'] + $totals['legacy_count'];
 
 	$month_start     = current_time( 'Y-m-01' );
 	$month_collected = (int) $wpdb->get_var( $wpdb->prepare(
@@ -1166,6 +1319,8 @@ function sojib68_dues_summary() {
 
 	return array(
 		'total_due'       => $total_due,
+		'new_due'         => $totals['new'],
+		'legacy_due'      => $totals['legacy'],
 		'deed_count'      => $count,
 		'month_collected' => $month_collected,
 	);
@@ -1191,6 +1346,10 @@ function sojib68_dues_list( array $filters, $paged = 1, $per_page = 15 ) {
 		"(d.client_total_due_poysha - $received_sql) > 0",
 	);
 	$args = array();
+
+	if ( isset( $filters['kind'] ) && in_array( $filters['kind'], array( 'new', 'legacy' ), true ) ) {
+		$where[] = 'd.is_legacy = ' . ( 'legacy' === $filters['kind'] ? 1 : 0 );
+	}
 
 	if ( ! empty( $filters['q'] ) ) {
 		$q    = trim( sojib68_bn_to_en_digits( $filters['q'] ) );
@@ -1277,6 +1436,13 @@ function sojib68_office_period_stats( $year, $month = null ) {
 		}
 		$expenses += (int) $row->amount_poysha;
 	}
+	$legacy_collected = 0;
+	foreach ( $raw['legacy_receipts'] as $row ) {
+		if ( $month && (int) substr( (string) $row->received_date, 5, 2 ) !== (int) $month ) {
+			continue;
+		}
+		$legacy_collected += (int) $row->amount_poysha;
+	}
 
 	// Whole-year view only: also count deeds that were only ever given a
 	// reg_year (no exact date), so they aren't invisible from every report.
@@ -1298,5 +1464,6 @@ function sojib68_office_period_stats( $year, $month = null ) {
 		'collected'   => $collected,
 		'expenses'    => $expenses,
 		'profit'      => $collected - $expenses,
+		'legacy_collected' => $legacy_collected,
 	);
 }
