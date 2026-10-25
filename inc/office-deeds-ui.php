@@ -91,6 +91,7 @@ function sojib68_office_icon( $name, $size = 20 ) {
 		'info'       => '<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>',
 		'check'      => '<path d="m5 12 5 5 9-10"/>',
 		'logout'     => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>',
+		'eye'        => '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
 	);
 
 	if ( ! isset( $paths[ $name ] ) ) {
@@ -157,13 +158,19 @@ function sojib68_office_render_dashboard_home() {
 		array( 'tone' => 'indigo', 'icon' => 'tag',      'label' => __( 'মোট দলিলের মূল্য', 'sojib68' ),                  'value' => sojib68_money_html( $stats['total_deed_value'] ), 'class' => '' ),
 		array( 'tone' => 'teal',   'icon' => 'wallet',   'label' => __( 'গ্রাহক থেকে মোট টাকা আদায়', 'sojib68' ),          'value' => sojib68_money_html( $stats['total_collected'] ), 'class' => '' ),
 		array( 'tone' => 'red',    'icon' => 'receipt',  'label' => __( 'অফিস, ফি ও অন্যান্য মোট ব্যয়', 'sojib68' ),      'value' => sojib68_money_html( $stats['total_expenses'] ), 'class' => '' ),
-		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => __( 'আদায় − মোট খরচ', 'sojib68' ) ),
+		array( 'tone' => 'green',  'icon' => 'trending', 'label' => __( 'মোট প্রফিট', 'sojib68' ),                          'value' => sojib68_money_html( $stats['total_profit'] ), 'class' => 'is-hero', 'sub' => __( 'আদায় − মোট খরচ', 'sojib68' ), 'peek' => home_url( '/' . SOJIB68_OFFICE_BASE . '/profit' ) ),
 		array( 'tone' => 'amber',  'icon' => 'clock',    'label' => __( 'মোট বকেয়া', 'sojib68' ),                         'value' => sojib68_money_html( $stats['total_due'] ), 'class' => $stats['total_due'] > 0 ? 'is-due' : '' ),
 	);
 	?>
 	<div class="office-stats-grid">
 		<?php foreach ( $tiles as $tile ) : ?>
 			<div class="office-stat-tile tone-<?php echo esc_attr( $tile['tone'] ); ?> <?php echo esc_attr( $tile['class'] ); ?>">
+				<?php if ( ! empty( $tile['peek'] ) ) : ?>
+					<a class="office-stat-tile__peek" href="<?php echo esc_url( $tile['peek'] ); ?>" title="<?php esc_attr_e( 'প্রিভিউ — কোন দলিল থেকে এসেছে দেখুন ও এডিট করুন', 'sojib68' ); ?>">
+						<?php echo sojib68_office_icon( 'eye', 16 ); // phpcs:ignore ?>
+						<span><?php esc_html_e( 'প্রিভিউ', 'sojib68' ); ?></span>
+					</a>
+				<?php endif; ?>
 				<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( $tile['icon'], 22 ); // phpcs:ignore ?></span>
 				<span class="office-stat-tile__label"><?php echo esc_html( $tile['label'] ); ?></span>
 				<span class="office-stat-tile__value"><?php echo $tile['value']; // phpcs:ignore ?></span>
@@ -514,6 +521,9 @@ function sojib68_office_render_entry_form() {
 				<button type="submit" class="btn btn-outline" data-action="submit-and-new"><?php esc_html_e( 'সংরক্ষণ করে আরেকটি এন্ট্রি', 'sojib68' ); ?></button>
 			</div>
 			<div class="deed-success-actions" hidden>
+				<?php if ( isset( $_GET['from'] ) && 'profit' === $_GET['from'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+					<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/profit' ) ); ?>" class="btn btn-primary"><?php echo sojib68_office_icon( 'arrow-left', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'প্রফিট প্রিভিউতে ফিরুন', 'sojib68' ); ?></a>
+				<?php endif; ?>
 				<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'সকল দলিল দেখুন', 'sojib68' ); ?></a>
 				<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ); ?>" class="btn btn-primary"><?php esc_html_e( 'আরেকটি এন্ট্রি করুন', 'sojib68' ); ?></a>
 			</div>
@@ -1053,6 +1063,114 @@ function sojib68_office_render_dues() {
 	<?php endif; ?>
 
 	<?php sojib68_office_dues_script(); ?>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
+ * প্রফিট প্রিভিউ — which deeds make up the dashboard's মোট প্রফিট
+ * ------------------------------------------------------------------ */
+
+function sojib68_office_render_profit_preview() {
+	$q     = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+	$sort  = isset( $_GET['sort'] ) ? sanitize_key( wp_unslash( $_GET['sort'] ) ) : 'profit_desc';
+	$paged = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+
+	$stats  = sojib68_office_dashboard_stats();
+	$result = sojib68_profit_deeds( array( 'q' => $q, 'sort' => $sort ), $paged, 20 );
+	$base   = home_url( '/' . SOJIB68_OFFICE_BASE . '/profit' );
+	$edit   = home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' );
+	?>
+	<p class="profit-back"><a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/' ) ); ?>" class="deed-link"><?php echo sojib68_office_icon( 'arrow-left', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'ড্যাশবোর্ডে ফিরুন', 'sojib68' ); ?></a></p>
+
+	<div class="office-stats-grid office-stats-grid--3">
+		<div class="office-stat-tile tone-teal">
+			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'wallet', 22 ); // phpcs:ignore ?></span>
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট আদায়', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo sojib68_money_html( $stats['total_collected'] ); // phpcs:ignore ?></span>
+		</div>
+		<div class="office-stat-tile tone-red">
+			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'receipt', 22 ); // phpcs:ignore ?></span>
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট খরচ', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo sojib68_money_html( $stats['total_expenses'] ); // phpcs:ignore ?></span>
+		</div>
+		<div class="office-stat-tile tone-green is-hero">
+			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'trending', 22 ); // phpcs:ignore ?></span>
+			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট প্রফিট', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__value"><?php echo sojib68_money_html( $stats['total_profit'] ); // phpcs:ignore ?></span>
+			<span class="office-stat-tile__sub"><?php echo esc_html( sprintf( /* translators: %s: deed count in Bangla digits */ __( '%s টি দলিল থেকে', 'sojib68' ), sojib68_bn_digits( $result['total'] ) ) ); ?></span>
+		</div>
+	</div>
+
+	<p class="deed-note">
+		<?php echo sojib68_office_icon( 'info', 18 ); // phpcs:ignore ?>
+		<span><?php esc_html_e( 'কোনো দলিলের প্রফিট ভুল মনে হলে "এডিট" চাপুন। পুরনো ডায়েরির দলিল হলে "এটি পুরাতন হিসাব"-এ টিক দিয়ে সাবমিট করুন — তখন সেটা এই তালিকা আর প্রফিট থেকে সরে যাবে, বকেয়া ঠিক থাকবে।', 'sojib68' ); ?></span>
+	</p>
+
+	<form method="get" action="<?php echo esc_url( $base ); ?>" class="dues-toolbar">
+		<div class="dues-toolbar__search">
+			<?php echo sojib68_office_icon( 'search', 18 ); // phpcs:ignore ?>
+			<input type="text" name="q" value="<?php echo esc_attr( $q ); ?>" placeholder="<?php esc_attr_e( 'নাম, মোবাইল বা দলিল নং দিয়ে খুঁজুন', 'sojib68' ); ?>">
+		</div>
+		<select name="sort" onchange="this.form.submit()">
+			<option value="profit_desc" <?php selected( $sort, 'profit_desc' ); ?>><?php esc_html_e( 'বেশি প্রফিট আগে', 'sojib68' ); ?></option>
+			<option value="newest" <?php selected( $sort, 'newest' ); ?>><?php esc_html_e( 'নতুন দলিল আগে', 'sojib68' ); ?></option>
+			<option value="oldest" <?php selected( $sort, 'oldest' ); ?>><?php esc_html_e( 'পুরোনো দলিল আগে', 'sojib68' ); ?></option>
+		</select>
+		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'খুঁজুন', 'sojib68' ); ?></button>
+	</form>
+
+	<?php if ( empty( $result['rows'] ) ) : ?>
+		<div class="deed-empty-state">
+			<?php echo sojib68_office_icon( 'check', 34 ); // phpcs:ignore ?>
+			<p><?php echo $q ? esc_html__( 'এই খোঁজে কোনো দলিল পাওয়া যায়নি।', 'sojib68' ) : esc_html__( 'এখনো কোনো দলিলে আদায় বা খরচ লেখা নেই।', 'sojib68' ); ?></p>
+		</div>
+	<?php else : ?>
+		<div class="deed-table-card">
+			<table class="deed-table profit-table">
+				<thead>
+					<tr>
+						<th><?php esc_html_e( 'ক্রমিক', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th>
+						<th><?php esc_html_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'মোট টাকা', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'আদায়', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'খরচ', 'sojib68' ); ?></th>
+						<th class="num"><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $result['rows'] as $row ) : ?>
+						<tr>
+							<td data-label="<?php esc_attr_e( 'ক্রমিক', 'sojib68' ); ?>"><?php echo esc_html( $row->serial_no ? sojib68_bn_digits( $row->serial_no ) : '—' ); ?></td>
+							<td data-label="<?php esc_attr_e( 'দলিল', 'sojib68' ); ?>">
+								<span class="deed-cell-main"><?php echo esc_html( $row->deed_no ? '#' . $row->deed_no : __( 'নং নেই', 'sojib68' ) ); ?></span>
+								<span class="deed-cell-sub"><?php echo esc_html( $row->reg_date ? $row->reg_date : ( $row->reg_year ? $row->reg_year : __( 'সাল অজানা', 'sojib68' ) ) ); ?><?php echo $row->deed_type ? ' · ' . esc_html( $row->deed_type ) : ''; ?></span>
+							</td>
+							<td data-label="<?php esc_attr_e( 'দাতা → গ্রহীতা', 'sojib68' ); ?>">
+								<span class="deed-party"><?php echo esc_html( implode( ', ', $row->donor_names ) ?: '—' ); ?></span>
+								<span class="deed-party-arrow" aria-hidden="true">→</span>
+								<span class="deed-party"><?php echo esc_html( implode( ', ', $row->grantee_names ) ?: '—' ); ?></span>
+							</td>
+							<td class="num" data-label="<?php esc_attr_e( 'মোট টাকা', 'sojib68' ); ?>"><span><?php echo sojib68_money_html( $row->client_total_due_poysha ); // phpcs:ignore ?></span></td>
+							<td class="num" data-label="<?php esc_attr_e( 'আদায়', 'sojib68' ); ?>"><span><?php echo sojib68_money_html( $row->received_poysha ); // phpcs:ignore ?></span></td>
+							<td class="num" data-label="<?php esc_attr_e( 'খরচ', 'sojib68' ); ?>"><span><?php echo sojib68_money_html( $row->spent_poysha ); // phpcs:ignore ?></span></td>
+							<td class="num" data-label="<?php esc_attr_e( 'প্রফিট', 'sojib68' ); ?>"><strong class="profit-cell <?php echo $row->profit_poysha < 0 ? 'is-loss' : ''; ?>"><?php echo sojib68_money_html( $row->profit_poysha ); // phpcs:ignore ?></strong></td>
+							<td class="act"><a href="<?php echo esc_url( add_query_arg( array( 'id' => $row->id, 'from' => 'profit' ), $edit ) ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'এডিট', 'sojib68' ); ?></a></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+		</div>
+
+		<?php if ( $result['total_pages'] > 1 ) : ?>
+			<nav class="deed-pagination" aria-label="<?php esc_attr_e( 'পাতা', 'sojib68' ); ?>">
+				<?php for ( $pg = 1; $pg <= $result['total_pages']; $pg++ ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( array( 'q' => $q, 'sort' => $sort, 'paged' => $pg ), $base ) ); ?>" class="<?php echo $pg === $result['paged'] ? 'is-active' : ''; ?>"><?php echo (int) $pg; ?></a>
+				<?php endfor; ?>
+			</nav>
+		<?php endif; ?>
+	<?php endif; ?>
 	<?php
 }
 

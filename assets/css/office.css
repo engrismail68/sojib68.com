@@ -728,3 +728,22 @@
 .deed-collect-toggle { margin-top: 12px; }
 .deed-collect-toggle > .deed-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .deed-collect-toggle .collect-panel { margin-top: 10px; }
+
+/* প্রফিট প্রিভিউ — eye button on the মোট প্রফিট tile + its page */
+.office-stat-tile__peek {
+	position: absolute; top: 14px; right: 14px; z-index: 2;
+	display: inline-flex; align-items: center; gap: 6px;
+	padding: 6px 12px; border-radius: 999px; text-decoration: none;
+	font-size: .8rem; font-weight: 700;
+	background: var(--tone-bg); color: var(--tone); border: 1px solid transparent;
+	transition: transform .15s, background .15s;
+}
+.office-stat-tile__peek:hover { transform: translateY(-1px); border-color: currentColor; }
+.office-stat-tile__peek:focus-visible { outline: 3px solid rgba(255, 255, 255, .6); outline-offset: 2px; }
+.office-stat-tile.is-hero .office-stat-tile__peek { background: rgba(255, 255, 255, .2); color: #fff; }
+.office-stat-tile.is-hero .office-stat-tile__peek:hover { background: rgba(255, 255, 255, .3); }
+.profit-back { margin: 0 0 14px; }
+.profit-back .deed-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.profit-table .profit-cell { font-family: 'Figtree', sans-serif; color: #14672b; }
+.profit-table .profit-cell.is-loss { color: #b3261e; }
+.deed-success-actions .btn { display: inline-flex; align-items: center; gap: 6px; }

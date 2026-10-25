@@ -922,6 +922,82 @@ function sojib68_office_dashboard_stats() {
 	);
 }
 
+/**
+ * Deeds behind the dashboard's মোট প্রফিট: every current-accounting deed
+ * (not পুরাতন হিসাব) with any আদায় or খরচ recorded, with its own figures,
+ * so a wrong entry can be spotted and opened for editing.
+ * $filters: q (name / mobile / deed no), sort: profit_desc | newest | oldest.
+ */
+function sojib68_profit_deeds( array $filters, $paged = 1, $per_page = 20 ) {
+	global $wpdb;
+
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$donors   = sojib68_deeds_table( 'deed_donors' );
+	$grantees = sojib68_deeds_table( 'deed_grantees' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+
+	$received_sql = "COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0)";
+	$spent_sql    = "COALESCE((SELECT SUM(e.amount_poysha) FROM $expenses e WHERE e.deed_id = d.id), 0)";
+
+	$where = array(
+		'd.deleted_at IS NULL',
+		'd.is_legacy = 0',
+		"($received_sql <> 0 OR $spent_sql <> 0)",
+	);
+	$args = array();
+
+	if ( ! empty( $filters['q'] ) ) {
+		$q    = trim( sojib68_bn_to_en_digits( $filters['q'] ) );
+		$like = '%' . $wpdb->esc_like( $q ) . '%';
+		$where[] = "(EXISTS (SELECT 1 FROM $donors dn WHERE dn.deed_id = d.id AND (dn.name LIKE %s OR dn.mobile LIKE %s))
+			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND (gr.name LIKE %s OR gr.mobile LIKE %s))
+			OR d.deed_no_normalized LIKE %s)";
+		array_push( $args, $like, $like, $like, $like, $like );
+	}
+
+	$where_sql = implode( ' AND ', $where );
+
+	switch ( $filters['sort'] ?? 'profit_desc' ) {
+		case 'newest':
+			$order = 'd.reg_date DESC, d.id DESC';
+			break;
+		case 'oldest':
+			$order = 'd.reg_date IS NULL, d.reg_date ASC, d.id ASC';
+			break;
+		default:
+			$order = "($received_sql - $spent_sql) DESC, d.id DESC";
+	}
+
+	$per_page = max( 1, (int) $per_page );
+	$paged    = max( 1, (int) $paged );
+	$offset   = ( $paged - 1 ) * $per_page;
+
+	$count_sql = "SELECT COUNT(*) FROM $deeds d WHERE $where_sql";
+	$total     = (int) ( $args ? $wpdb->get_var( $wpdb->prepare( $count_sql, $args ) ) : $wpdb->get_var( $count_sql ) );
+
+	$list_sql = "SELECT d.id, d.serial_no, d.deed_no, d.reg_date, d.reg_year, d.deed_type, d.client_total_due_poysha,
+			$received_sql AS received_poysha, $spent_sql AS spent_poysha
+		FROM $deeds d WHERE $where_sql ORDER BY $order LIMIT %d OFFSET %d";
+	$rows = $wpdb->get_results( $wpdb->prepare( $list_sql, array_merge( $args, array( $per_page, $offset ) ) ) );
+
+	foreach ( $rows as $row ) {
+		$row->received_poysha = (int) $row->received_poysha;
+		$row->spent_poysha    = (int) $row->spent_poysha;
+		$row->profit_poysha   = $row->received_poysha - $row->spent_poysha;
+		$row->donor_names     = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $donors WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+		$row->grantee_names   = array_values( array_filter( array_map( 'strval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT name FROM $grantees WHERE deed_id = %d AND name <> '' ORDER BY sort_order", $row->id ) ) ) ) );
+	}
+
+	return array(
+		'rows'        => $rows,
+		'total'       => $total,
+		'per_page'    => $per_page,
+		'paged'       => $paged,
+		'total_pages' => (int) ceil( $total / $per_page ),
+	);
+}
+
 /* ---------------------------------------------------------------------
  * Monthly / yearly report (ড্যাশবোর্ডের গ্রাফ)
  *

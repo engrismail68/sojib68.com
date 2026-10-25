@@ -360,9 +360,16 @@ function sojib68_office_menu_items() {
 
 function sojib68_office_render_dashboard( $page_key ) {
 	$menu = sojib68_office_menu_items();
-	if ( ! isset( $menu[ $page_key ] ) ) {
+
+	// Pages reached from inside another page, not from the sidebar; the
+	// sidebar keeps the parent page highlighted.
+	$hidden_pages = array(
+		'profit' => array( 'title' => __( 'প্রফিট প্রিভিউ', 'sojib68' ), 'parent' => 'dashboard' ),
+	);
+	if ( ! isset( $menu[ $page_key ] ) && ! isset( $hidden_pages[ $page_key ] ) ) {
 		$page_key = 'dashboard';
 	}
+	$active_key = isset( $hidden_pages[ $page_key ] ) ? $hidden_pages[ $page_key ]['parent'] : $page_key;
 
 	$user  = wp_get_current_user();
 	$icons = array( 'dashboard' => 'grid', 'entry-new' => 'plus', 'all-deeds' => 'list', 'dues' => 'clock', 'recycle-bin' => 'trash', 'export' => 'receipt' );
@@ -373,9 +380,10 @@ function sojib68_office_render_dashboard( $page_key ) {
 		'dues'         => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
 		'recycle-bin'  => __( 'মুছে ফেলা দলিল ৭ দিন পর্যন্ত এখানে থাকে, চাইলে ফিরিয়ে আনুন', 'sojib68' ),
 		'export'       => __( 'সব দলিল ও হিসাবের ডাউনলোডযোগ্য কপি রাখুন — শুধু প্রশাসকের জন্য', 'sojib68' ),
+		'profit'       => __( 'মোট প্রফিট কোন কোন দলিল থেকে এসেছে — ভুল থাকলে "এডিট" করে ঠিক করুন', 'sojib68' ),
 	);
 
-	$page_title = $menu[ $page_key ];
+	$page_title = isset( $menu[ $page_key ] ) ? $menu[ $page_key ] : $hidden_pages[ $page_key ]['title'];
 	if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) {
 		$page_title = __( 'দলিল সম্পাদনা', 'sojib68' );
 	}
@@ -411,7 +419,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 							<li>
 								<a
 									href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/' . ( 'dashboard' === $key ? '' : $key ) ) ); ?>"
-									class="<?php echo $page_key === $key ? 'is-active' : ''; ?>"
+									class="<?php echo $active_key === $key ? 'is-active' : ''; ?>"
 								>
 									<?php echo sojib68_office_icon( $icons[ $key ] ?? 'file', 19 ); // phpcs:ignore ?>
 									<span><?php echo esc_html( $label ); ?></span>
@@ -492,6 +500,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'dues':
 			ob_start();
 			sojib68_office_render_dues();
+			return ob_get_clean();
+
+		case 'profit':
+			ob_start();
+			sojib68_office_render_profit_preview();
 			return ob_get_clean();
 
 		case 'recycle-bin':
