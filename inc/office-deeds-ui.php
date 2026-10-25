@@ -669,13 +669,33 @@ function sojib68_office_render_all_deeds() {
 	$types   = sojib68_deed_types_list();
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
 
-	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status', 'incomplete' );
+	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
 	$advanced_active = count( array_intersect_key( $filters, array_flip( $advanced_keys ) ) );
 	$f               = function ( $key ) use ( $filters ) {
 		return isset( $filters[ $key ] ) ? $filters[ $key ] : '';
 	};
+
+	// Quick switch between all deeds and অসম্পূর্ণ ones, keeping any other filters.
+	$only_incomplete  = ! empty( $filters['incomplete'] );
+	$other_filters    = array_diff_key( $filters, array( 'incomplete' => 1 ) );
+	$all_count        = $only_incomplete ? (int) sojib68_deed_search( $other_filters, 1, 1 )['total'] : $result['total'];
+	$incomplete_count = $only_incomplete ? $result['total'] : (int) sojib68_deed_search( array_merge( $other_filters, array( 'incomplete' => '1' ) ), 1, 1 )['total'];
 	?>
+	<nav class="deed-quickfilter" aria-label="<?php esc_attr_e( 'দলিলের তালিকা', 'sojib68' ); ?>">
+		<a href="<?php echo esc_url( $other_filters ? add_query_arg( $other_filters, $base ) : $base ); ?>" class="<?php echo $only_incomplete ? '' : 'is-active'; ?>" <?php echo $only_incomplete ? '' : 'aria-current="page"'; ?>>
+			<?php echo sojib68_office_icon( 'list', 16 ); // phpcs:ignore ?>
+			<span><?php esc_html_e( 'সব দলিল', 'sojib68' ); ?></span>
+			<em><?php echo esc_html( sojib68_bn_digits( $all_count ) ); ?></em>
+		</a>
+		<a href="<?php echo esc_url( add_query_arg( array_merge( $other_filters, array( 'incomplete' => '1' ) ), $base ) ); ?>" class="is-incomplete <?php echo $only_incomplete ? 'is-active' : ''; ?>" <?php echo $only_incomplete ? 'aria-current="page"' : ''; ?>>
+			<?php echo sojib68_office_icon( 'info', 16 ); // phpcs:ignore ?>
+			<span><?php esc_html_e( 'অসম্পূর্ণ দলিল', 'sojib68' ); ?></span>
+			<em><?php echo esc_html( sojib68_bn_digits( $incomplete_count ) ); ?></em>
+		</a>
+	</nav>
+
 	<form method="get" action="<?php echo esc_url( $base ); ?>" class="deed-card deed-filter-card">
+		<?php if ( $only_incomplete ) : ?><input type="hidden" name="incomplete" value="1"><?php endif; ?>
 		<div class="deed-card__body">
 			<div class="deed-grid">
 				<div class="deed-field col-4"><label><?php esc_html_e( 'নাম (দাতা/গ্রহীতা)', 'sojib68' ); ?></label><input type="text" name="name" value="<?php echo esc_attr( $f( 'name' ) ); ?>" placeholder="<?php esc_attr_e( 'নাম বা নামের অংশ', 'sojib68' ); ?>"></div>
@@ -742,20 +762,13 @@ function sojib68_office_render_all_deeds() {
 							<?php endforeach; ?>
 						</select>
 					</div>
-					<div class="deed-field col-3 m-6">
-						<label><?php esc_html_e( 'তথ্যের অবস্থা', 'sojib68' ); ?></label>
-						<select name="incomplete">
-							<option value=""><?php esc_html_e( 'সব', 'sojib68' ); ?></option>
-							<option value="1" <?php selected( $f( 'incomplete' ), '1' ); ?>><?php esc_html_e( 'শুধু অসম্পূর্ণ দলিল', 'sojib68' ); ?></option>
-						</select>
-					</div>
 				</div>
 			</details>
 
 			<div class="deed-filter-actions">
 				<button type="submit" class="btn btn-primary"><?php echo sojib68_office_icon( 'search', 17 ); // phpcs:ignore ?> <?php esc_html_e( 'খুঁজুন', 'sojib68' ); ?></button>
-				<?php if ( ! empty( $filters ) ) : ?>
-					<a href="<?php echo esc_url( $base ); ?>" class="btn btn-outline"><?php esc_html_e( 'ফিল্টার মুছুন', 'sojib68' ); ?></a>
+				<?php if ( ! empty( $other_filters ) ) : ?>
+					<a href="<?php echo esc_url( $only_incomplete ? add_query_arg( 'incomplete', '1', $base ) : $base ); ?>" class="btn btn-outline"><?php esc_html_e( 'ফিল্টার মুছুন', 'sojib68' ); ?></a>
 				<?php endif; ?>
 			</div>
 		</div>

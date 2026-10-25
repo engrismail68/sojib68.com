@@ -793,3 +793,24 @@
 .deed-incomplete-alert svg { flex-shrink: 0; }
 .deed-incomplete-alert span:first-of-type { flex: 1; min-width: 0; }
 .deed-incomplete-alert__go { font-weight: 800; }
+
+/* সকল দলিল: always-visible সব / অসম্পূর্ণ switch */
+.deed-quickfilter { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 14px; }
+.deed-quickfilter a {
+	display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px;
+	border-radius: 999px; background: #fff; border: 1px solid var(--o-line); color: var(--o-body);
+	font-weight: 700; font-size: .92rem; text-decoration: none; transition: border-color .15s, background .15s;
+}
+.deed-quickfilter a:hover { border-color: var(--o-green); }
+.deed-quickfilter em {
+	font-style: normal; min-width: 26px; padding: 2px 8px; border-radius: 999px; text-align: center;
+	background: #eef3ee; color: var(--o-green-deep); font-size: .82rem;
+}
+.deed-quickfilter a.is-active { background: var(--o-green); border-color: var(--o-green); color: #fff; }
+.deed-quickfilter a.is-active em { background: rgba(255, 255, 255, .22); color: #fff; }
+.deed-quickfilter a.is-incomplete { color: #a8271f; border-color: #f3c7c1; }
+.deed-quickfilter a.is-incomplete em { background: #fdecea; color: #b3261e; }
+.deed-quickfilter a.is-incomplete:hover { border-color: #d64545; }
+.deed-quickfilter a.is-incomplete.is-active { background: #c0392b; border-color: #c0392b; color: #fff; }
+.deed-quickfilter a.is-incomplete.is-active em { background: rgba(255, 255, 255, .22); color: #fff; }
+@media (max-width: 480px) { .deed-quickfilter a { flex: 1; justify-content: center; } }
