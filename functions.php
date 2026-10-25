@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once get_theme_file_path( 'inc/github-sync.php' );
 require_once get_theme_file_path( 'inc/contact-form.php' );
+require_once get_theme_file_path( 'inc/about-page.php' );
 require_once get_theme_file_path( 'inc/office-db.php' );
 require_once get_theme_file_path( 'inc/office-deeds.php' );
 require_once get_theme_file_path( 'inc/office-deeds-ajax.php' );

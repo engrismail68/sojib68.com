@@ -126,6 +126,24 @@ $how_we_work = array(
 	</div>
 </section>
 
+<!-- তিন প্রজন্মের পথচলা (teaser → /about) -->
+<section class="gen-teaser" aria-labelledby="gen-teaser-title">
+	<div class="site-container gen-teaser__inner">
+		<div class="gen-teaser__text">
+			<p class="eyebrow"><?php esc_html_e( 'পারিবারিক পেশা', 'sojib68' ); ?></p>
+			<h2 id="gen-teaser-title"><?php esc_html_e( 'তিন প্রজন্মের পথচলা', 'sojib68' ); ?></h2>
+			<p><?php esc_html_e( '১৯৫০ সালে দাদা আলী আহাম্মদের হাত ধরে দলিল লেখার পেশায় আমাদের পরিবারের যাত্রা শুরু। বাবা কাজ করছেন ১৯৮১ সাল থেকে, আর আমি ২০২০ সাল থেকে তাঁর সহকারী হিসেবে যুক্ত।', 'sojib68' ); ?></p>
+			<a href="<?php echo esc_url( home_url( '/about/' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'আমার পরিচয় ও পেশাগত উত্তরাধিকার', 'sojib68' ); ?></a>
+		</div>
+		<div class="gen-teaser__years">
+			<p class="gen-teaser__line">
+				<span>১৯৫০</span><i aria-hidden="true">→</i><span>১৯৮১</span><i aria-hidden="true">→</i><span>২০২০</span>
+			</p>
+			<p class="gen-teaser__caption"><?php esc_html_e( 'তিন প্রজন্মের কাজ শুরুর বছর', 'sojib68' ); ?></p>
+		</div>
+	</div>
+</section>
+
 <!-- Services -->
 <section class="services" id="services">
 	<div class="site-container">
