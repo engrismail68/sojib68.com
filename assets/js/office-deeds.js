@@ -404,6 +404,93 @@
 		( actions.querySelector( 'a, button' ) || ok ).focus();
 	}
 
+	/* ---------------- দাতা/গ্রহীতার নাম missing: warn, but allow saving anyway ---------------- */
+
+	var forceSave = false;
+	var MISSING_TEXT = { donors: 'দাতার নাম লেখা হয়নি', grantees: 'গ্রহীতার নাম লেখা হয়নি' };
+
+	function missingGroups() {
+		return [ 'donors', 'grantees' ].filter( function ( group ) {
+			var filled = false;
+			form.querySelectorAll( '[data-required-name="' + group + '"]' ).forEach( function ( el ) {
+				if ( el.value.trim() ) { filled = true; }
+			} );
+			return ! filled;
+		} );
+	}
+
+	function markMissing( groups ) {
+		form.querySelectorAll( '[data-required-name]' ).forEach( function ( el ) {
+			el.classList.toggle( 'is-missing', groups.indexOf( el.getAttribute( 'data-required-name' ) ) !== -1 );
+		} );
+	}
+
+	form.addEventListener( 'input', function ( e ) {
+		if ( e.target.hasAttribute && e.target.hasAttribute( 'data-required-name' ) && e.target.value.trim() ) {
+			var group = e.target.getAttribute( 'data-required-name' );
+			form.querySelectorAll( '[data-required-name="' + group + '"]' ).forEach( function ( el ) { el.classList.remove( 'is-missing' ); } );
+		}
+	} );
+
+	function showMissingPopup( groups ) {
+		var old = document.getElementById( 'deed-done' );
+		if ( old ) { old.remove(); }
+
+		var overlay = document.createElement( 'div' );
+		overlay.className = 'deed-done deed-done--warn';
+		overlay.id = 'deed-done';
+		overlay.innerHTML =
+			'<div class="deed-done__box" role="alertdialog" aria-modal="true" aria-labelledby="deed-done-title">' +
+				'<span class="deed-done__tick" aria-hidden="true">!</span>' +
+				'<h2 id="deed-done-title">দলিলের তথ্য অসম্পূর্ণ</h2>' +
+				'<ul class="deed-done__list"></ul>' +
+				'<p class="deed-done__sub">নাম ছাড়া সংরক্ষণ করলে দলিলটি "অসম্পূর্ণ" হিসেবে চিহ্নিত থাকবে।</p>' +
+				'<div class="deed-done__actions">' +
+					'<button type="button" class="btn btn-primary" data-act="fix">ফিরে গিয়ে পূরণ করুন</button>' +
+					'<button type="button" class="btn btn-outline" data-act="save">তবুও সংরক্ষণ করুন</button>' +
+				'</div>' +
+			'</div>';
+		var list = overlay.querySelector( 'ul' );
+		groups.forEach( function ( g ) {
+			var li = document.createElement( 'li' );
+			li.textContent = MISSING_TEXT[ g ];
+			list.appendChild( li );
+		} );
+
+		function close() {
+			overlay.remove();
+			document.removeEventListener( 'keydown', onKey );
+		}
+		function fix() {
+			close();
+			var first = form.querySelector( '[data-required-name].is-missing' );
+			if ( first ) {
+				first.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+				first.focus( { preventScroll: true } );
+			}
+		}
+		function onKey( ev ) {
+			if ( 'Escape' === ev.key ) { fix(); }
+		}
+		overlay.querySelector( '[data-act="fix"]' ).addEventListener( 'click', fix );
+		overlay.querySelector( '[data-act="save"]' ).addEventListener( 'click', function () {
+			close();
+			forceSave = true;
+			if ( form.requestSubmit ) {
+				form.requestSubmit();
+			} else {
+				form.dispatchEvent( new Event( 'submit', { cancelable: true } ) );
+			}
+		} );
+		overlay.addEventListener( 'click', function ( ev ) {
+			if ( ev.target === overlay ) { fix(); }
+		} );
+		document.addEventListener( 'keydown', onKey );
+
+		document.body.appendChild( overlay );
+		overlay.querySelector( '[data-act="fix"]' ).focus();
+	}
+
 	// "সংরক্ষণ করে আরেকটি এন্ট্রি" reloads a blank form — show the popup there.
 	try {
 		var pending = sessionStorage.getItem( DONE_KEY );
@@ -415,6 +502,14 @@
 
 	form.addEventListener( 'submit', function ( e ) {
 		e.preventDefault();
+
+		var missing = missingGroups();
+		markMissing( missing );
+		if ( missing.length && ! forceSave ) {
+			showMissingPopup( missing );
+			return;
+		}
+		forceSave = false;
 
 		if ( noticeArea ) {
 			noticeArea.innerHTML = '';

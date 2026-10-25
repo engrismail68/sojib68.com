@@ -835,6 +835,10 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		$args[]  = $filters['original_status'];
 	}
 
+	if ( ! empty( $filters['incomplete'] ) ) {
+		$where[] = sojib68_deed_incomplete_sql( 'd' );
+	}
+
 	$where_sql = implode( ' AND ', $where );
 
 	$per_page = max( 1, (int) $per_page );
@@ -875,6 +879,24 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		'paged'      => $paged,
 		'total_pages' => (int) ceil( $total / $per_page ),
 	);
+}
+
+/**
+ * SQL condition for an অসম্পূর্ণ deed: no দাতা name or no গ্রহীতা name.
+ * $alias is the deeds table alias in the surrounding query.
+ */
+function sojib68_deed_incomplete_sql( $alias ) {
+	$donors   = sojib68_deeds_table( 'deed_donors' );
+	$grantees = sojib68_deeds_table( 'deed_grantees' );
+	return "(NOT EXISTS (SELECT 1 FROM $donors dn2 WHERE dn2.deed_id = $alias.id AND dn2.name IS NOT NULL AND dn2.name <> '')
+		OR NOT EXISTS (SELECT 1 FROM $grantees gr2 WHERE gr2.deed_id = $alias.id AND gr2.name IS NOT NULL AND gr2.name <> ''))";
+}
+
+/** How many saved deeds are অসম্পূর্ণ (missing a দাতা or গ্রহীতা name). */
+function sojib68_deeds_incomplete_count() {
+	global $wpdb;
+	$deeds = sojib68_deeds_table( 'deeds' );
+	return (int) $wpdb->get_var( "SELECT COUNT(*) FROM $deeds d WHERE d.deleted_at IS NULL AND " . sojib68_deed_incomplete_sql( 'd' ) );
 }
 
 /* ---------------------------------------------------------------------

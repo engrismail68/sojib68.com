@@ -185,6 +185,15 @@ function sojib68_office_render_dashboard_home() {
 		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' ) ); ?>" class="btn btn-outline"><?php echo sojib68_office_icon( 'clock', 17 ); // phpcs:ignore ?> <?php esc_html_e( 'বকেয়া আদায় পেজে যান', 'sojib68' ); ?></a>
 	</p>
 
+	<?php $incomplete = sojib68_deeds_incomplete_count(); ?>
+	<?php if ( $incomplete > 0 ) : ?>
+		<a class="deed-incomplete-alert" href="<?php echo esc_url( add_query_arg( 'incomplete', '1', home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' ) ) ); ?>">
+			<?php echo sojib68_office_icon( 'info', 20 ); // phpcs:ignore ?>
+			<span><strong><?php echo esc_html( sprintf( /* translators: %s: count in Bangla digits */ __( '%s টি দলিল অসম্পূর্ণ', 'sojib68' ), sojib68_bn_digits( $incomplete ) ) ); ?></strong> — <?php esc_html_e( 'দাতা বা গ্রহীতার নাম নেই। দেখে পূরণ করুন', 'sojib68' ); ?></span>
+			<span class="deed-incomplete-alert__go" aria-hidden="true">→</span>
+		</a>
+	<?php endif; ?>
+
 	<?php
 	$original_counts = sojib68_office_original_status_counts();
 	$all_deeds_base  = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
@@ -530,7 +539,7 @@ function sojib68_office_render_entry_form() {
 				<div class="deed-tips">
 					<h3><?php echo sojib68_office_icon( 'info', 17 ); // phpcs:ignore ?> <?php esc_html_e( 'টিপস', 'sojib68' ); ?></h3>
 					<ul>
-						<li><?php esc_html_e( 'সব ঘর ঐচ্ছিক — যতটুকু জানেন ততটুকুই লিখুন।', 'sojib68' ); ?></li>
+						<li><?php esc_html_e( 'দাতা ও গ্রহীতার নাম (লাল * চিহ্ন) অবশ্যই লিখুন — বাকি ঘর যতটুকু জানেন ততটুকুই।', 'sojib68' ); ?></li>
 						<li><?php esc_html_e( 'সংখ্যা বাংলা বা ইংরেজি — যেকোনোভাবে লেখা যাবে।', 'sojib68' ); ?></li>
 						<li><?php esc_html_e( 'ভুল করে যোগ হওয়া সারি "মুছুন" বাটনে সরিয়ে দিন।', 'sojib68' ); ?></li>
 					</ul>
@@ -587,8 +596,8 @@ function sojib68_render_person_row( $group, $i, $row ) {
 		<?php sojib68_row_head( $label ); ?>
 		<div class="deed-grid">
 			<div class="deed-field col-4">
-				<label><?php echo $is_donor ? esc_html__( 'দাতার নাম', 'sojib68' ) : esc_html__( 'গ্রহীতার নাম', 'sojib68' ); ?></label>
-				<input type="text" name="<?php echo $prefix; // phpcs:ignore ?>[name]" value="<?php echo esc_attr( $row->name ?? '' ); ?>">
+				<label><?php echo $is_donor ? esc_html__( 'দাতার নাম', 'sojib68' ) : esc_html__( 'গ্রহীতার নাম', 'sojib68' ); ?> <span class="deed-req" title="<?php esc_attr_e( 'জরুরি', 'sojib68' ); ?>">*</span></label>
+				<input type="text" data-required-name="<?php echo esc_attr( $group ); ?>" name="<?php echo $prefix; // phpcs:ignore ?>[name]" value="<?php echo esc_attr( $row->name ?? '' ); ?>">
 			</div>
 			<div class="deed-field col-3">
 				<label><?php esc_html_e( 'মোবাইল নং', 'sojib68' ); ?></label>
@@ -640,7 +649,7 @@ function sojib68_render_land_row( $i, $row ) {
  * ------------------------------------------------------------------ */
 
 function sojib68_office_collect_filters() {
-	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
+	$keys    = array( 'name', 'mobile', 'address', 'deed_no', 'deed_type', 'office', 'reg_year', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status', 'incomplete' );
 	$filters = array();
 	foreach ( $keys as $key ) {
 		$val = isset( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( $_GET[ $key ] ) ) : '';
@@ -660,7 +669,7 @@ function sojib68_office_render_all_deeds() {
 	$types   = sojib68_deed_types_list();
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/all-deeds' );
 
-	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status' );
+	$advanced_keys   = array( 'address', 'deed_type', 'office', 'date_from', 'date_to', 'mouza', 'khatian_no', 'land_unit', 'value_min', 'value_max', 'has_due', 'original_status', 'incomplete' );
 	$advanced_active = count( array_intersect_key( $filters, array_flip( $advanced_keys ) ) );
 	$f               = function ( $key ) use ( $filters ) {
 		return isset( $filters[ $key ] ) ? $filters[ $key ] : '';
@@ -733,6 +742,13 @@ function sojib68_office_render_all_deeds() {
 							<?php endforeach; ?>
 						</select>
 					</div>
+					<div class="deed-field col-3 m-6">
+						<label><?php esc_html_e( 'তথ্যের অবস্থা', 'sojib68' ); ?></label>
+						<select name="incomplete">
+							<option value=""><?php esc_html_e( 'সব', 'sojib68' ); ?></option>
+							<option value="1" <?php selected( $f( 'incomplete' ), '1' ); ?>><?php esc_html_e( 'শুধু অসম্পূর্ণ দলিল', 'sojib68' ); ?></option>
+						</select>
+					</div>
 				</div>
 			</details>
 
@@ -789,6 +805,9 @@ function sojib68_office_render_all_deeds() {
 									<span class="deed-party"><?php echo esc_html( implode( ', ', $row->grantee_names ) ?: '—' ); ?></span>
 								<?php else : ?>
 									<span class="deed-cell-sub">—</span>
+								<?php endif; ?>
+								<?php if ( empty( $row->donor_names ) || empty( $row->grantee_names ) ) : ?>
+									<a class="deed-chip deed-chip--incomplete" href="<?php echo esc_url( add_query_arg( 'id', $row->id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>" title="<?php esc_attr_e( 'দাতা বা গ্রহীতার নাম নেই — পূরণ করুন', 'sojib68' ); ?>"><?php esc_html_e( 'অসম্পূর্ণ', 'sojib68' ); ?></a>
 								<?php endif; ?>
 							</td>
 							<td data-label="<?php esc_attr_e( 'ধরন ও অফিস', 'sojib68' ); ?>">
