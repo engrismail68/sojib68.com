@@ -24,6 +24,7 @@ function sojib68_office_export_tables() {
 		'deed_audit'        => __( 'অডিট লগ', 'sojib68' ),
 		'offices'           => __( 'সাব-রেজিস্ট্রেশন অফিসের তালিকা', 'sojib68' ),
 		'deed_types'        => __( 'দলিলের ধরনের তালিকা', 'sojib68' ),
+		'deed_writers'      => __( 'লেখকের তালিকা', 'sojib68' ),
 	);
 }
 
@@ -281,7 +282,7 @@ function sojib68_office_stream_summary_csv() {
 		'ক্রমিক', 'দলিল নং', 'রেজিস্ট্রেশন তারিখ', 'সাল', 'অফিস', 'ধরন',
 		'দাতা', 'গ্রহীতা', 'জমি (মৌজা)', 'দলিলের মূল্য (টাকা)',
 		'মোট প্রাপ্য (টাকা)', 'আদায় (টাকা)', 'বাকি (টাকা)', 'মোট খরচ (টাকা)', 'প্রফিট (টাকা)',
-		'মূল দলিলের অবস্থা', 'মন্তব্য',
+		'মূল দলিলের অবস্থা', 'লেখকের নাম', 'মন্তব্য',
 	) );
 
 	$result = sojib68_deed_search( array(), 1, 1000000 );
@@ -310,6 +311,7 @@ function sojib68_office_stream_summary_csv() {
 			sojib68_poysha_to_display( $expenses_total ),
 			null !== $profit ? sojib68_poysha_to_display( $profit ) : '',
 			isset( $status_labels[ $row->original_status ] ) ? $status_labels[ $row->original_status ] : '',
+			(string) $row->writer_name,
 			(string) $row->notes,
 		) );
 	}

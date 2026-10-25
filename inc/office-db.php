@@ -18,7 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_DEEDS_DB_VERSION', '1.4.0' ); // 1.4.0: + deeds.is_legacy (পুরাতন হিসাব) and undo of the removed bulk-marking page; 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
+define( 'SOJIB68_DEEDS_DB_VERSION', '1.5.0' ); // 1.5.0: + deeds.writer_name and deed_writers (লেখকের নাম); 1.4.0: + deeds.is_legacy (পুরাতন হিসাব) and undo of the removed bulk-marking page; 1.2.0: + deeds.original_status/_received_date/_delivered_* (মূল দলিলের অবস্থা)
+
+/** লেখক (deed writer) pre-selected on every new deed entry. */
+define( 'SOJIB68_DEFAULT_DEED_WRITER', 'মোঃ নুরুল ইসলাম' );
 
 function sojib68_deeds_table( $name ) {
 	global $wpdb;
@@ -38,6 +41,7 @@ function sojib68_deeds_install() {
 	$expense = sojib68_deeds_table( 'deed_expenses' );
 	$offices = sojib68_deeds_table( 'offices' );
 	$types   = sojib68_deeds_table( 'deed_types' );
+	$writers = sojib68_deeds_table( 'deed_writers' );
 	$tokens  = sojib68_deeds_table( 'submission_tokens' );
 	$audit   = sojib68_deeds_table( 'deed_audit' );
 
@@ -64,6 +68,7 @@ function sojib68_deeds_install() {
 		original_delivered_to varchar(190) DEFAULT NULL,
 		original_delivered_mobile varchar(30) DEFAULT NULL,
 		original_delivered_note text,
+		writer_name varchar(190) DEFAULT NULL,
 		notes text,
 		created_by bigint(20) unsigned DEFAULT NULL,
 		created_at datetime NOT NULL,
@@ -161,6 +166,14 @@ function sojib68_deeds_install() {
 		UNIQUE KEY name (name)
 	) $charset_collate;";
 
+	$sql[] = "CREATE TABLE $writers (
+		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		name varchar(190) NOT NULL,
+		created_at datetime NOT NULL,
+		PRIMARY KEY  (id),
+		UNIQUE KEY name (name)
+	) $charset_collate;";
+
 	$sql[] = "CREATE TABLE $tokens (
 		token varchar(64) NOT NULL,
 		deed_id bigint(20) unsigned NOT NULL,
@@ -205,6 +218,14 @@ function sojib68_deeds_seed_defaults() {
 	if ( ! $existing ) {
 		$wpdb->insert( $offices, array(
 			'name'       => $default_office,
+			'created_at' => current_time( 'mysql' ),
+		) );
+	}
+
+	$writers = sojib68_deeds_table( 'deed_writers' );
+	if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $writers WHERE name = %s", SOJIB68_DEFAULT_DEED_WRITER ) ) ) {
+		$wpdb->insert( $writers, array(
+			'name'       => SOJIB68_DEFAULT_DEED_WRITER,
 			'created_at' => current_time( 'mysql' ),
 		) );
 	}

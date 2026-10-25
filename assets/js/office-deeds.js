@@ -193,20 +193,27 @@
 	setTimeout( resync, 300 );
 	setInterval( resync, 700 );
 
-	/* ---------------- Add custom office / deed type (AJAX, form data preserved) ---------------- */
+	/* ---------------- Add custom office / deed type / writer (AJAX, form data preserved) ---------------- */
+
+	var LISTS = {
+		office: { add: 'sojib68_add_office', del: 'sojib68_delete_office', select: 'f-office', prompt: 'নতুন অফিসের নাম লিখুন' },
+		deed_type: { add: 'sojib68_add_deed_type', del: 'sojib68_delete_deed_type', select: 'f-deed-type', prompt: 'নতুন দলিলের ধরনের নাম লিখুন' },
+		writer: { add: 'sojib68_add_writer', del: 'sojib68_delete_writer', select: 'f-writer', prompt: 'নতুন লেখকের নাম লিখুন' }
+	};
 
 	form.querySelectorAll( '[data-add]' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
-			var kind = btn.getAttribute( 'data-add' ); // 'office' or 'deed_type'
-			var label = 'office' === kind ? 'নতুন অফিসের নাম লিখুন' : 'নতুন দলিলের ধরনের নাম লিখুন';
-			var name = window.prompt( label, '' );
+			var list = LISTS[ btn.getAttribute( 'data-add' ) ];
+			if ( ! list ) {
+				return;
+			}
+			var name = window.prompt( list.prompt, '' );
 			if ( ! name || ! name.trim() ) {
 				return;
 			}
 
-			var action = 'office' === kind ? 'sojib68_add_office' : 'sojib68_add_deed_type';
-			var selectId = 'office' === kind ? 'f-office' : 'f-deed-type';
-			var select = document.getElementById( selectId );
+			var action = list.add;
+			var select = document.getElementById( list.select );
 
 			var fd = new FormData();
 			fd.append( 'action', action );
@@ -236,7 +243,7 @@
 
 	form.querySelectorAll( '[data-delete]' ).forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
-			var kind = btn.getAttribute( 'data-delete' ); // 'office' or 'deed_type'
+			var list = LISTS[ btn.getAttribute( 'data-delete' ) ];
 			var select = document.getElementById( btn.getAttribute( 'data-select' ) );
 			if ( ! select || ! select.value ) {
 				window.alert( 'আগে dropdown থেকে যেটা মুছতে চান সেটা নির্বাচন করুন।' );
@@ -247,7 +254,10 @@
 				return;
 			}
 
-			var action = 'office' === kind ? 'sojib68_delete_office' : 'sojib68_delete_deed_type';
+			var action = list ? list.del : '';
+			if ( ! action ) {
+				return;
+			}
 			var fd = new FormData();
 			fd.append( 'action', action );
 			fd.append( 'nonce', form.querySelector( '[name="nonce"]' ).value );

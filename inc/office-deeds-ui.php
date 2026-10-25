@@ -474,7 +474,30 @@ function sojib68_office_render_entry_form() {
 					<?php endif; ?>
 				<?php sojib68_deed_card_close(); ?>
 
-				<?php sojib68_deed_card_open( 'gray', 'note', __( 'অন্যান্য', 'sojib68' ) ); ?>
+				<?php
+				sojib68_deed_card_open( 'gray', 'note', __( 'অন্যান্য', 'sojib68' ) );
+				$writers         = sojib68_deed_writers_list();
+				$selected_writer = $deed ? (string) $deed->writer_name : SOJIB68_DEFAULT_DEED_WRITER;
+				$writer_names    = wp_list_pluck( $writers, 'name' );
+				?>
+					<div class="deed-field deed-field--writer">
+						<div class="deed-field__head">
+							<label for="f-writer"><?php esc_html_e( 'লেখকের নাম', 'sojib68' ); ?></label>
+							<span class="deed-field__tools">
+								<button type="button" class="deed-link" data-add="writer"><?php esc_html_e( '+ নতুন', 'sojib68' ); ?></button>
+								<button type="button" class="deed-link deed-link--danger" data-delete="writer" data-select="f-writer"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
+							</span>
+						</div>
+						<select id="f-writer" name="writer_name">
+							<option value=""><?php esc_html_e( '— ফাঁকা (অজানা) —', 'sojib68' ); ?></option>
+							<?php foreach ( $writers as $writer ) : ?>
+								<option value="<?php echo esc_attr( $writer->name ); ?>" <?php selected( $selected_writer, $writer->name ); ?>><?php echo esc_html( $writer->name ); ?></option>
+							<?php endforeach; ?>
+							<?php if ( '' !== $selected_writer && ! in_array( $selected_writer, $writer_names, true ) ) : // removed from the list later — keep this deed's own value. ?>
+								<option value="<?php echo esc_attr( $selected_writer ); ?>" selected><?php echo esc_html( $selected_writer ); ?></option>
+							<?php endif; ?>
+						</select>
+					</div>
 					<div class="deed-field">
 						<label for="f-notes"><?php esc_html_e( 'সাধারণ মন্তব্য', 'sojib68' ); ?></label>
 						<textarea id="f-notes" name="notes" rows="3"><?php echo esc_textarea( $deed ? $deed->notes : '' ); ?></textarea>
@@ -1308,6 +1331,9 @@ function sojib68_office_render_print( $deed_id ) {
 					<tr><th><?php esc_html_e( 'দলিলের ধরন', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->deed_type ?: '—' ); ?></td></tr>
 					<tr><th><?php esc_html_e( 'রেজিস্ট্রেশনের তারিখ', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->reg_date ? $deed->reg_date : ( $deed->reg_year ? $deed->reg_year : '—' ) ); ?></td></tr>
 					<tr><th><?php esc_html_e( 'দলিলের মূল্য', 'sojib68' ); ?></th><td><?php echo sojib68_money_html( $deed->deed_value_poysha ); // phpcs:ignore ?></td></tr>
+					<?php if ( ! empty( $deed->writer_name ) ) : ?>
+						<tr><th><?php esc_html_e( 'লেখকের নাম', 'sojib68' ); ?></th><td><?php echo esc_html( $deed->writer_name ); ?></td></tr>
+					<?php endif; ?>
 				</table>
 			</section>
 

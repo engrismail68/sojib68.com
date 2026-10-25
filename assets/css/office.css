@@ -747,3 +747,4 @@
 .profit-table .profit-cell { font-family: 'Figtree', sans-serif; color: #14672b; }
 .profit-table .profit-cell.is-loss { color: #b3261e; }
 .deed-success-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
+.deed-field--writer { max-width: 520px; margin-bottom: 16px; }

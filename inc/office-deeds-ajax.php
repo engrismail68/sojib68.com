@@ -111,6 +111,7 @@ function sojib68_deed_collect_post_data() {
 		'original_delivered_to'    => sanitize_text_field( $text( 'original_delivered_to' ) ),
 		'original_delivered_mobile' => sanitize_text_field( $text( 'original_delivered_mobile' ) ),
 		'original_delivered_note'  => sanitize_textarea_field( $text( 'original_delivered_note' ) ),
+		'writer_name'         => sanitize_text_field( $text( 'writer_name' ) ),
 		'notes'               => sanitize_textarea_field( $text( 'notes' ) ),
 		'donors'              => $rows( 'donors', array( 'name', 'address', 'mobile' ) ),
 		'grantees'            => $rows( 'grantees', array( 'name', 'address', 'mobile' ) ),
@@ -145,6 +146,32 @@ function sojib68_ajax_add_deed_type() {
 
 	$saved = sojib68_deed_type_add_custom( $name );
 	wp_send_json_success( array( 'name' => $saved ) );
+}
+
+add_action( 'wp_ajax_sojib68_add_writer', 'sojib68_ajax_add_writer' );
+function sojib68_ajax_add_writer() {
+	sojib68_deeds_ajax_guard();
+
+	$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	if ( '' === $name ) {
+		wp_send_json_error( array( 'message' => __( 'লেখকের নাম লিখুন।', 'sojib68' ) ) );
+	}
+
+	$saved = sojib68_deed_writer_add_custom( $name );
+	wp_send_json_success( array( 'name' => $saved ) );
+}
+
+add_action( 'wp_ajax_sojib68_delete_writer', 'sojib68_ajax_delete_writer' );
+function sojib68_ajax_delete_writer() {
+	sojib68_deeds_ajax_guard();
+
+	$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+	if ( '' === $name ) {
+		wp_send_json_error( array( 'message' => __( 'কোনো লেখক নির্বাচিত নেই।', 'sojib68' ) ) );
+	}
+
+	sojib68_deed_writer_delete_custom( $name );
+	wp_send_json_success();
 }
 
 add_action( 'wp_ajax_sojib68_delete_office', 'sojib68_ajax_delete_office' );

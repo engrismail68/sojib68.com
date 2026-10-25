@@ -94,6 +94,37 @@ function sojib68_deed_types_list() {
 	return $wpdb->get_results( "SELECT id, name FROM $table ORDER BY name ASC" );
 }
 
+function sojib68_deed_writers_list() {
+	global $wpdb;
+	$table = sojib68_deeds_table( 'deed_writers' );
+	return $wpdb->get_results( "SELECT id, name FROM $table ORDER BY name ASC" );
+}
+
+function sojib68_deed_writer_add_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'deed_writers' );
+	$wpdb->query( $wpdb->prepare(
+		"INSERT IGNORE INTO $table (name, created_at) VALUES (%s, %s)",
+		$name,
+		current_time( 'mysql' )
+	) );
+	return $name;
+}
+
+function sojib68_deed_writer_delete_custom( $name ) {
+	global $wpdb;
+	$name = trim( (string) $name );
+	if ( '' === $name ) {
+		return false;
+	}
+	$table = sojib68_deeds_table( 'deed_writers' );
+	return false !== $wpdb->query( $wpdb->prepare( "DELETE FROM $table WHERE name = %s", $name ) );
+}
+
 function sojib68_office_add_custom( $name ) {
 	global $wpdb;
 	$name = trim( (string) $name );
@@ -289,6 +320,7 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 		'original_delivered_to'    => ! empty( $data['original_delivered_to'] ) ? trim( (string) $data['original_delivered_to'] ) : null,
 		'original_delivered_mobile' => ! empty( $data['original_delivered_mobile'] ) ? trim( (string) $data['original_delivered_mobile'] ) : null,
 		'original_delivered_note'  => isset( $data['original_delivered_note'] ) ? trim( (string) $data['original_delivered_note'] ) : null,
+		'writer_name'              => ! empty( $data['writer_name'] ) ? trim( (string) $data['writer_name'] ) : null,
 		'notes'                    => isset( $data['notes'] ) ? trim( $data['notes'] ) : null,
 		'updated_by'               => $user_id,
 		'updated_at'               => $now,
