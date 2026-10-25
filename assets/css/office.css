@@ -748,3 +748,30 @@
 .profit-table .profit-cell.is-loss { color: #b3261e; }
 .deed-success-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
 .deed-field--writer { max-width: 520px; margin-bottom: 16px; }
+
+/* "এন্ট্রি সম্পূর্ণ হয়েছে" popup after saving a deed */
+.deed-done {
+	position: fixed; inset: 0; z-index: 1000;
+	display: grid; place-items: center; padding: 16px;
+	background: rgba(3, 39, 55, .45);
+	animation: deed-done-fade .18s ease-out;
+}
+.deed-done__box {
+	width: 100%; max-width: 480px; padding: 30px 26px 24px; border-radius: 18px;
+	background: #fff; text-align: center; box-shadow: 0 24px 60px rgba(3, 39, 55, .25);
+	animation: deed-done-pop .22s cubic-bezier(.2, .9, .3, 1.2);
+}
+.deed-done__tick {
+	display: inline-grid; place-items: center; width: 68px; height: 68px; margin-bottom: 14px;
+	border-radius: 50%; background: #e4f3e7; color: var(--o-green);
+	box-shadow: 0 0 0 8px #f1f8f2;
+}
+.deed-done__box h2 { margin: 0 0 6px; font-size: 1.25rem; color: var(--o-green-deep); }
+.deed-done__sub { margin: 0; font-size: .92rem; color: var(--o-muted); }
+.deed-done__warn { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff6dd; color: #7a5600; font-size: .84rem; text-align: left; }
+.deed-done__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
+.deed-done__actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+@media (max-width: 480px) { .deed-done__actions .btn { width: 100%; } }
+@keyframes deed-done-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes deed-done-pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .deed-done, .deed-done__box { animation: none; } }

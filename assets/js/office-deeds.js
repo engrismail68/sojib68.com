@@ -347,6 +347,72 @@
 		noticeArea.appendChild( div );
 	}
 
+	/* ---------------- "এন্ট্রি সম্পূর্ণ হয়েছে" popup ---------------- */
+
+	var DONE_KEY = 'sojib68_deed_done';
+
+	function showDonePopup( info, withLinks ) {
+		var old = document.getElementById( 'deed-done' );
+		if ( old ) { old.remove(); }
+
+		var overlay = document.createElement( 'div' );
+		overlay.className = 'deed-done';
+		overlay.id = 'deed-done';
+		overlay.innerHTML =
+			'<div class="deed-done__box" role="dialog" aria-modal="true" aria-labelledby="deed-done-title">' +
+				'<span class="deed-done__tick" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>' +
+				'<h2 id="deed-done-title"></h2>' +
+				'<p class="deed-done__sub"></p>' +
+				'<p class="deed-done__warn" hidden></p>' +
+				'<div class="deed-done__actions"></div>' +
+			'</div>';
+
+		overlay.querySelector( 'h2' ).textContent = info.isNew ? 'দলিল এন্ট্রি সম্পূর্ণ হয়েছে' : 'দলিল আপডেট সম্পূর্ণ হয়েছে';
+		overlay.querySelector( '.deed-done__sub' ).textContent = info.serial ? 'ক্রমিক নং ' + info.serial : 'সব তথ্য সংরক্ষিত হয়েছে';
+		if ( info.warning ) {
+			var warn = overlay.querySelector( '.deed-done__warn' );
+			warn.textContent = info.warning;
+			warn.hidden = false;
+		}
+
+		var actions = overlay.querySelector( '.deed-done__actions' );
+		if ( withLinks && successActions ) {
+			successActions.querySelectorAll( 'a' ).forEach( function ( a ) {
+				actions.appendChild( a.cloneNode( true ) );
+			} );
+		}
+		var ok = document.createElement( 'button' );
+		ok.type = 'button';
+		ok.className = 'btn ' + ( actions.children.length ? 'btn-outline' : 'btn-primary' );
+		ok.textContent = 'ঠিক আছে';
+		actions.appendChild( ok );
+
+		function close() {
+			overlay.remove();
+			document.removeEventListener( 'keydown', onKey );
+		}
+		function onKey( ev ) {
+			if ( 'Escape' === ev.key ) { close(); }
+		}
+		ok.addEventListener( 'click', close );
+		overlay.addEventListener( 'click', function ( ev ) {
+			if ( ev.target === overlay ) { close(); }
+		} );
+		document.addEventListener( 'keydown', onKey );
+
+		document.body.appendChild( overlay );
+		( actions.querySelector( 'a, button' ) || ok ).focus();
+	}
+
+	// "সংরক্ষণ করে আরেকটি এন্ট্রি" reloads a blank form — show the popup there.
+	try {
+		var pending = sessionStorage.getItem( DONE_KEY );
+		if ( pending ) {
+			sessionStorage.removeItem( DONE_KEY );
+			showDonePopup( JSON.parse( pending ), false );
+		}
+	} catch ( err ) { /* storage unavailable — the notice area still shows the message */ }
+
 	form.addEventListener( 'submit', function ( e ) {
 		e.preventDefault();
 
@@ -367,7 +433,14 @@
 						showNotice( 'warning', res.data.duplicate_warning );
 					}
 
+					var info = {
+						isNew: false !== res.data.is_new,
+						serial: res.data.serial || '',
+						warning: res.data.duplicate_warning || ''
+					};
+
 					if ( 'submit-and-new' === lastClickedAction ) {
+						try { sessionStorage.setItem( DONE_KEY, JSON.stringify( info ) ); } catch ( err ) { /* ignore */ }
 						window.location = baseUrl + 'entry-new';
 						return;
 					}
@@ -376,6 +449,7 @@
 					if ( successActions ) { successActions.hidden = false; }
 					var deedIdField = form.querySelector( '[name="deed_id"]' );
 					if ( deedIdField ) { deedIdField.value = res.data.deed_id; }
+					showDonePopup( info, true );
 				} else {
 					showNotice( 'error', res.data && res.data.message ? res.data.message : 'সংরক্ষণ করা যায়নি।' );
 					submitButtons.forEach( function ( b ) { b.disabled = false; } );

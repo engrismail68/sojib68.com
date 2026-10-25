@@ -58,8 +58,13 @@ function sojib68_ajax_save_deed() {
 		$saved_id
 	);
 
+	global $wpdb;
+	$serial = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT serial_no FROM ' . sojib68_deeds_table( 'deeds' ) . ' WHERE id = %d', $saved_id ) );
+
 	wp_send_json_success( array(
 		'deed_id'  => $saved_id,
+		'serial'   => $serial ? sojib68_bn_digits( $serial ) : '',
+		'is_new'   => ! $deed_id,
 		'message'  => $deed_id ? __( 'দলিল আপডেট হয়েছে।', 'sojib68' ) : __( 'দলিল সংরক্ষণ হয়েছে।', 'sojib68' ),
 		'duplicate_warning' => $dup ? sprintf(
 			/* translators: %s: deed number */
