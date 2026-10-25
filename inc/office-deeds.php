@@ -776,9 +776,14 @@ function sojib68_deed_search( array $filters, $paged = 1, $per_page = 20 ) {
 		$args[]  = $filters['office'];
 	}
 
+	// সাল: a deed matches by its own সাল box or by the year of its
+	// রেজিস্ট্রেশনের তারিখ — most deeds have only one of the two filled in.
 	if ( ! empty( $filters['reg_year'] ) ) {
-		$where[] = 'd.reg_year = %d';
-		$args[]  = (int) sojib68_bn_to_en_digits( $filters['reg_year'] );
+		$year    = (int) preg_replace( '/[^0-9]/', '', sojib68_bn_to_en_digits( $filters['reg_year'] ) );
+		$where[] = '(d.reg_year = %d OR (d.reg_date >= %s AND d.reg_date <= %s))';
+		$args[]  = $year;
+		$args[]  = sprintf( '%04d-01-01', $year );
+		$args[]  = sprintf( '%04d-12-31', $year );
 	}
 
 	if ( ! empty( $filters['date_from'] ) ) {

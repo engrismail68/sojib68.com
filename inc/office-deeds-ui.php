@@ -701,7 +701,7 @@ function sojib68_office_render_all_deeds() {
 				<div class="deed-field col-4"><label><?php esc_html_e( 'নাম (দাতা/গ্রহীতা)', 'sojib68' ); ?></label><input type="text" name="name" value="<?php echo esc_attr( $f( 'name' ) ); ?>" placeholder="<?php esc_attr_e( 'নাম বা নামের অংশ', 'sojib68' ); ?>"></div>
 				<div class="deed-field col-3"><label><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></label><input type="text" inputmode="tel" name="mobile" value="<?php echo esc_attr( $f( 'mobile' ) ); ?>"></div>
 				<div class="deed-field col-3"><label><?php esc_html_e( 'দলিল নং', 'sojib68' ); ?></label><input type="text" name="deed_no" value="<?php echo esc_attr( $f( 'deed_no' ) ); ?>"></div>
-				<div class="deed-field col-2"><label><?php esc_html_e( 'সাল', 'sojib68' ); ?></label><input type="text" inputmode="numeric" name="reg_year" value="<?php echo esc_attr( $f( 'reg_year' ) ); ?>"></div>
+				<div class="deed-field col-2"><label><?php esc_html_e( 'সাল', 'sojib68' ); ?></label><input type="text" inputmode="numeric" name="reg_year" value="<?php echo esc_attr( $f( 'reg_year' ) ); ?>" placeholder="<?php esc_attr_e( 'যেমন ২০২৪', 'sojib68' ); ?>"></div>
 			</div>
 
 			<details class="deed-more" <?php echo $advanced_active ? 'open' : ''; ?>>
