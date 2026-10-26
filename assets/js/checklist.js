@@ -25,7 +25,7 @@
 	var boxes = [];
 	var typesEl = modal.querySelector( '[data-ck-types]' );
 	var checked = {}; // item index => ticked, kept while the deed type changes
-	var chosenType = '';
+	var picked = {}; // question => the answer picked
 	var lastOpener = null;
 
 	var BN = '০১২৩৪৫৬৭৮৯';
@@ -181,8 +181,8 @@
 		boxes = [];
 		var group = null;
 		items.forEach( function ( item, i ) {
-			if ( item.type && item.type !== chosenType ) {
-				return; // belongs to another deed type
+			if ( item.type && picked[ item.kind || 'দলিলের ধরন' ] !== item.type ) {
+				return; // belongs to an answer that is not picked
 			}
 			var g = item.group || item.type || '';
 			if ( g !== group ) {
@@ -235,52 +235,69 @@
 		} );
 	}
 
-	function typeNames( key ) {
-		var names = [];
+	// Questions ("kinds") in the order they first appear, each with its answers.
+	function kindsOf( key ) {
+		var kinds = [];
 		DATA[ key ].items.forEach( function ( item ) {
-			if ( item.type && names.indexOf( item.type ) < 0 ) { names.push( item.type ); }
+			if ( ! item.type ) { return; }
+			var kind = item.kind || 'দলিলের ধরন';
+			var k = kinds.filter( function ( x ) { return x.name === kind; } )[ 0 ];
+			if ( ! k ) {
+				k = { name: kind, options: [] };
+				kinds.push( k );
+			}
+			if ( k.options.indexOf( item.type ) < 0 ) { k.options.push( item.type ); }
 		} );
-		return names;
+		return kinds;
 	}
 
 	function buildTypes( key ) {
-		var names = typeNames( key );
+		var kinds = kindsOf( key );
 		typesEl.innerHTML = '';
-		typesEl.hidden = ! names.length;
-		if ( ! names.length ) { return; }
-		var lab = document.createElement( 'p' );
-		lab.className = 'ck-types__label';
-		lab.textContent = 'দলিলের ধরন বাছাই করুন (ধরন অনুযায়ী অতিরিক্ত কাগজ দেখাবে)';
-		typesEl.appendChild( lab );
-		var row = document.createElement( 'div' );
-		row.className = 'ck-types__row';
-		names.forEach( function ( name ) {
-			var b = document.createElement( 'button' );
-			b.type = 'button';
-			b.className = 'ck-type';
-			b.setAttribute( 'data-ck-type', name );
-			b.setAttribute( 'aria-pressed', 'false' );
-			b.textContent = name;
-			row.appendChild( b );
+		typesEl.hidden = ! kinds.length;
+		if ( ! kinds.length ) { return; }
+		kinds.forEach( function ( k ) {
+			var wrap = document.createElement( 'div' );
+			wrap.className = 'ck-types__group';
+			var lab = document.createElement( 'p' );
+			lab.className = 'ck-types__label';
+			lab.textContent = k.name + ' বাছাই করুন';
+			wrap.appendChild( lab );
+			var row = document.createElement( 'div' );
+			row.className = 'ck-types__row';
+			k.options.forEach( function ( name ) {
+				var b = document.createElement( 'button' );
+				b.type = 'button';
+				b.className = 'ck-type';
+				b.setAttribute( 'data-ck-kind', k.name );
+				b.setAttribute( 'data-ck-type', name );
+				b.setAttribute( 'aria-pressed', 'false' );
+				b.textContent = name;
+				row.appendChild( b );
+			} );
+			wrap.appendChild( row );
+			typesEl.appendChild( wrap );
 		} );
-		typesEl.appendChild( row );
 	}
 
 	function refreshTypes() {
+		var names = [];
 		typesEl.querySelectorAll( '[data-ck-type]' ).forEach( function ( b ) {
-			var on = b.getAttribute( 'data-ck-type' ) === chosenType;
+			var on = picked[ b.getAttribute( 'data-ck-kind' ) ] === b.getAttribute( 'data-ck-type' );
 			b.classList.toggle( 'is-on', on );
 			b.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+			if ( on ) { names.push( b.getAttribute( 'data-ck-type' ) ); }
 		} );
-		setText( '[data-sheet-title]', DATA[ current ].title + ( chosenType ? ' (' + chosenType + ')' : '' ) );
+		setText( '[data-sheet-title]', DATA[ current ].title + ( names.length ? ' (' + names.join( ' · ' ) + ')' : '' ) );
 	}
 
 	typesEl.addEventListener( 'click', function ( e ) {
 		var b = e.target.closest( '[data-ck-type]' );
 		if ( ! b ) { return; }
 		update(); // keep what is ticked so far
+		var kind = b.getAttribute( 'data-ck-kind' );
 		var name = b.getAttribute( 'data-ck-type' );
-		chosenType = chosenType === name ? '' : name;
+		if ( picked[ kind ] === name ) { delete picked[ kind ]; } else { picked[ kind ] = name; }
 		buildList( current );
 		refreshTypes();
 		update();
@@ -294,7 +311,7 @@
 		lastOpener = opener || null;
 		titleEl.textContent = DATA[ key ].title;
 		checked = {};
-		chosenType = '';
+		picked = {};
 		buildTypes( key );
 		buildList( key );
 		refreshTypes();

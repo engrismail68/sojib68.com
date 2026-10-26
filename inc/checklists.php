@@ -13,9 +13,11 @@
  *
  * Text format used in the editor, one item per line:
  *   # সেকশনের শিরোনাম        (optional heading for the lines below it)
- *   # @ দলিলের ধরন            (from here on, the lines belong to this deed type; they
- *                             show only when the visitor picks that type. Lines above
- *                             the first "# @" are common to every type)
+ *   # @ দলিলের ধরন : সাফ কবলা  (from here on, the lines belong to this choice; they show
+ *                             only when the visitor picks it. "দলিলের ধরন" is the question,
+ *                             "সাফ কবলা" one answer. Other questions work the same way,
+ *                             e.g. "# @ এলাকা : পৌর এলাকা". Without the ":" the question is
+ *                             "দলিলের ধরন". Lines above the first "# @" are common to all)
  *   কাগজের নাম | ছোট নোট      (the note after "|" is optional)
  */
 
@@ -25,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
 define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
+define( 'SOJIB68_CHECKLIST_DEFAULT_KIND', 'দলিলের ধরন' ); // the question a bare "# @ X" belongs to
 
 /**
  * The letterhead printed on the slip. Kept apart from the site-wide contact
@@ -62,6 +65,7 @@ function sojib68_checklist_parse( $raw ) {
 	$items = array();
 	$group = '';
 	$type  = '';
+	$kind  = '';
 	foreach ( preg_split( '/\r\n|\r|\n/', (string) $raw ) as $line ) {
 		$line = trim( $line );
 		if ( '' === $line ) {
@@ -70,7 +74,15 @@ function sojib68_checklist_parse( $raw ) {
 		if ( '#' === $line[0] ) {
 			$head = trim( ltrim( $line, '#' ) );
 			if ( '' !== $head && '@' === $head[0] ) {
-				$type  = trim( ltrim( $head, '@' ) );
+				$spec  = trim( ltrim( $head, '@' ) );
+				$parts = preg_split( '/\s*[:：]\s*/u', $spec, 2 );
+				if ( isset( $parts[1] ) && '' !== $parts[0] && '' !== $parts[1] ) {
+					$kind = $parts[0];
+					$type = $parts[1];
+				} else {
+					$kind = SOJIB68_CHECKLIST_DEFAULT_KIND;
+					$type = $spec;
+				}
 				$group = '';
 			} else {
 				$group = $head;
@@ -86,6 +98,7 @@ function sojib68_checklist_parse( $raw ) {
 			'note'  => isset( $parts[1] ) ? $parts[1] : '',
 			'group' => $group,
 			'type'  => $type,
+			'kind'  => '' === $type ? '' : $kind,
 		);
 	}
 	return $items;
@@ -96,13 +109,16 @@ function sojib68_checklist_to_text( array $items ) {
 	$out   = array();
 	$group = '';
 	$type  = '';
+	$kind  = '';
 	foreach ( $items as $item ) {
 		$item_type = isset( $item['type'] ) ? $item['type'] : '';
-		if ( $item_type !== $type ) {
+		$item_kind = '' === $item_type ? '' : ( ! empty( $item['kind'] ) ? $item['kind'] : SOJIB68_CHECKLIST_DEFAULT_KIND );
+		if ( $item_type !== $type || $item_kind !== $kind ) {
 			$type  = $item_type;
+			$kind  = $item_kind;
 			$group = '';
 			if ( '' !== $type ) {
-				$out[] = '# @ ' . $type;
+				$out[] = '# @ ' . $kind . ' : ' . $type;
 			}
 		}
 		if ( $item['group'] !== $group ) {
@@ -170,7 +186,7 @@ function sojib68_checklists_admin_page() {
 		<p><?php esc_html_e( 'প্রতিটি সেবার জন্য এক লাইনে একটি কাগজ লিখুন। যে সেবার তালিকা ফাঁকা থাকবে, সাইটে তার "কী কী লাগে" বাটন দেখাবে না।', 'sojib68' ); ?></p>
 		<p>
 			<code># সেকশনের শিরোনাম</code> &nbsp;—&nbsp; <?php esc_html_e( 'নিচের কাগজগুলোর একটি শিরোনাম (ঐচ্ছিক)', 'sojib68' ); ?><br>
-			<code># @ দলিলের ধরন</code> &nbsp;—&nbsp; <?php esc_html_e( 'এর নিচের কাগজ শুধু ওই ধরন বাছাই করলে দেখাবে (যেমন বিক্রয়, হেবা, বণ্টন)। প্রথম "# @" এর আগের কাগজ সব ধরনের জন্য সাধারণ।', 'sojib68' ); ?><br>
+			<code># @ দলিলের ধরন : সাফ কবলা</code> &nbsp;—&nbsp; <?php esc_html_e( 'এর নিচের কাগজ শুধু "সাফ কবলা" বাছাই করলে দেখাবে। ":" এর আগেরটা প্রশ্ন (যেমন দলিলের ধরন, এলাকা), পরেরটা উত্তর (যেমন হেবা, পাওয়ার, পৌর এলাকা)। প্রথম "# @" এর আগের কাগজ সবার জন্য সাধারণ।', 'sojib68' ); ?><br>
 			<code>কাগজের নাম | ছোট নোট</code> &nbsp;—&nbsp; <?php esc_html_e( '"|" এর পরের নোট ঐচ্ছিক, যেমন "দুই কপি" বা "প্রযোজ্য হলে"', 'sojib68' ); ?>
 		</p>
 

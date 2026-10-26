@@ -204,6 +204,10 @@ body.ck-open {
 	display: none;
 }
 
+.ck-types__group + .ck-types__group {
+	margin-top: 14px;
+}
+
 .ck-types__label {
 	margin: 0 0 10px;
 	font-size: 0.9rem;
