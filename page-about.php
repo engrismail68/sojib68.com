@@ -18,19 +18,6 @@ $cta       = $c['cta'];
 // Same rule as the homepage hero: a real booking link opens in a new tab; until one is set the button opens the contact form.
 $booking_url = ( defined( 'SOJIB68_BOOKING_URL' ) && SOJIB68_BOOKING_URL ) ? SOJIB68_BOOKING_URL : '';
 
-/** Photo frame: the real photo when the file exists, otherwise a labelled placeholder (same shape either way). */
-$about_photo = function ( $slug, $name, $fallback_url = '' ) {
-	$url = sojib68_about_image( $slug );
-	if ( ! $url ) {
-		$url = $fallback_url;
-	}
-	if ( $url ) {
-		return '<div class="ab-photo"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $name ) . '" width="840" height="960" loading="lazy"></div>';
-	}
-	return '<div class="ab-photo ab-photo--empty" role="img" aria-label="' . esc_attr( $name . ' — ছবি যুক্ত করা হবে' ) . '">'
-		. '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="9" width="36" height="30" rx="3"/><circle cx="17" cy="20" r="3"/><path d="M6 33l10-9 8 7 6-5 12 10"/></svg>'
-		. '<span>ছবি যুক্ত করা হবে</span></div>';
-};
 ?>
 
 <div class="about-page">
@@ -47,7 +34,7 @@ $about_photo = function ( $slug, $name, $fallback_url = '' ) {
 			<div class="ab-people">
 				<?php foreach ( $roots['people'] as $person ) : ?>
 					<article class="ab-person">
-						<?php echo $about_photo( $person['slug'], $person['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the closure. ?>
+						<?php echo sojib68_about_photo_html( $person['slug'], $person['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the helper. ?>
 						<div class="ab-person__body">
 							<h2 class="ab-person__name"><?php echo esc_html( $person['name'] ); ?></h2>
 							<p class="ab-person__role"><?php echo esc_html( $person['role'] ); ?></p>
@@ -64,7 +51,7 @@ $about_photo = function ( $slug, $name, $fallback_url = '' ) {
 	<section class="ab-me" aria-labelledby="ab-me-title">
 		<div class="site-container ab-me__inner">
 			<div class="ab-me__media">
-				<?php echo $about_photo( $about['photo_slug'], $about['photo_name'], get_theme_file_uri( 'assets/images/sojib-hero.webp' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
+				<?php echo sojib68_about_photo_html( $about['photo_slug'], $about['photo_name'], get_theme_file_uri( 'assets/images/sojib-hero.webp' ) ); // phpcs:ignore WordPress.Security.EscapeOutput ?>
 			</div>
 			<div class="ab-me__text">
 				<h2 id="ab-me-title"><?php echo esc_html( $about['heading'] ); ?></h2>

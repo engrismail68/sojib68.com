@@ -113,6 +113,24 @@ function sojib68_about_rich( $text ) {
 }
 
 /**
+ * Photo frame HTML: the real photo when its file exists in assets/images/about/
+ * (or $fallback_url), otherwise a labelled placeholder — same shape either way.
+ */
+function sojib68_about_photo_html( $slug, $name, $fallback_url = '', $size_class = '' ) {
+	$url = sojib68_about_image( $slug );
+	if ( ! $url ) {
+		$url = $fallback_url;
+	}
+	$class = trim( 'ab-photo ' . $size_class );
+	if ( $url ) {
+		return '<div class="' . esc_attr( $class ) . '"><img src="' . esc_url( $url ) . '" alt="' . esc_attr( $name ) . '" width="840" height="960" loading="lazy"></div>';
+	}
+	return '<div class="' . esc_attr( $class . ' ab-photo--empty' ) . '" role="img" aria-label="' . esc_attr( $name . ' — ছবি যুক্ত করা হবে' ) . '">'
+		. '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="9" width="36" height="30" rx="3"/><circle cx="17" cy="20" r="3"/><path d="M6 33l10-9 8 7 6-5 12 10"/></svg>'
+		. '<span>ছবি যুক্ত করা হবে</span></div>';
+}
+
+/**
  * URL of a photo/logo dropped into assets/images/about/, or '' when there
  * isn't one yet (the template then shows the placeholder).
  */

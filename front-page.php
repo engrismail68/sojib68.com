@@ -87,41 +87,51 @@ $how_we_work = array(
 	</div>
 </section>
 
+<?php $sojib68_roots = sojib68_about_content()['roots']; // same text as /about, so the two never drift apart ?>
 <!-- About (short version; the full story is on /about) -->
 <section class="about about--short" id="about">
 	<div class="site-container">
 		<h2 class="section-title-center"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></h2>
 
-		<div class="about__short">
-			<div class="about__short-text">
-				<p>
-					<?php esc_html_e( 'আমি ইসমাইল হোসেন সজিব, একজন Land & IT Consultant। ২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত আছি।', 'sojib68' ); ?>
-				</p>
-				<p>
-					<?php esc_html_e( 'তথ্যপ্রযুক্তির শিক্ষা কাজে লাগাই তথ্য সংরক্ষণ, কাগজপত্র গোছানো, অনলাইন সেবার কাজ এবং গ্রাহকের সঙ্গে যোগাযোগ সহজ রাখতে।', 'sojib68' ); ?>
-				</p>
-				<a href="<?php echo esc_url( home_url( '/about/' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'পুরো পরিচয় দেখুন', 'sojib68' ); ?></a>
+		<div class="about__short-text">
+			<p>
+				<?php esc_html_e( 'আমি ইসমাইল হোসেন সজিব, একজন Land & IT Consultant। ২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত আছি।', 'sojib68' ); ?>
+			</p>
+			<p>
+				<?php esc_html_e( 'তথ্যপ্রযুক্তির শিক্ষা কাজে লাগাই তথ্য সংরক্ষণ, কাগজপত্র গোছানো, অনলাইন সেবার কাজ এবং গ্রাহকের সঙ্গে যোগাযোগ সহজ রাখতে।', 'sojib68' ); ?>
+			</p>
 
-				<?php if ( ! empty( $stats ) ) : ?>
-					<div class="about__stats">
-						<?php foreach ( $stats as $stat ) : ?>
-							<div class="stat-box">
-								<span class="stat-box__number"><?php echo esc_html( $stat['number'] ); ?></span>
-								<span class="stat-box__label"><?php echo esc_html( $stat['label'] ); ?></span>
-							</div>
-						<?php endforeach; ?>
+			<?php if ( ! empty( $stats ) ) : ?>
+				<div class="about__stats">
+					<?php foreach ( $stats as $stat ) : ?>
+						<div class="stat-box">
+							<span class="stat-box__number"><?php echo esc_html( $stat['number'] ); ?></span>
+							<span class="stat-box__label"><?php echo esc_html( $stat['label'] ); ?></span>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+		</div>
+
+		<div class="about__roots-block">
+			<p class="eyebrow"><?php echo esc_html( $sojib68_roots['eyebrow'] ); ?></p>
+			<h3 class="about__roots-title"><?php echo esc_html( $sojib68_roots['heading'] ); ?></h3>
+			<p class="about__roots-intro"><?php echo esc_html( $sojib68_roots['intro'] ); ?></p>
+
+			<div class="about__people">
+				<?php foreach ( $sojib68_roots['people'] as $sojib68_person ) : ?>
+					<div class="about__person">
+						<?php echo sojib68_about_photo_html( $sojib68_person['slug'], $sojib68_person['name'], '', 'ab-photo--sm' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the helper. ?>
+						<div class="about__person-body">
+							<h4 class="about__person-name"><?php echo esc_html( $sojib68_person['name'] ); ?></h4>
+							<p class="about__person-role"><?php echo esc_html( $sojib68_person['role'] ); ?></p>
+							<p class="about__person-period"><?php echo esc_html( $sojib68_person['period'] ); ?></p>
+						</div>
 					</div>
-				<?php endif; ?>
+				<?php endforeach; ?>
 			</div>
 
-			<div class="about__roots">
-				<p class="about__roots-label"><?php esc_html_e( 'আমার পেশাগত শিকড়', 'sojib68' ); ?></p>
-				<h3 class="about__roots-title"><?php esc_html_e( 'দলিল লেখার পেশায় তিন প্রজন্ম', 'sojib68' ); ?></h3>
-				<p class="about__roots-years" aria-label="<?php esc_attr_e( '১৯৫০, ১৯৮১, ২০২০', 'sojib68' ); ?>">
-					<span>১৯৫০</span><i aria-hidden="true">→</i><span>১৯৮১</span><i aria-hidden="true">→</i><span>২০২০</span>
-				</p>
-				<p class="about__roots-caption"><?php esc_html_e( 'তিন প্রজন্মের কাজ শুরুর বছর', 'sojib68' ); ?></p>
-			</div>
+			<a href="<?php echo esc_url( home_url( '/about/' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'পুরো পরিচয় দেখুন', 'sojib68' ); ?></a>
 		</div>
 	</div>
 </section>
