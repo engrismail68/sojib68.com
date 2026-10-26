@@ -87,29 +87,20 @@ $how_we_work = array(
 	</div>
 </section>
 
-<!-- About -->
-<section class="about" id="about">
+<!-- About (short version; the full story is on /about) -->
+<section class="about about--short" id="about">
 	<div class="site-container">
 		<h2 class="section-title-center"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></h2>
 
-		<div class="about__inner">
-			<div class="about__media">
-				<img
-					src="<?php echo esc_url( get_theme_file_uri( 'assets/images/sojib-portrait.jpg' ) ); ?>"
-					alt="<?php esc_attr_e( 'Ismail Hossain Sojib', 'sojib68' ); ?>"
-					width="520"
-					height="524"
-					loading="lazy"
-				>
-			</div>
-			<div class="about__content">
+		<div class="about__short">
+			<div class="about__short-text">
 				<p>
-					<?php esc_html_e( 'আমি Ismail Hossain Sojib। পেশাগতভাবে দলিল, জমি রেজিস্ট্রেশন ও ভূমিসংক্রান্ত বিভিন্ন জটিলতা নিয়ে কাজ করি। প্রয়োজন অনুযায়ী কাগজপত্র, সংশ্লিষ্ট প্রক্রিয়া ও পরবর্তী করণীয় সম্পর্কে পরামর্শ ও সহায়তা প্রদান করি।', 'sojib68' ); ?>
+					<?php esc_html_e( 'আমি ইসমাইল হোসেন সজিব, একজন Land & IT Consultant। ২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত আছি।', 'sojib68' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'আমার পড়াশোনা তথ্যপ্রযুক্তিতে। এই দক্ষতা কাজে লাগিয়ে তথ্য ও কাগজপত্র গোছানো, অনলাইন ভূমিসেবার কাজ এবং গ্রাহকের সঙ্গে যোগাযোগ সহজ রাখার চেষ্টা করি।', 'sojib68' ); ?>
+					<?php esc_html_e( 'তথ্যপ্রযুক্তির শিক্ষা কাজে লাগাই তথ্য সংরক্ষণ, কাগজপত্র গোছানো, অনলাইন সেবার কাজ এবং গ্রাহকের সঙ্গে যোগাযোগ সহজ রাখতে।', 'sojib68' ); ?>
 				</p>
-				<a href="#contact" class="btn btn-outline"><?php esc_html_e( 'আরও জানুন', 'sojib68' ); ?></a>
+				<a href="<?php echo esc_url( home_url( '/about/' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'পুরো পরিচয় দেখুন', 'sojib68' ); ?></a>
 
 				<?php if ( ! empty( $stats ) ) : ?>
 					<div class="about__stats">
@@ -122,24 +113,15 @@ $how_we_work = array(
 					</div>
 				<?php endif; ?>
 			</div>
-		</div>
-	</div>
-</section>
 
-<!-- তিন প্রজন্মের পথচলা (teaser → /about) -->
-<section class="gen-teaser" aria-labelledby="gen-teaser-title">
-	<div class="site-container gen-teaser__inner">
-		<div class="gen-teaser__text">
-			<p class="eyebrow"><?php esc_html_e( 'পারিবারিক পেশা', 'sojib68' ); ?></p>
-			<h2 id="gen-teaser-title"><?php esc_html_e( 'তিন প্রজন্মের পথচলা', 'sojib68' ); ?></h2>
-			<p><?php esc_html_e( '১৯৫০ সালে দাদা আলী আহাম্মদের হাত ধরে দলিল লেখার পেশায় আমাদের পরিবারের যাত্রা শুরু। বাবা কাজ করছেন ১৯৮১ সাল থেকে, আর আমি ২০২০ সাল থেকে তাঁর সহকারী হিসেবে যুক্ত।', 'sojib68' ); ?></p>
-			<a href="<?php echo esc_url( home_url( '/about/' ) ); ?>" class="btn btn-outline"><?php esc_html_e( 'আমার পরিচয় ও পেশাগত উত্তরাধিকার', 'sojib68' ); ?></a>
-		</div>
-		<div class="gen-teaser__years">
-			<p class="gen-teaser__line">
-				<span>১৯৫০</span><i aria-hidden="true">→</i><span>১৯৮১</span><i aria-hidden="true">→</i><span>২০২০</span>
-			</p>
-			<p class="gen-teaser__caption"><?php esc_html_e( 'তিন প্রজন্মের কাজ শুরুর বছর', 'sojib68' ); ?></p>
+			<div class="about__roots">
+				<p class="about__roots-label"><?php esc_html_e( 'আমার পেশাগত শিকড়', 'sojib68' ); ?></p>
+				<h3 class="about__roots-title"><?php esc_html_e( 'দলিল লেখার পেশায় তিন প্রজন্ম', 'sojib68' ); ?></h3>
+				<p class="about__roots-years" aria-label="<?php esc_attr_e( '১৯৫০, ১৯৮১, ২০২০', 'sojib68' ); ?>">
+					<span>১৯৫০</span><i aria-hidden="true">→</i><span>১৯৮১</span><i aria-hidden="true">→</i><span>২০২০</span>
+				</p>
+				<p class="about__roots-caption"><?php esc_html_e( 'তিন প্রজন্মের কাজ শুরুর বছর', 'sojib68' ); ?></p>
+			</div>
 		</div>
 	</div>
 </section>
