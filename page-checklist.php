@@ -15,12 +15,7 @@ $lists    = sojib68_get_checklists();
 $service  = $services[ $key ];
 $items    = $lists[ $key ];
 
-// Office line on the printout; phone / address appear only when they are set in functions.php.
-$office_lines = array_filter( array(
-	defined( 'SOJIB68_PHONE' ) ? SOJIB68_PHONE : '',
-	defined( 'SOJIB68_ADDRESS' ) ? SOJIB68_ADDRESS : '',
-	wp_parse_url( home_url(), PHP_URL_HOST ),
-) );
+$office = sojib68_checklist_office(); // letterhead on the printed slip (wp-admin → কাগজপত্র তালিকা)
 ?>
 
 <div class="checklist-page">
@@ -128,11 +123,19 @@ $office_lines = array_filter( array(
 	<!-- Printed sheet (hidden on screen, filled from the ticked items by checklist.js) -->
 	<div class="ck-sheet" data-ck-sheet aria-hidden="true">
 		<header class="ck-sheet__head">
-			<div>
-				<p class="ck-sheet__org">Ismail Hossain Sojib</p>
-				<p class="ck-sheet__role">Land &amp; IT Consultant</p>
+			<div class="ck-sheet__brand">
+				<p class="ck-sheet__org"><?php echo esc_html( $office['name'] ); ?></p>
+				<p class="ck-sheet__role"><?php echo esc_html( $office['person'] ); ?></p>
 			</div>
-			<p class="ck-sheet__contact"><?php echo esc_html( implode( ' · ', $office_lines ) ); ?></p>
+			<?php if ( '' !== $office['phone'] ) : ?>
+				<div class="ck-sheet__phone">
+					<span class="ck-sheet__phone-label"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></span>
+					<strong><?php echo esc_html( $office['phone'] ); ?></strong>
+					<?php if ( '' !== $office['channels'] ) : ?>
+						<span class="ck-sheet__channels"><?php echo esc_html( $office['channels'] ); ?></span>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
 		</header>
 
 		<h2 class="ck-sheet__title"><?php echo esc_html( $service['title'] ); ?> — <?php esc_html_e( 'প্রয়োজনীয় কাগজপত্র', 'sojib68' ); ?></h2>

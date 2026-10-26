@@ -52,6 +52,7 @@
 			msg.hidden = true;
 		}
 
+		sheet.classList.toggle( 'ck-sheet--dense', chosen.length > 12 ); // long lists print a little smaller to stay within the half sheet
 		var ol = sheet.querySelector( '[data-sheet-list]' );
 		ol.innerHTML = '';
 		var group = null;

@@ -20,6 +20,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
+define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
+
+/**
+ * The letterhead printed on the slip. Kept apart from the site-wide contact
+ * constants on purpose, so setting it here never puts a phone number in the
+ * footer or the contact section. Editable in wp-admin → কাগজপত্র তালিকা.
+ */
+function sojib68_checklist_office() {
+	$defaults = array(
+		'name'     => 'রামগঞ্জ ভূমি কনসালটেন্ট',
+		'person'   => 'ইসমাইল হোসেন (সজিব)',
+		'phone'    => '01950087868',
+		'channels' => 'WhatsApp · bKash',
+	);
+	$stored = get_option( SOJIB68_CHECKLIST_OFFICE_OPTION, array() );
+	$stored = is_array( $stored ) ? array_intersect_key( $stored, $defaults ) : array();
+	$office = array_merge( $defaults, $stored );
+	// The two names never print blank; an emptied phone / channels box really hides them.
+	foreach ( array( 'name', 'person' ) as $field ) {
+		if ( '' === trim( (string) $office[ $field ] ) ) {
+			$office[ $field ] = $defaults[ $field ];
+		}
+	}
+	return $office;
+}
 
 /** Lists shipped with the theme. Empty on purpose — the real lists come from the owner. */
 function sojib68_checklists_defaults() {
@@ -135,6 +160,17 @@ function sojib68_checklists_admin_page() {
 			<input type="hidden" name="action" value="sojib68_save_checklists">
 			<?php wp_nonce_field( 'sojib68_save_checklists' ); ?>
 
+			<?php $office = sojib68_checklist_office(); ?>
+			<h2 style="margin-top:24px;"><?php esc_html_e( 'প্রিন্টের ওপরের অংশ (লেটারহেড)', 'sojib68' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr><th scope="row"><label for="co-name"><?php esc_html_e( 'অফিসের নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-name" name="office[name]" value="<?php echo esc_attr( $office['name'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-person"><?php esc_html_e( 'আপনার নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-person" name="office[person]" value="<?php echo esc_attr( $office['person'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-phone"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label></th><td><input type="text" id="co-phone" name="office[phone]" value="<?php echo esc_attr( $office['phone'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-channels"><?php esc_html_e( 'নম্বরের পাশের লেখা', 'sojib68' ); ?></label></th><td><input type="text" id="co-channels" name="office[channels]" value="<?php echo esc_attr( $office['channels'] ); ?>" class="regular-text"><p class="description"><?php esc_html_e( 'যেমন: WhatsApp · bKash', 'sojib68' ); ?></p></td></tr>
+			</table>
+
+			<h2 style="margin-top:24px;"><?php esc_html_e( 'সেবা অনুযায়ী কাগজপত্রের তালিকা', 'sojib68' ); ?></h2>
+
 			<?php foreach ( $services as $key => $service ) : ?>
 				<?php $items = isset( $stored[ $key ] ) && is_array( $stored[ $key ] ) ? $stored[ $key ] : array(); ?>
 				<h2 style="margin-top:28px;"><?php echo esc_html( $service['title'] ); ?>
@@ -167,6 +203,13 @@ function sojib68_checklists_handle_save() {
 		}
 	}
 	update_option( SOJIB68_CHECKLISTS_OPTION, $clean, false );
+
+	$posted_office = isset( $_POST['office'] ) && is_array( $_POST['office'] ) ? wp_unslash( $_POST['office'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	$office        = array();
+	foreach ( array( 'name', 'person', 'phone', 'channels' ) as $field ) {
+		$office[ $field ] = isset( $posted_office[ $field ] ) ? sanitize_text_field( $posted_office[ $field ] ) : '';
+	}
+	update_option( SOJIB68_CHECKLIST_OFFICE_OPTION, $office, false );
 
 	wp_safe_redirect( add_query_arg( array( 'page' => 'sojib68-checklists', 'saved' => 1 ), admin_url( 'admin.php' ) ) );
 	exit;
