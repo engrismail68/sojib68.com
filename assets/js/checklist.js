@@ -23,6 +23,20 @@
 		return boxes.filter( function ( b ) { return b.checked; } );
 	}
 
+	// Items belonging to one section heading.
+	function groupBoxes( name ) {
+		return boxes.filter( function ( b ) { return ( b.getAttribute( 'data-group' ) || '' ) === name; } );
+	}
+
+	function updateGroupButtons() {
+		list.querySelectorAll( '[data-ck-group]' ).forEach( function ( li ) {
+			var btn = li.querySelector( '[data-ck-group-toggle]' );
+			var inGroup = groupBoxes( li.getAttribute( 'data-ck-group' ) );
+			var all = inGroup.length > 0 && inGroup.every( function ( b ) { return b.checked; } );
+			if ( btn ) { btn.textContent = all ? 'এই অংশের সব বাদ' : 'এই অংশের সব বাছাই'; }
+		} );
+	}
+
 	function setText( sel, text ) {
 		var el = sheet.querySelector( sel );
 		if ( el ) { el.textContent = text; }
@@ -51,6 +65,7 @@
 		if ( chosen.length && msg ) {
 			msg.hidden = true;
 		}
+		updateGroupButtons();
 
 		sheet.classList.toggle( 'ck-sheet--dense', chosen.length > 12 ); // long lists print a little smaller to stay within the half sheet
 		var ol = sheet.querySelector( '[data-sheet-list]' );
@@ -99,6 +114,17 @@
 	}
 
 	list.addEventListener( 'change', update );
+
+	list.addEventListener( 'click', function ( e ) {
+		var btn = e.target.closest( '[data-ck-group-toggle]' );
+		if ( ! btn ) {
+			return;
+		}
+		var inGroup = groupBoxes( btn.closest( '[data-ck-group]' ).getAttribute( 'data-ck-group' ) );
+		var all = inGroup.every( function ( b ) { return b.checked; } );
+		inGroup.forEach( function ( b ) { b.checked = ! all; } );
+		update();
+	} );
 	[ nameIn, mobileIn, noteIn ].forEach( function ( el ) {
 		if ( el ) { el.addEventListener( 'input', update ); }
 	} );

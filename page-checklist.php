@@ -31,7 +31,7 @@ $office = sojib68_checklist_office(); // letterhead on the printed slip (wp-admi
 			</nav>
 			<p class="eyebrow"><?php esc_html_e( 'কী কী কাগজ লাগে', 'sojib68' ); ?></p>
 			<h1><?php echo esc_html( $service['title'] ); ?></h1>
-			<p class="ck-lead"><?php esc_html_e( 'যে কাগজগুলো প্রযোজ্য সেগুলো বেছে নিন, তারপর প্রিন্ট করুন বা PDF হিসেবে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
+			<p class="ck-lead"><?php esc_html_e( 'যে কাগজগুলো প্রযোজ্য শুধু সেগুলো টিক দিন, তারপর প্রিন্ট করুন বা PDF হিসেবে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
 		</div>
 	</section>
 
@@ -55,14 +55,17 @@ $office = sojib68_checklist_office(); // letterhead on the printed slip (wp-admi
 							$group = $item['group'];
 							if ( '' !== $group ) :
 								?>
-								<li class="ck-group" role="presentation"><?php echo esc_html( $group ); ?></li>
+								<li class="ck-group" data-ck-group="<?php echo esc_attr( $group ); ?>">
+									<span><?php echo esc_html( $group ); ?></span>
+									<button type="button" class="ck-link" data-ck-group-toggle><?php esc_html_e( 'এই অংশের সব বাছাই', 'sojib68' ); ?></button>
+								</li>
 								<?php
 							endif;
 						endif;
 						?>
 						<li class="ck-item">
 							<label for="ck-item-<?php echo (int) $i; ?>">
-								<input type="checkbox" id="ck-item-<?php echo (int) $i; ?>" checked
+								<input type="checkbox" id="ck-item-<?php echo (int) $i; ?>"
 									data-ck-item
 									data-text="<?php echo esc_attr( $item['text'] ); ?>"
 									data-note="<?php echo esc_attr( $item['note'] ); ?>"
