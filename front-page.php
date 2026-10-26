@@ -40,25 +40,28 @@ $how_we_work = array(
 			<h1 class="hero__name"><?php esc_html_e( 'Ismail Hossain Sojib', 'sojib68' ); ?></h1>
 			<p class="hero__designation"><?php esc_html_e( 'Land & IT Consultant', 'sojib68' ); ?></p>
 			<p class="hero__desc">
-				<?php esc_html_e( 'জমি রেজিস্ট্রেশন, কেনাবেচা, নামজারি, দলিল অনুসন্ধান ও ভূমিসংক্রান্ত বিভিন্ন বিষয়ে প্রয়োজনীয় পরামর্শ ও সহায়তা প্রদান করি।', 'sojib68' ); ?>
+				<?php esc_html_e( 'দলিল ও জমির কাগজপত্র পর্যালোচনা, প্রয়োজনীয় তথ্য অনুসন্ধান এবং পরবর্তী করণীয় নিয়ে পরামর্শ ও সহায়তা প্রদান করি।', 'sojib68' ); ?>
 			</p>
+			<p class="hero__experience">
+				<?php esc_html_e( '২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত।', 'sojib68' ); ?>
+			</p>
+			<ul class="hero__education" aria-label="<?php esc_attr_e( 'শিক্ষাগত পরিচয়', 'sojib68' ); ?>">
+				<li><?php esc_html_e( 'Diploma in Engineering · Dhaka Polytechnic Institute', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'BSc in Computer Science and Engineering · Canadian University of Bangladesh', 'sojib68' ); ?></li>
+			</ul>
 			<div class="hero__actions">
-				<a href="#contact" class="btn btn-primary"><?php esc_html_e( 'যোগাযোগ করুন', 'sojib68' ); ?></a>
-				<a href="#services" class="btn btn-outline"><?php esc_html_e( 'আমার সেবাসমূহ', 'sojib68' ); ?></a>
+				<a href="#contact" class="btn btn-primary"><?php esc_html_e( 'পরামর্শের জন্য যোগাযোগ', 'sojib68' ); ?></a>
+				<a href="#about" class="btn btn-outline"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></a>
 			</div>
 		</div>
 		<div class="hero__media">
-			<div class="hero__media-brush" aria-hidden="true">
-				<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-					<path fill="currentColor" d="M90 120 C 40 180, 60 300, 120 350 C 190 410, 300 430, 370 380 C 440 330, 450 220, 400 150 C 350 80, 240 50, 160 70 C 130 78, 105 95, 90 120 Z"/>
-				</svg>
-			</div>
 			<img
-				src="<?php echo esc_url( get_theme_file_uri( 'assets/images/sojib-portrait.jpg' ) ); ?>"
+				src="<?php echo esc_url( get_theme_file_uri( 'assets/images/sojib-hero.webp' ) ); ?>"
 				alt="<?php esc_attr_e( 'Ismail Hossain Sojib', 'sojib68' ); ?>"
 				class="hero__portrait"
-				width="704"
-				height="709"
+				width="840"
+				height="960"
+				fetchpriority="high"
 			>
 		</div>
 	</div>
