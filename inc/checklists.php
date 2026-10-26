@@ -1,0 +1,337 @@
+<?php
+/**
+ * "কী কী কাগজ লাগে" — a paper checklist for each service.
+ *
+ * - The lists live in one WordPress option and are edited from the wp-admin
+ *   page "কাগজপত্র তালিকা" (no code needed). Nothing is invented here: a
+ *   service with no list has no button and no page.
+ * - On the homepage each service card with a list has a "কী কী লাগে" button.
+ *   It opens a popup where staff or the customer ticks what applies and prints
+ *   it (the browser's Print → Save as PDF keeps Bangla conjuncts intact,
+ *   unlike server-made PDFs).
+ * - Nothing the visitor types (name, mobile, note) is sent anywhere or stored.
+ *
+ * Text format used in the editor, one item per line:
+ *   # সেকশনের শিরোনাম        (optional heading for the lines below it)
+ *   কাগজের নাম | ছোট নোট      (the note after "|" is optional)
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
+define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
+
+/**
+ * The letterhead printed on the slip. Kept apart from the site-wide contact
+ * constants on purpose, so setting it here never puts a phone number in the
+ * footer or the contact section. Editable in wp-admin → কাগজপত্র তালিকা.
+ */
+function sojib68_checklist_office() {
+	$defaults = array(
+		'name'     => 'রামগঞ্জ ভূমি কনসালটেন্ট',
+		'person'   => 'ইসমাইল হোসেন (সজিব)',
+		'phone'    => '01950087868',
+		'channels' => 'WhatsApp · bKash',
+	);
+	$stored = get_option( SOJIB68_CHECKLIST_OFFICE_OPTION, array() );
+	$stored = is_array( $stored ) ? array_intersect_key( $stored, $defaults ) : array();
+	$office = array_merge( $defaults, $stored );
+	// The two names never print blank; an emptied phone / channels box really hides them.
+	foreach ( array( 'name', 'person' ) as $field ) {
+		if ( '' === trim( (string) $office[ $field ] ) ) {
+			$office[ $field ] = $defaults[ $field ];
+		}
+	}
+	return $office;
+}
+
+/** Lists shipped with the theme. Empty on purpose — the real lists come from the owner. */
+function sojib68_checklists_defaults() {
+	return array();
+}
+
+/**
+ * Parse the editor text into items: array( array( 'text' =>, 'note' =>, 'group' => ), … ).
+ */
+function sojib68_checklist_parse( $raw ) {
+	$items = array();
+	$group = '';
+	foreach ( preg_split( '/\r\n|\r|\n/', (string) $raw ) as $line ) {
+		$line = trim( $line );
+		if ( '' === $line ) {
+			continue;
+		}
+		if ( '#' === $line[0] ) {
+			$group = trim( ltrim( $line, '#' ) );
+			continue;
+		}
+		$parts = array_map( 'trim', explode( '|', $line, 2 ) );
+		if ( '' === $parts[0] ) {
+			continue;
+		}
+		$items[] = array(
+			'text'  => $parts[0],
+			'note'  => isset( $parts[1] ) ? $parts[1] : '',
+			'group' => $group,
+		);
+	}
+	return $items;
+}
+
+/** The reverse of sojib68_checklist_parse(), to fill the editor. */
+function sojib68_checklist_to_text( array $items ) {
+	$out   = array();
+	$group = '';
+	foreach ( $items as $item ) {
+		if ( $item['group'] !== $group ) {
+			$group = $item['group'];
+			if ( '' !== $group ) {
+				$out[] = '# ' . $group;
+			}
+		}
+		$out[] = $item['text'] . ( '' !== $item['note'] ? ' | ' . $item['note'] : '' );
+	}
+	return implode( "\n", $out );
+}
+
+/**
+ * Checklists keyed by service (see sojib68_get_services()); only services that
+ * actually have items are returned.
+ */
+function sojib68_get_checklists() {
+	$stored = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
+	$lists  = array_merge( sojib68_checklists_defaults(), is_array( $stored ) ? $stored : array() );
+	$lists  = apply_filters( 'sojib68_checklists', $lists );
+
+	$services = function_exists( 'sojib68_get_services' ) ? sojib68_get_services() : array();
+	$out      = array();
+	foreach ( $lists as $key => $items ) {
+		if ( isset( $services[ $key ] ) && is_array( $items ) && $items ) {
+			$out[ $key ] = $items;
+		}
+	}
+	return $out;
+}
+
+/* ---------------------------------------------------------------------
+ * wp-admin editor
+ * ------------------------------------------------------------------ */
+
+function sojib68_checklists_admin_menu() {
+	add_menu_page(
+		__( 'কাগজপত্র তালিকা', 'sojib68' ),
+		__( 'কাগজপত্র তালিকা', 'sojib68' ),
+		'manage_options',
+		'sojib68-checklists',
+		'sojib68_checklists_admin_page',
+		'dashicons-clipboard',
+		58
+	);
+}
+add_action( 'admin_menu', 'sojib68_checklists_admin_menu' );
+
+function sojib68_checklists_admin_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	$services = sojib68_get_services();
+	$stored   = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
+	$stored   = is_array( $stored ) ? $stored : array();
+	?>
+	<div class="wrap">
+		<h1><?php esc_html_e( 'কাগজপত্র তালিকা — কী কী কাগজ লাগে', 'sojib68' ); ?></h1>
+
+		<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'তালিকা সংরক্ষণ হয়েছে।', 'sojib68' ); ?></p></div>
+		<?php endif; ?>
+
+		<p><?php esc_html_e( 'প্রতিটি সেবার জন্য এক লাইনে একটি কাগজ লিখুন। যে সেবার তালিকা ফাঁকা থাকবে, সাইটে তার "কী কী লাগে" বাটন দেখাবে না।', 'sojib68' ); ?></p>
+		<p>
+			<code># সেকশনের শিরোনাম</code> &nbsp;—&nbsp; <?php esc_html_e( 'নিচের কাগজগুলোর একটি শিরোনাম (ঐচ্ছিক)', 'sojib68' ); ?><br>
+			<code>কাগজের নাম | ছোট নোট</code> &nbsp;—&nbsp; <?php esc_html_e( '"|" এর পরের নোট ঐচ্ছিক, যেমন "দুই কপি" বা "প্রযোজ্য হলে"', 'sojib68' ); ?>
+		</p>
+
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="sojib68_save_checklists">
+			<?php wp_nonce_field( 'sojib68_save_checklists' ); ?>
+
+			<?php $office = sojib68_checklist_office(); ?>
+			<h2 style="margin-top:24px;"><?php esc_html_e( 'প্রিন্টের ওপরের অংশ (লেটারহেড)', 'sojib68' ); ?></h2>
+			<table class="form-table" role="presentation">
+				<tr><th scope="row"><label for="co-name"><?php esc_html_e( 'অফিসের নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-name" name="office[name]" value="<?php echo esc_attr( $office['name'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-person"><?php esc_html_e( 'আপনার নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-person" name="office[person]" value="<?php echo esc_attr( $office['person'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-phone"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label></th><td><input type="text" id="co-phone" name="office[phone]" value="<?php echo esc_attr( $office['phone'] ); ?>" class="regular-text"></td></tr>
+				<tr><th scope="row"><label for="co-channels"><?php esc_html_e( 'নম্বরের পাশের লেখা', 'sojib68' ); ?></label></th><td><input type="text" id="co-channels" name="office[channels]" value="<?php echo esc_attr( $office['channels'] ); ?>" class="regular-text"><p class="description"><?php esc_html_e( 'যেমন: WhatsApp · bKash', 'sojib68' ); ?></p></td></tr>
+			</table>
+
+			<h2 style="margin-top:24px;"><?php esc_html_e( 'সেবা অনুযায়ী কাগজপত্রের তালিকা', 'sojib68' ); ?></h2>
+
+			<?php foreach ( $services as $key => $service ) : ?>
+				<?php $items = isset( $stored[ $key ] ) && is_array( $stored[ $key ] ) ? $stored[ $key ] : array(); ?>
+				<h2 style="margin-top:28px;"><?php echo esc_html( $service['title'] ); ?>
+				</h2>
+				<textarea name="lists[<?php echo esc_attr( $key ); ?>]" rows="8" class="large-text" style="font-family:inherit;" placeholder="<?php esc_attr_e( "# মূল কাগজ\nকাগজের নাম | ছোট নোট", 'sojib68' ); ?>"><?php echo esc_textarea( sojib68_checklist_to_text( $items ) ); ?></textarea>
+			<?php endforeach; ?>
+
+			<p class="submit"><button type="submit" class="button button-primary button-large"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button></p>
+		</form>
+	</div>
+	<?php
+}
+
+function sojib68_checklists_handle_save() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'এই কাজের অনুমতি নেই।', 'sojib68' ), 403 );
+	}
+	check_admin_referer( 'sojib68_save_checklists' );
+
+	$services = sojib68_get_services();
+	$posted   = isset( $_POST['lists'] ) && is_array( $_POST['lists'] ) ? wp_unslash( $_POST['lists'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	$clean    = array();
+	foreach ( $services as $key => $service ) {
+		$items = sojib68_checklist_parse( isset( $posted[ $key ] ) ? sanitize_textarea_field( $posted[ $key ] ) : '' );
+		if ( $items ) {
+			$clean[ $key ] = $items;
+		}
+	}
+	update_option( SOJIB68_CHECKLISTS_OPTION, $clean, false );
+
+	$posted_office = isset( $_POST['office'] ) && is_array( $_POST['office'] ) ? wp_unslash( $_POST['office'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	$office        = array();
+	foreach ( array( 'name', 'person', 'phone', 'channels' ) as $field ) {
+		$office[ $field ] = isset( $posted_office[ $field ] ) ? sanitize_text_field( $posted_office[ $field ] ) : '';
+	}
+	update_option( SOJIB68_CHECKLIST_OFFICE_OPTION, $office, false );
+
+	wp_safe_redirect( add_query_arg( array( 'page' => 'sojib68-checklists', 'saved' => 1 ), admin_url( 'admin.php' ) ) );
+	exit;
+}
+add_action( 'admin_post_sojib68_save_checklists', 'sojib68_checklists_handle_save' );
+
+/* ---------------------------------------------------------------------
+ * Homepage popup
+ * ------------------------------------------------------------------ */
+
+/** Styles + script: homepage only, and only when at least one list exists. */
+function sojib68_checklist_enqueue() {
+	if ( ! is_front_page() || ! sojib68_get_checklists() ) {
+		return;
+	}
+	$css = get_theme_file_path( 'assets/css/checklist.css' );
+	$js  = get_theme_file_path( 'assets/js/checklist.js' );
+	wp_enqueue_style( 'sojib68-checklist', get_theme_file_uri( 'assets/css/checklist.css' ), array(), file_exists( $css ) ? filemtime( $css ) : '1.0.0' );
+	wp_enqueue_script( 'sojib68-checklist', get_theme_file_uri( 'assets/js/checklist.js' ), array(), file_exists( $js ) ? filemtime( $js ) : '1.0.0', true );
+}
+add_action( 'wp_enqueue_scripts', 'sojib68_checklist_enqueue', 20 );
+
+/** The popup shell, the lists as JSON, and the (print-only) slip. Rendered once, in the footer. */
+function sojib68_checklist_modal() {
+	$lists = is_front_page() ? sojib68_get_checklists() : array();
+	if ( ! $lists ) {
+		return;
+	}
+	$services = sojib68_get_services();
+	$office   = sojib68_checklist_office();
+	$data     = array();
+	foreach ( $lists as $key => $items ) {
+		$data[ $key ] = array(
+			'title' => $services[ $key ]['title'],
+			'items' => array_values( $items ),
+		);
+	}
+	?>
+	<script type="application/json" id="ck-data"><?php echo wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
+
+	<div class="ck-modal" data-ck-modal hidden>
+		<div class="ck-modal__backdrop" data-ck-close></div>
+		<div class="ck-dialog" role="dialog" aria-modal="true" aria-labelledby="ck-title" tabindex="-1">
+			<header class="ck-dialog__head">
+				<div>
+					<p class="ck-dialog__eyebrow"><?php esc_html_e( 'কী কী কাগজ লাগে', 'sojib68' ); ?></p>
+					<h2 id="ck-title" data-ck-title></h2>
+				</div>
+				<button type="button" class="ck-dialog__close" data-ck-close aria-label="<?php esc_attr_e( 'বন্ধ করুন', 'sojib68' ); ?>">&times;</button>
+			</header>
+
+			<div class="ck-dialog__body">
+				<p class="ck-hint"><?php esc_html_e( 'যে কাগজগুলো প্রযোজ্য শুধু সেগুলো টিক দিন, তারপর প্রিন্ট করুন বা PDF হিসেবে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
+
+				<div class="ck-toolbar">
+					<strong class="ck-count" data-ck-count aria-live="polite"></strong>
+					<span class="ck-toolbar__btns">
+						<button type="button" class="ck-link" data-ck-all><?php esc_html_e( 'সব বাছাই', 'sojib68' ); ?></button>
+						<button type="button" class="ck-link" data-ck-none><?php esc_html_e( 'সব বাদ', 'sojib68' ); ?></button>
+					</span>
+				</div>
+
+				<ul class="ck-list" data-ck-list></ul>
+
+				<div class="ck-extra">
+					<p class="ck-hint"><?php esc_html_e( 'নিচের ঘরগুলো ঐচ্ছিক। এখানে লেখা তথ্য কোথাও জমা হয় না, শুধু প্রিন্টে আসে।', 'sojib68' ); ?></p>
+					<div class="ck-extra__row">
+						<div class="ck-field">
+							<label for="ck-name"><?php esc_html_e( 'নাম', 'sojib68' ); ?></label>
+							<input type="text" id="ck-name" autocomplete="off" data-ck-name>
+						</div>
+						<div class="ck-field">
+							<label for="ck-mobile"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label>
+							<input type="text" id="ck-mobile" inputmode="tel" autocomplete="off" data-ck-mobile>
+						</div>
+					</div>
+					<div class="ck-field">
+						<label for="ck-note"><?php esc_html_e( 'অতিরিক্ত নির্দেশনা', 'sojib68' ); ?></label>
+						<textarea id="ck-note" rows="2" data-ck-note></textarea>
+					</div>
+				</div>
+			</div>
+
+			<footer class="ck-dialog__foot">
+				<p class="ck-msg" data-ck-msg role="alert" hidden></p>
+				<button type="button" class="btn btn-primary ck-print" data-ck-print><?php esc_html_e( 'প্রিন্ট / PDF সংরক্ষণ', 'sojib68' ); ?></button>
+				<p class="ck-hint ck-hint--small"><?php esc_html_e( 'PDF চাইলে প্রিন্টের জানালায় "Save as PDF" / "PDF হিসেবে সংরক্ষণ" বেছে নিন।', 'sojib68' ); ?></p>
+			</footer>
+		</div>
+
+		<!-- Printed slip (hidden on screen, filled from the ticked items by checklist.js) -->
+		<div class="ck-sheet" data-ck-sheet aria-hidden="true">
+			<header class="ck-sheet__head">
+				<div class="ck-sheet__brand">
+					<p class="ck-sheet__org"><?php echo esc_html( $office['name'] ); ?></p>
+					<p class="ck-sheet__role"><?php echo esc_html( $office['person'] ); ?></p>
+				</div>
+				<?php if ( '' !== $office['phone'] ) : ?>
+					<div class="ck-sheet__phone">
+						<span class="ck-sheet__phone-label"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></span>
+						<strong><?php echo esc_html( $office['phone'] ); ?></strong>
+						<?php if ( '' !== $office['channels'] ) : ?>
+							<span class="ck-sheet__channels"><?php echo esc_html( $office['channels'] ); ?></span>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
+			</header>
+
+			<h2 class="ck-sheet__title"><span data-sheet-title></span> — <?php esc_html_e( 'প্রয়োজনীয় কাগজপত্র', 'sojib68' ); ?></h2>
+
+			<dl class="ck-sheet__meta">
+				<div><dt><?php esc_html_e( 'তারিখ', 'sojib68' ); ?></dt><dd data-sheet-date></dd></div>
+				<div data-sheet-name-row hidden><dt><?php esc_html_e( 'নাম', 'sojib68' ); ?></dt><dd data-sheet-name></dd></div>
+				<div data-sheet-mobile-row hidden><dt><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></dt><dd data-sheet-mobile></dd></div>
+			</dl>
+
+			<ol class="ck-sheet__list" data-sheet-list></ol>
+
+			<div class="ck-sheet__note" data-sheet-note-row hidden>
+				<strong><?php esc_html_e( 'অতিরিক্ত নির্দেশনা', 'sojib68' ); ?></strong>
+				<p data-sheet-note></p>
+			</div>
+
+			<footer class="ck-sheet__foot">
+				<p><?php esc_html_e( 'এটি একটি সাধারণ সহায়ক তালিকা। বিষয় ও পরিস্থিতিভেদে সংশ্লিষ্ট অফিসের নির্দেশনা অনুযায়ী কাগজপত্র বদলাতে পারে।', 'sojib68' ); ?></p>
+			</footer>
+		</div>
+	</div>
+	<?php
+}
+add_action( 'wp_footer', 'sojib68_checklist_modal', 5 );

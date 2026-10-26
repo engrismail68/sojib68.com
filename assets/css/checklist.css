@@ -1,0 +1,637 @@
+/*
+ * "কী কী কাগজ লাগে": the service-card button on the homepage and its popup
+ * (screen + print). Uses the site's own tokens from style.css. Loaded on the homepage only.
+ */
+
+:root {
+	--ck-secondary: #566760; /* readable on cream and white (4.5:1+) */
+}
+
+/* ---------- homepage: service card buttons ---------- */
+
+.service-card__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+
+/* =====================================================================
+ * Popup — screen
+ * ================================================================== */
+
+.ck-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+}
+
+.ck-modal[hidden] {
+	display: none;
+}
+
+.ck-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(14, 34, 22, 0.55);
+}
+
+.ck-dialog {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 720px;
+	max-height: calc(100vh - 32px);
+	max-height: calc(100dvh - 32px);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
+}
+
+.ck-dialog:focus {
+	outline: none;
+}
+
+.ck-dialog__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 18px 22px 14px;
+	background: var(--color-cream);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.ck-dialog__eyebrow {
+	margin: 0 0 2px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--color-green);
+}
+
+.ck-dialog__head h2 {
+	margin: 0;
+	font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
+	line-height: 1.35;
+	color: var(--color-heading);
+}
+
+.ck-dialog__close {
+	flex-shrink: 0;
+	width: 38px;
+	height: 38px;
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+	background: var(--color-white);
+	font-size: 1.5rem;
+	line-height: 1;
+	color: var(--color-heading);
+	cursor: pointer;
+}
+
+.ck-dialog__close:hover {
+	border-color: var(--color-green);
+	color: var(--color-green);
+}
+
+.ck-dialog__body {
+	flex: 1;
+	min-height: 0;
+	padding: 16px 22px 8px;
+	overflow-y: auto;
+}
+
+.ck-dialog__body > .ck-hint {
+	margin-bottom: 12px;
+}
+
+.ck-dialog__body .ck-toolbar,
+.ck-dialog__body .ck-list {
+	border: 1px solid var(--color-border);
+}
+
+.ck-dialog__body .ck-toolbar {
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.ck-dialog__body .ck-list {
+	border-top: 0;
+	border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+	overflow: hidden;
+}
+
+.ck-extra {
+	margin-top: 18px;
+	padding-bottom: 12px;
+}
+
+.ck-extra__row {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0 14px;
+}
+
+.ck-dialog__foot {
+	padding: 14px 22px 16px;
+	border-top: 1px solid var(--color-border);
+	background: var(--color-cream);
+}
+
+.ck-dialog__foot .ck-msg {
+	margin: 0 0 10px;
+}
+
+.ck-dialog__foot .ck-msg[hidden] {
+	display: none;
+}
+
+body.ck-open {
+	overflow: hidden;
+}
+
+@media (max-width: 560px) {
+	.ck-modal {
+		padding: 0;
+		align-items: flex-end;
+	}
+
+	.ck-dialog {
+		max-width: none;
+		max-height: 94vh;
+		max-height: 94dvh;
+		border-radius: var(--radius-md) var(--radius-md) 0 0;
+	}
+
+	.ck-dialog__head,
+	.ck-dialog__body,
+	.ck-dialog__foot {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+
+	.ck-extra__row {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ck-item label {
+		padding: 13px 14px;
+	}
+
+	.ck-toolbar,
+	.ck-group {
+		padding-left: 14px;
+		padding-right: 14px;
+	}
+}
+
+/* ---- the list ---- */
+
+/* ---- the list ---- */
+
+.ck-panel {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	overflow: hidden;
+}
+
+.ck-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+	padding: 14px 20px;
+	background: var(--color-soft-green);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.ck-count {
+	font-size: 0.95rem;
+	color: var(--color-green-deep);
+}
+
+.ck-toolbar__btns {
+	display: flex;
+	gap: 18px;
+}
+
+.ck-link {
+	padding: 4px 0;
+	border: 0;
+	border-bottom: 1px solid transparent;
+	background: none;
+	font: inherit;
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: var(--color-green);
+	cursor: pointer;
+}
+
+.ck-link:hover {
+	border-bottom-color: currentColor;
+}
+
+.ck-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ck-group {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px 16px;
+	padding: 16px 20px 6px;
+	font-size: 0.88rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--color-green-deep);
+}
+
+.ck-group .ck-link {
+	font-size: 0.82rem;
+}
+
+.ck-item + .ck-item,
+.ck-group + .ck-item {
+	border-top: 1px solid var(--color-border);
+}
+
+.ck-item:first-child {
+	border-top: 0;
+}
+
+.ck-item label {
+	position: relative;
+	display: flex;
+	align-items: flex-start;
+	gap: 14px;
+	padding: 15px 20px;
+	cursor: pointer;
+	transition: background-color 0.12s ease;
+}
+
+.ck-item label:hover {
+	background: var(--color-cream);
+}
+
+.ck-item input {
+	position: absolute;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+}
+
+.ck-item__box {
+	flex-shrink: 0;
+	position: relative;
+	width: 24px;
+	height: 24px;
+	margin-top: 2px;
+	border: 2px solid #9AA8A0;
+	border-radius: 6px;
+	background: var(--color-white);
+	transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.ck-item input:checked + .ck-item__box {
+	border-color: var(--color-green);
+	background: var(--color-green);
+}
+
+.ck-item input:checked + .ck-item__box::after {
+	content: "";
+	position: absolute;
+	left: 7px;
+	top: 2px;
+	width: 6px;
+	height: 12px;
+	border: solid #fff;
+	border-width: 0 2.5px 2.5px 0;
+	transform: rotate(45deg);
+}
+
+.ck-item input:focus-visible + .ck-item__box {
+	outline: 3px solid rgba(25, 128, 48, 0.35);
+	outline-offset: 2px;
+}
+
+.ck-item__text {
+	font-size: 1.05rem;
+	line-height: 1.55;
+	color: var(--color-heading);
+}
+
+.ck-item__text small {
+	display: block;
+	margin-top: 2px;
+	font-size: 0.86rem;
+	color: var(--ck-secondary);
+}
+
+
+/* ---- small bits ---- */
+
+.ck-hint {
+	margin: 0 0 14px;
+	font-size: 0.88rem;
+	line-height: 1.6;
+	color: var(--ck-secondary);
+}
+
+.ck-hint--small {
+	margin: 10px 0 0;
+	font-size: 0.82rem;
+}
+
+.ck-field {
+	margin-bottom: 12px;
+}
+
+.ck-field label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.ck-field input,
+.ck-field textarea {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #CFD3C8;
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	font: inherit;
+	font-size: 0.96rem;
+	color: var(--color-heading);
+}
+
+.ck-field input:focus,
+.ck-field textarea:focus {
+	outline: none;
+	border-color: var(--color-green);
+	box-shadow: 0 0 0 3px rgba(25, 128, 48, 0.15);
+}
+
+.ck-print {
+	width: 100%;
+	margin-top: 6px;
+}
+
+.ck-msg {
+	margin: 10px 0 0;
+	padding: 9px 12px;
+	border-radius: var(--radius-sm);
+	background: #FDECEA;
+	font-size: 0.9rem;
+	color: #A8271F;
+}
+
+/* The printed sheet stays out of sight on screen. */
+.ck-sheet {
+	display: none;
+}
+
+/* =====================================================================
+ * Print: a compact slip that uses about half of an A4 sheet (top half),
+ * with a dotted outline to cut along. Items run in two columns so a typical
+ * list stays well inside 50% of the page; very long lists shrink a little.
+ * ================================================================== */
+
+@media print {
+	@page {
+		size: A4 portrait;
+		margin: 10mm 12mm;
+	}
+
+	/* only the slip prints: hide the whole page and the popup's screen part */
+	body.ck-open > *:not(.ck-modal) {
+		display: none !important;
+	}
+
+	.ck-modal {
+		position: static;
+		display: block;
+		padding: 0;
+	}
+
+	.ck-modal__backdrop,
+	.ck-dialog {
+		display: none !important;
+	}
+
+	body.ck-open {
+		overflow: visible;
+	}
+
+	body {
+		background: #fff !important;
+		color: #000;
+		font-size: 10pt;
+	}
+
+	.ck-sheet {
+		display: block;
+		padding: 6mm 7mm 5mm;
+		border: 0.8pt dashed #8A8A8A;
+		color: #111;
+		break-inside: avoid;
+	}
+
+	.ck-sheet__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 14pt;
+		padding-bottom: 6pt;
+		border-bottom: 1.6pt solid #198030;
+	}
+
+	.ck-sheet__org {
+		margin: 0;
+		font-size: 17pt;
+		font-weight: 800;
+		line-height: 1.3;
+		color: #198030;
+	}
+
+	.ck-sheet__role {
+		margin: 1pt 0 0;
+		font-size: 10.5pt;
+		font-weight: 600;
+		color: #222;
+	}
+
+	.ck-sheet__phone {
+		text-align: right;
+		line-height: 1.3;
+		white-space: nowrap;
+	}
+
+	.ck-sheet__phone-label {
+		display: block;
+		font-size: 7.5pt;
+		color: #555;
+	}
+
+	.ck-sheet__phone strong {
+		display: block;
+		font-family: var(--font-en);
+		font-size: 13.5pt;
+		letter-spacing: 0.03em;
+		color: #000;
+	}
+
+	.ck-sheet__channels {
+		display: block;
+		font-family: var(--font-en);
+		font-size: 8.5pt;
+		font-weight: 600;
+		color: #198030;
+	}
+
+	.ck-sheet__title {
+		margin: 8pt 0 3pt;
+		font-size: 12.5pt;
+		line-height: 1.4;
+		color: #000;
+	}
+
+	.ck-sheet__meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2pt 18pt;
+		margin: 0 0 5pt;
+		font-size: 9.5pt;
+	}
+
+	.ck-sheet__meta div[hidden] {
+		display: none;
+	}
+
+	.ck-sheet__meta dt {
+		display: inline;
+		font-weight: 700;
+	}
+
+	.ck-sheet__meta dt::after {
+		content: ": ";
+	}
+
+	.ck-sheet__meta dd {
+		display: inline;
+		margin: 0;
+	}
+
+	.ck-sheet__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		counter-reset: ck;
+		column-count: 2;
+		column-gap: 16pt;
+	}
+
+	.ck-sheet__group {
+		margin: 6pt 0 1pt;
+		font-size: 9.5pt;
+		font-weight: 700;
+		color: #0f6023;
+		break-after: avoid;
+	}
+
+	.ck-sheet__group:first-child {
+		margin-top: 0;
+	}
+
+	.ck-sheet__item {
+		display: flex;
+		align-items: flex-start;
+		gap: 6pt;
+		padding: 3.4pt 0;
+		border-bottom: 0.5pt solid #C4C4C4;
+		font-size: 10.5pt;
+		line-height: 1.4;
+		counter-increment: ck;
+		break-inside: avoid;
+	}
+
+	.ck-sheet__item::before {
+		content: counter(ck) ".";
+		content: counter(ck, bengali) ".";
+		min-width: 15pt;
+		color: #444;
+	}
+
+	.ck-sheet__box {
+		flex-shrink: 0;
+		order: 3;
+		width: 9pt;
+		height: 9pt;
+		margin: 2.5pt 0 0 auto;
+		border: 1pt solid #333;
+		border-radius: 1.5pt;
+	}
+
+	.ck-sheet__text {
+		flex: 1;
+	}
+
+	.ck-sheet__text small {
+		display: block;
+		font-size: 8.5pt;
+		color: #555;
+	}
+
+	/* long lists: a touch smaller so they still fit the half sheet */
+	.ck-sheet--dense .ck-sheet__item {
+		padding: 2.2pt 0;
+		font-size: 9.5pt;
+		line-height: 1.35;
+	}
+
+	.ck-sheet--dense .ck-sheet__text small {
+		font-size: 7.5pt;
+	}
+
+	.ck-sheet__note {
+		margin-top: 6pt;
+		padding: 4pt 7pt;
+		border: 0.7pt solid #999;
+		border-radius: 2pt;
+		font-size: 9.5pt;
+		break-inside: avoid;
+	}
+
+	.ck-sheet__note[hidden] {
+		display: none;
+	}
+
+	.ck-sheet__note p {
+		margin: 1pt 0 0;
+		white-space: pre-wrap;
+	}
+
+	.ck-sheet__foot {
+		margin-top: 6pt;
+		padding-top: 4pt;
+		border-top: 0.5pt solid #C4C4C4;
+		font-size: 7.5pt;
+		color: #555;
+	}
+
+	.ck-sheet__foot p {
+		margin: 0;
+	}
+}
