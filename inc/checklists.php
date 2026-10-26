@@ -168,6 +168,89 @@ function sojib68_checklists_admin_menu() {
 }
 add_action( 'admin_menu', 'sojib68_checklists_admin_menu' );
 
+/**
+ * Stored items -> what the editor shows: the common papers as text, and one
+ * block per "question : answer" (e.g. দলিলের ধরন : হেবা) with its papers as text.
+ */
+function sojib68_checklist_split( array $items ) {
+	$common = array();
+	$blocks = array();
+	foreach ( $items as $item ) {
+		$type = isset( $item['type'] ) ? $item['type'] : '';
+		if ( '' === $type ) {
+			$common[] = $item;
+			continue;
+		}
+		$kind = ! empty( $item['kind'] ) ? $item['kind'] : SOJIB68_CHECKLIST_DEFAULT_KIND;
+		$id   = $kind . "\n" . $type;
+		if ( ! isset( $blocks[ $id ] ) ) {
+			$blocks[ $id ] = array( 'kind' => $kind, 'type' => $type, 'items' => array() );
+		}
+		$item['type']              = '';
+		$item['kind']              = '';
+		$blocks[ $id ]['items'][] = $item;
+	}
+	foreach ( $blocks as $id => $block ) {
+		$blocks[ $id ]['text'] = sojib68_checklist_to_text( $block['items'] );
+		unset( $blocks[ $id ]['items'] );
+	}
+	return array( 'common' => sojib68_checklist_to_text( $common ), 'blocks' => array_values( $blocks ) );
+}
+
+/** One editor block (an existing one, or the template the "+" buttons clone). */
+function sojib68_checklist_block_html( $service_key, $index, $kind, $type, $text ) {
+	$base = 'lists[' . $service_key . '][blocks][' . $index . ']';
+	?>
+	<div class="ck-ed-block" style="margin:10px 0;padding:12px 14px;border:1px solid #c3c4c7;border-radius:4px;background:#f6f7f7;">
+		<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:8px;">
+			<label style="flex:1 1 150px;"><span style="display:block;font-weight:600;"><?php esc_html_e( 'কীসের বাছাই', 'sojib68' ); ?></span>
+				<input type="text" name="<?php echo esc_attr( $base ); ?>[kind]" value="<?php echo esc_attr( $kind ); ?>" class="regular-text" style="width:100%;"></label>
+			<label style="flex:1 1 200px;"><span style="display:block;font-weight:600;"><?php esc_html_e( 'বাটনের নাম', 'sojib68' ); ?></span>
+				<input type="text" name="<?php echo esc_attr( $base ); ?>[type]" value="<?php echo esc_attr( $type ); ?>" class="regular-text" style="width:100%;" placeholder="<?php esc_attr_e( 'যেমন: সাফ কবলা', 'sojib68' ); ?>"></label>
+			<button type="button" class="button" data-ck-remove><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
+		</div>
+		<textarea name="<?php echo esc_attr( $base ); ?>[text]" rows="5" class="large-text" style="font-family:inherit;" placeholder="<?php esc_attr_e( 'এই বাছাইয়ে যা যা লাগে — এক লাইনে একটি', 'sojib68' ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
+	</div>
+	<?php
+}
+
+/**
+ * What the editor posts for one service -> the stored text format. An older
+ * plain-text post is still accepted.
+ */
+function sojib68_checklist_posted_text( $posted ) {
+	if ( ! is_array( $posted ) ) {
+		return sanitize_textarea_field( (string) $posted );
+	}
+	$lines = array();
+	if ( ! empty( $posted['common'] ) ) {
+		$lines[] = sanitize_textarea_field( $posted['common'] );
+	}
+	$blocks = isset( $posted['blocks'] ) && is_array( $posted['blocks'] ) ? $posted['blocks'] : array();
+	// the first question is required on the site, so "দলিলের ধরন" blocks always lead
+	$default = array();
+	$others  = array();
+	foreach ( $blocks as $block ) {
+		if ( ! is_array( $block ) ) {
+			continue;
+		}
+		$kind = trim( str_replace( array( ':', '：', '@', '#' ), '', sanitize_text_field( isset( $block['kind'] ) ? $block['kind'] : '' ) ) );
+		$type = trim( ltrim( sanitize_text_field( isset( $block['type'] ) ? $block['type'] : '' ), '@#' ) );
+		$text = sanitize_textarea_field( isset( $block['text'] ) ? $block['text'] : '' );
+		if ( '' === $type || '' === trim( $text ) ) {
+			continue;
+		}
+		$kind = '' === $kind ? SOJIB68_CHECKLIST_DEFAULT_KIND : $kind;
+		$out  = '# @ ' . $kind . ' : ' . $type . "\n" . $text;
+		if ( SOJIB68_CHECKLIST_DEFAULT_KIND === $kind ) {
+			$default[] = $out;
+		} else {
+			$others[] = $out;
+		}
+	}
+	return implode( "\n", array_merge( $lines, $default, $others ) );
+}
+
 function sojib68_checklists_admin_page() {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		return;
@@ -175,6 +258,7 @@ function sojib68_checklists_admin_page() {
 	$services = sojib68_get_services();
 	$stored   = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
 	$stored   = is_array( $stored ) ? $stored : array();
+	$office   = sojib68_checklist_office();
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'কাগজপত্র তালিকা — কী কী কাগজ লাগে', 'sojib68' ); ?></h1>
@@ -183,37 +267,94 @@ function sojib68_checklists_admin_page() {
 			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'তালিকা সংরক্ষণ হয়েছে।', 'sojib68' ); ?></p></div>
 		<?php endif; ?>
 
-		<p><?php esc_html_e( 'প্রতিটি সেবার জন্য এক লাইনে একটি কাগজ লিখুন। যে সেবার তালিকা ফাঁকা থাকবে, সাইটে তার "কী কী লাগে" বাটন দেখাবে না।', 'sojib68' ); ?></p>
-		<p>
-			<code># সেকশনের শিরোনাম</code> &nbsp;—&nbsp; <?php esc_html_e( 'নিচের কাগজগুলোর একটি শিরোনাম (ঐচ্ছিক)', 'sojib68' ); ?><br>
-			<code># @ দলিলের ধরন : সাফ কবলা</code> &nbsp;—&nbsp; <?php esc_html_e( 'এর নিচের কাগজ শুধু "সাফ কবলা" বাছাই করলে দেখাবে। ":" এর আগেরটা প্রশ্ন (যেমন দলিলের ধরন, এলাকা), পরেরটা উত্তর (যেমন হেবা, পাওয়ার, পৌর এলাকা)। প্রথম "# @" এর আগের কাগজ সবার জন্য সাধারণ। প্রথম প্রশ্নটি বাধ্যতামূলক: সেটি বাছাই না করলে তালিকা দেখাবে না, তাই "দলিলের ধরন" সবার আগে লিখুন।', 'sojib68' ); ?><br>
-			<code>কাগজের নাম | ছোট নোট</code> &nbsp;—&nbsp; <?php esc_html_e( '"|" এর পরের নোট ঐচ্ছিক, যেমন "দুই কপি" বা "প্রযোজ্য হলে"', 'sojib68' ); ?>
-		</p>
+		<div style="max-width:900px;margin:12px 0 18px;padding:12px 16px;background:#fff;border-left:4px solid #198030;">
+			<strong><?php esc_html_e( 'কীভাবে কাজ করে', 'sojib68' ); ?></strong>
+			<ol style="margin:8px 0 0 18px;">
+				<li><?php esc_html_e( 'নিচে সেবার নামে চাপ দিয়ে খুলুন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( '"সব ধরনের জন্য কাগজ" ঘরে এক লাইনে একটি করে কাগজ লিখুন (যা সবার লাগে)।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( '"+ দলিলের ধরন যোগ করুন" চেপে ধরনের নাম (যেমন হেবা) ও তার বাড়তি কাগজ লিখুন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'পৌর এলাকার মতো আলাদা বাছাই লাগলে "+ অন্য বাছাই যোগ করুন" চাপুন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'সবশেষে "সংরক্ষণ করুন"। যে সেবার সব ঘর ফাঁকা, সাইটে তার "কী কী লাগে" বাটন আসে না।', 'sojib68' ); ?></li>
+			</ol>
+			<p class="description" style="margin-top:8px;"><?php esc_html_e( 'কাগজের নামের পরে "|" দিয়ে ছোট নোট লেখা যায়, যেমন: দাতার ছবি | ২ কপি।', 'sojib68' ); ?></p>
+		</div>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="sojib68_save_checklists">
 			<?php wp_nonce_field( 'sojib68_save_checklists' ); ?>
 
-			<?php $office = sojib68_checklist_office(); ?>
-			<h2 style="margin-top:24px;"><?php esc_html_e( 'প্রিন্টের ওপরের অংশ (লেটারহেড)', 'sojib68' ); ?></h2>
-			<table class="form-table" role="presentation">
-				<tr><th scope="row"><label for="co-name"><?php esc_html_e( 'অফিসের নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-name" name="office[name]" value="<?php echo esc_attr( $office['name'] ); ?>" class="regular-text"></td></tr>
-				<tr><th scope="row"><label for="co-person"><?php esc_html_e( 'আপনার নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-person" name="office[person]" value="<?php echo esc_attr( $office['person'] ); ?>" class="regular-text"></td></tr>
-				<tr><th scope="row"><label for="co-phone"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label></th><td><input type="text" id="co-phone" name="office[phone]" value="<?php echo esc_attr( $office['phone'] ); ?>" class="regular-text"></td></tr>
-				<tr><th scope="row"><label for="co-channels"><?php esc_html_e( 'নম্বরের পাশের লেখা', 'sojib68' ); ?></label></th><td><input type="text" id="co-channels" name="office[channels]" value="<?php echo esc_attr( $office['channels'] ); ?>" class="regular-text"><p class="description"><?php esc_html_e( 'যেমন: WhatsApp · bKash', 'sojib68' ); ?></p></td></tr>
-			</table>
-
-			<h2 style="margin-top:24px;"><?php esc_html_e( 'সেবা অনুযায়ী কাগজপত্রের তালিকা', 'sojib68' ); ?></h2>
-
 			<?php foreach ( $services as $key => $service ) : ?>
-				<?php $items = isset( $stored[ $key ] ) && is_array( $stored[ $key ] ) ? $stored[ $key ] : array(); ?>
-				<h2 style="margin-top:28px;"><?php echo esc_html( $service['title'] ); ?>
-				</h2>
-				<textarea name="lists[<?php echo esc_attr( $key ); ?>]" rows="8" class="large-text" style="font-family:inherit;" placeholder="<?php esc_attr_e( "# মূল কাগজ\nকাগজের নাম | ছোট নোট", 'sojib68' ); ?>"><?php echo esc_textarea( sojib68_checklist_to_text( $items ) ); ?></textarea>
+				<?php
+				$items = isset( $stored[ $key ] ) && is_array( $stored[ $key ] ) ? $stored[ $key ] : array();
+				$split = sojib68_checklist_split( $items );
+				?>
+				<details class="ck-ed" data-ck-service="<?php echo esc_attr( $key ); ?>" style="max-width:900px;margin:0 0 10px;padding:0;background:#fff;border:1px solid #c3c4c7;border-radius:4px;" <?php echo $items ? 'open' : ''; ?>>
+					<summary style="padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer;">
+						<?php echo esc_html( $service['title'] ); ?>
+						<?php if ( $items ) : ?>
+							<span style="font-weight:400;color:#198030;margin-left:8px;"><?php echo esc_html( sprintf( /* translators: %d: number of papers */ __( '%d টি কাগজ', 'sojib68' ), count( $items ) ) ); ?></span>
+						<?php endif; ?>
+					</summary>
+					<div style="padding:4px 16px 16px;">
+						<label for="ck-common-<?php echo esc_attr( $key ); ?>" style="display:block;font-weight:600;"><?php esc_html_e( 'সব ধরনের জন্য কাগজ', 'sojib68' ); ?></label>
+						<textarea id="ck-common-<?php echo esc_attr( $key ); ?>" name="lists[<?php echo esc_attr( $key ); ?>][common]" rows="6" class="large-text" style="margin-top:4px;font-family:inherit;" placeholder="<?php esc_attr_e( 'এক লাইনে একটি কাগজ', 'sojib68' ); ?>"><?php echo esc_textarea( $split['common'] ); ?></textarea>
+
+						<div data-ck-blocks>
+							<?php foreach ( $split['blocks'] as $i => $block ) : ?>
+								<?php sojib68_checklist_block_html( $key, 'e' . $i, $block['kind'], $block['type'], $block['text'] ); ?>
+							<?php endforeach; ?>
+						</div>
+
+						<p style="margin:10px 0 0;">
+							<button type="button" class="button" data-ck-add="<?php echo esc_attr( SOJIB68_CHECKLIST_DEFAULT_KIND ); ?>">+ <?php esc_html_e( 'দলিলের ধরন যোগ করুন', 'sojib68' ); ?></button>
+							<button type="button" class="button" data-ck-add="এলাকা">+ <?php esc_html_e( 'অন্য বাছাই যোগ করুন (যেমন এলাকা)', 'sojib68' ); ?></button>
+						</p>
+					</div>
+				</details>
 			<?php endforeach; ?>
+
+			<details style="max-width:900px;margin:14px 0 0;padding:0;background:#fff;border:1px solid #c3c4c7;border-radius:4px;">
+				<summary style="padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer;"><?php esc_html_e( 'প্রিন্টের ওপরের অংশ (লেটারহেড)', 'sojib68' ); ?></summary>
+				<table class="form-table" role="presentation" style="margin:0 16px 12px;width:auto;">
+					<tr><th scope="row"><label for="co-name"><?php esc_html_e( 'অফিসের নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-name" name="office[name]" value="<?php echo esc_attr( $office['name'] ); ?>" class="regular-text"></td></tr>
+					<tr><th scope="row"><label for="co-person"><?php esc_html_e( 'আপনার নাম', 'sojib68' ); ?></label></th><td><input type="text" id="co-person" name="office[person]" value="<?php echo esc_attr( $office['person'] ); ?>" class="regular-text"></td></tr>
+					<tr><th scope="row"><label for="co-phone"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label></th><td><input type="text" id="co-phone" name="office[phone]" value="<?php echo esc_attr( $office['phone'] ); ?>" class="regular-text"></td></tr>
+					<tr><th scope="row"><label for="co-channels"><?php esc_html_e( 'নম্বরের পাশের লেখা', 'sojib68' ); ?></label></th><td><input type="text" id="co-channels" name="office[channels]" value="<?php echo esc_attr( $office['channels'] ); ?>" class="regular-text"><p class="description"><?php esc_html_e( 'যেমন: WhatsApp · bKash', 'sojib68' ); ?></p></td></tr>
+				</table>
+			</details>
 
 			<p class="submit"><button type="submit" class="button button-primary button-large"><?php esc_html_e( 'সংরক্ষণ করুন', 'sojib68' ); ?></button></p>
 		</form>
+
+		<template id="ck-block-template"><?php sojib68_checklist_block_html( '__K__', '__I__', '__KIND__', '', '' ); ?></template>
+		<script>
+		( function () {
+			var tpl = document.getElementById( 'ck-block-template' );
+			var n = 0;
+			document.addEventListener( 'click', function ( e ) {
+				var add = e.target.closest( '[data-ck-add]' );
+				if ( add ) {
+					var card = add.closest( '[data-ck-service]' );
+					n += 1;
+					var html = tpl.innerHTML
+						.replace( /__K__/g, card.getAttribute( 'data-ck-service' ) )
+						.replace( /__I__/g, 'n' + n )
+						.replace( /__KIND__/g, add.getAttribute( 'data-ck-add' ) );
+					var holder = document.createElement( 'div' );
+					holder.innerHTML = html;
+					var block = holder.firstElementChild;
+					card.querySelector( '[data-ck-blocks]' ).appendChild( block );
+					var first = block.querySelector( 'input[name$="[type]"]' );
+					if ( first ) { first.focus(); }
+					return;
+				}
+				var rm = e.target.closest( '[data-ck-remove]' );
+				if ( rm && window.confirm( 'এই বাছাই ও তার কাগজগুলো মুছে ফেলবেন?' ) ) {
+					rm.closest( '.ck-ed-block' ).remove();
+				}
+			} );
+		} )();
+		</script>
 	</div>
 	<?php
 }
@@ -228,7 +369,7 @@ function sojib68_checklists_handle_save() {
 	$posted   = isset( $_POST['lists'] ) && is_array( $_POST['lists'] ) ? wp_unslash( $_POST['lists'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 	$clean    = array();
 	foreach ( $services as $key => $service ) {
-		$items = sojib68_checklist_parse( isset( $posted[ $key ] ) ? sanitize_textarea_field( $posted[ $key ] ) : '' );
+		$items = sojib68_checklist_parse( sojib68_checklist_posted_text( isset( $posted[ $key ] ) ? $posted[ $key ] : '' ) );
 		if ( $items ) {
 			$clean[ $key ] = $items;
 		}
