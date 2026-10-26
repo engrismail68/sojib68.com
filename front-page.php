@@ -88,34 +88,12 @@ $how_we_work = array(
 </section>
 
 <?php $sojib68_roots = sojib68_about_content()['roots']; // same text as /about, so the two never drift apart ?>
-<!-- About (short version; the full story is on /about) -->
+<!-- Family roots (compact; the full story is on /about). id="about" stays: the hero button and the menu link here. -->
 <section class="about about--short" id="about">
 	<div class="site-container">
-		<h2 class="section-title-center"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></h2>
-
-		<div class="about__short-text">
-			<p>
-				<?php esc_html_e( 'আমি ইসমাইল হোসেন সজিব, একজন Land & IT Consultant। ২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত আছি।', 'sojib68' ); ?>
-			</p>
-			<p>
-				<?php esc_html_e( 'তথ্যপ্রযুক্তির শিক্ষা কাজে লাগাই তথ্য সংরক্ষণ, কাগজপত্র গোছানো, অনলাইন সেবার কাজ এবং গ্রাহকের সঙ্গে যোগাযোগ সহজ রাখতে।', 'sojib68' ); ?>
-			</p>
-
-			<?php if ( ! empty( $stats ) ) : ?>
-				<div class="about__stats">
-					<?php foreach ( $stats as $stat ) : ?>
-						<div class="stat-box">
-							<span class="stat-box__number"><?php echo esc_html( $stat['number'] ); ?></span>
-							<span class="stat-box__label"><?php echo esc_html( $stat['label'] ); ?></span>
-						</div>
-					<?php endforeach; ?>
-				</div>
-			<?php endif; ?>
-		</div>
-
 		<div class="about__roots-block">
 			<p class="eyebrow"><?php echo esc_html( $sojib68_roots['eyebrow'] ); ?></p>
-			<h3 class="about__roots-title"><?php echo esc_html( $sojib68_roots['heading'] ); ?></h3>
+			<h2 class="about__roots-title"><?php echo esc_html( $sojib68_roots['heading'] ); ?></h2>
 			<p class="about__roots-intro"><?php echo esc_html( $sojib68_roots['intro'] ); ?></p>
 
 			<div class="about__people">
