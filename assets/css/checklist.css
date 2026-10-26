@@ -361,15 +361,12 @@
 }
 
 /* =====================================================================
- * Print: a compact slip that uses about half of an A4 sheet (top half),
- * with a dotted outline to cut along. Items run in two columns so a typical
- * list stays well inside 50% of the page; very long lists shrink a little.
+ * Print: only the sheet — office line, title, date, ticked items with a box to tick off
  * ================================================================== */
 
 @media print {
 	@page {
-		size: A4 portrait;
-		margin: 10mm 12mm;
+		margin: 16mm 15mm;
 	}
 
 	.site-header,
@@ -383,72 +380,48 @@
 	body {
 		background: #fff !important;
 		color: #000;
-		font-size: 10pt;
+		font-size: 12pt;
 	}
 
 	.ck-sheet {
 		display: block;
-		padding: 6mm 7mm 5mm;
-		border: 0.8pt dashed #8A8A8A;
 		color: #111;
-		break-inside: avoid;
 	}
 
 	.ck-sheet__head {
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-start;
-		gap: 14pt;
-		padding-bottom: 6pt;
-		border-bottom: 1.6pt solid #198030;
+		align-items: flex-end;
+		gap: 16px;
+		padding-bottom: 10pt;
+		border-bottom: 2pt solid #198030;
 	}
 
 	.ck-sheet__org {
 		margin: 0;
+		font-family: var(--font-en);
 		font-size: 17pt;
 		font-weight: 800;
-		line-height: 1.3;
 		color: #198030;
 	}
 
 	.ck-sheet__role {
-		margin: 1pt 0 0;
+		margin: 0;
+		font-family: var(--font-en);
 		font-size: 10.5pt;
-		font-weight: 600;
-		color: #222;
+		color: #333;
 	}
 
-	.ck-sheet__phone {
+	.ck-sheet__contact {
+		margin: 0;
+		font-size: 9.5pt;
+		color: #333;
 		text-align: right;
-		line-height: 1.3;
-		white-space: nowrap;
-	}
-
-	.ck-sheet__phone-label {
-		display: block;
-		font-size: 7.5pt;
-		color: #555;
-	}
-
-	.ck-sheet__phone strong {
-		display: block;
-		font-family: var(--font-en);
-		font-size: 13.5pt;
-		letter-spacing: 0.03em;
-		color: #000;
-	}
-
-	.ck-sheet__channels {
-		display: block;
-		font-family: var(--font-en);
-		font-size: 8.5pt;
-		font-weight: 600;
-		color: #198030;
 	}
 
 	.ck-sheet__title {
-		margin: 8pt 0 3pt;
-		font-size: 12.5pt;
+		margin: 16pt 0 8pt;
+		font-size: 16pt;
 		line-height: 1.4;
 		color: #000;
 	}
@@ -456,9 +429,9 @@
 	.ck-sheet__meta {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 2pt 18pt;
-		margin: 0 0 5pt;
-		font-size: 9.5pt;
+		gap: 4pt 24pt;
+		margin: 0 0 14pt;
+		font-size: 11pt;
 	}
 
 	.ck-sheet__meta div[hidden] {
@@ -484,30 +457,24 @@
 		padding: 0;
 		list-style: none;
 		counter-reset: ck;
-		column-count: 2;
-		column-gap: 16pt;
 	}
 
 	.ck-sheet__group {
-		margin: 6pt 0 1pt;
-		font-size: 9.5pt;
+		margin: 12pt 0 4pt;
+		font-size: 11pt;
 		font-weight: 700;
 		color: #0f6023;
 		break-after: avoid;
 	}
 
-	.ck-sheet__group:first-child {
-		margin-top: 0;
-	}
-
 	.ck-sheet__item {
 		display: flex;
 		align-items: flex-start;
-		gap: 6pt;
-		padding: 3.4pt 0;
-		border-bottom: 0.5pt solid #C4C4C4;
-		font-size: 10.5pt;
-		line-height: 1.4;
+		gap: 9pt;
+		padding: 6.5pt 0;
+		border-bottom: 0.6pt solid #bbb;
+		font-size: 12.5pt;
+		line-height: 1.5;
 		counter-increment: ck;
 		break-inside: avoid;
 	}
@@ -515,18 +482,18 @@
 	.ck-sheet__item::before {
 		content: counter(ck) ".";
 		content: counter(ck, bengali) ".";
-		min-width: 15pt;
+		min-width: 22pt;
 		color: #444;
 	}
 
 	.ck-sheet__box {
 		flex-shrink: 0;
 		order: 3;
-		width: 9pt;
-		height: 9pt;
-		margin: 2.5pt 0 0 auto;
-		border: 1pt solid #333;
-		border-radius: 1.5pt;
+		width: 12pt;
+		height: 12pt;
+		margin: 4pt 0 0 auto;
+		border: 1.2pt solid #333;
+		border-radius: 2pt;
 	}
 
 	.ck-sheet__text {
@@ -535,27 +502,16 @@
 
 	.ck-sheet__text small {
 		display: block;
-		font-size: 8.5pt;
+		font-size: 10pt;
 		color: #555;
 	}
 
-	/* long lists: a touch smaller so they still fit the half sheet */
-	.ck-sheet--dense .ck-sheet__item {
-		padding: 2.2pt 0;
-		font-size: 9.5pt;
-		line-height: 1.35;
-	}
-
-	.ck-sheet--dense .ck-sheet__text small {
-		font-size: 7.5pt;
-	}
-
 	.ck-sheet__note {
-		margin-top: 6pt;
-		padding: 4pt 7pt;
-		border: 0.7pt solid #999;
-		border-radius: 2pt;
-		font-size: 9.5pt;
+		margin-top: 14pt;
+		padding: 8pt 10pt;
+		border: 0.8pt solid #999;
+		border-radius: 3pt;
+		font-size: 11pt;
 		break-inside: avoid;
 	}
 
@@ -564,15 +520,15 @@
 	}
 
 	.ck-sheet__note p {
-		margin: 1pt 0 0;
+		margin: 3pt 0 0;
 		white-space: pre-wrap;
 	}
 
 	.ck-sheet__foot {
-		margin-top: 6pt;
-		padding-top: 4pt;
-		border-top: 0.5pt solid #C4C4C4;
-		font-size: 7.5pt;
+		margin-top: 18pt;
+		padding-top: 8pt;
+		border-top: 0.6pt solid #bbb;
+		font-size: 9.5pt;
 		color: #555;
 	}
 
