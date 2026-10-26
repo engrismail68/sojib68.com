@@ -23,6 +23,9 @@
 	var mobileIn = modal.querySelector( '[data-ck-mobile]' );
 	var noteIn = modal.querySelector( '[data-ck-note]' );
 	var boxes = [];
+	var typesEl = modal.querySelector( '[data-ck-types]' );
+	var checked = {}; // item index => ticked, kept while the deed type changes
+	var chosenType = '';
 	var lastOpener = null;
 
 	var BN = '০১২৩৪৫৬৭৮৯';
@@ -69,6 +72,10 @@
 
 	// Rebuild the printed sheet from what is ticked.
 	function update() {
+		boxes.forEach( function ( b ) {
+			var idx = b.getAttribute( 'data-idx' );
+			if ( b.checked ) { checked[ idx ] = 1; } else { delete checked[ idx ]; }
+		} );
 		var chosen = selected();
 		if ( countEl ) {
 			countEl.textContent = bn( chosen.length ) + ' / ' + bn( boxes.length ) + ' টি বাছাই করা';
@@ -174,7 +181,10 @@
 		boxes = [];
 		var group = null;
 		items.forEach( function ( item, i ) {
-			var g = item.group || '';
+			if ( item.type && item.type !== chosenType ) {
+				return; // belongs to another deed type
+			}
+			var g = item.group || item.type || '';
 			if ( g !== group ) {
 				group = g;
 				if ( g ) {
@@ -199,6 +209,8 @@
 			var input = document.createElement( 'input' );
 			input.type = 'checkbox';
 			input.id = 'ck-item-' + i;
+			input.setAttribute( 'data-idx', i );
+			input.checked = !! checked[ i ];
 			input.setAttribute( 'data-ck-item', '' );
 			input.setAttribute( 'data-text', item.text );
 			input.setAttribute( 'data-note', item.note || '' );
@@ -223,6 +235,57 @@
 		} );
 	}
 
+	function typeNames( key ) {
+		var names = [];
+		DATA[ key ].items.forEach( function ( item ) {
+			if ( item.type && names.indexOf( item.type ) < 0 ) { names.push( item.type ); }
+		} );
+		return names;
+	}
+
+	function buildTypes( key ) {
+		var names = typeNames( key );
+		typesEl.innerHTML = '';
+		typesEl.hidden = ! names.length;
+		if ( ! names.length ) { return; }
+		var lab = document.createElement( 'p' );
+		lab.className = 'ck-types__label';
+		lab.textContent = 'দলিলের ধরন বাছাই করুন (ধরন অনুযায়ী অতিরিক্ত কাগজ দেখাবে)';
+		typesEl.appendChild( lab );
+		var row = document.createElement( 'div' );
+		row.className = 'ck-types__row';
+		names.forEach( function ( name ) {
+			var b = document.createElement( 'button' );
+			b.type = 'button';
+			b.className = 'ck-type';
+			b.setAttribute( 'data-ck-type', name );
+			b.setAttribute( 'aria-pressed', 'false' );
+			b.textContent = name;
+			row.appendChild( b );
+		} );
+		typesEl.appendChild( row );
+	}
+
+	function refreshTypes() {
+		typesEl.querySelectorAll( '[data-ck-type]' ).forEach( function ( b ) {
+			var on = b.getAttribute( 'data-ck-type' ) === chosenType;
+			b.classList.toggle( 'is-on', on );
+			b.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+		} );
+		setText( '[data-sheet-title]', DATA[ current ].title + ( chosenType ? ' (' + chosenType + ')' : '' ) );
+	}
+
+	typesEl.addEventListener( 'click', function ( e ) {
+		var b = e.target.closest( '[data-ck-type]' );
+		if ( ! b ) { return; }
+		update(); // keep what is ticked so far
+		var name = b.getAttribute( 'data-ck-type' );
+		chosenType = chosenType === name ? '' : name;
+		buildList( current );
+		refreshTypes();
+		update();
+	} );
+
 	function openModal( key, opener ) {
 		if ( ! DATA[ key ] ) {
 			return;
@@ -230,8 +293,11 @@
 		current = key;
 		lastOpener = opener || null;
 		titleEl.textContent = DATA[ key ].title;
-		setText( '[data-sheet-title]', DATA[ key ].title );
+		checked = {};
+		chosenType = '';
+		buildTypes( key );
 		buildList( key );
+		refreshTypes();
 		nameIn.value = '';
 		mobileIn.value = '';
 		noteIn.value = '';

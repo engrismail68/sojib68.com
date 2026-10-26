@@ -190,6 +190,61 @@ body.ck-open {
 	}
 }
 
+/* ---- deed type chips ---- */
+
+.ck-types {
+	margin: 0 0 14px;
+	padding: 14px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-cream);
+}
+
+.ck-types[hidden] {
+	display: none;
+}
+
+.ck-types__label {
+	margin: 0 0 10px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.ck-types__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.ck-type {
+	padding: 7px 16px;
+	border: 1.5px solid #9AA8A0;
+	border-radius: 999px;
+	background: var(--color-white);
+	font: inherit;
+	font-size: 0.94rem;
+	font-weight: 600;
+	color: var(--color-heading);
+	cursor: pointer;
+	transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.ck-type:hover {
+	border-color: var(--color-green);
+}
+
+.ck-type.is-on {
+	border-color: var(--color-green);
+	background: var(--color-green);
+	color: #fff;
+}
+
+.ck-type:focus-visible {
+	outline: 3px solid rgba(25, 128, 48, 0.35);
+	outline-offset: 2px;
+}
+
 /* ---- the list ---- */
 
 /* ---- the list ---- */

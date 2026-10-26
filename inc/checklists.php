@@ -13,6 +13,9 @@
  *
  * Text format used in the editor, one item per line:
  *   # সেকশনের শিরোনাম        (optional heading for the lines below it)
+ *   # @ দলিলের ধরন            (from here on, the lines belong to this deed type; they
+ *                             show only when the visitor picks that type. Lines above
+ *                             the first "# @" are common to every type)
  *   কাগজের নাম | ছোট নোট      (the note after "|" is optional)
  */
 
@@ -58,13 +61,20 @@ function sojib68_checklists_defaults() {
 function sojib68_checklist_parse( $raw ) {
 	$items = array();
 	$group = '';
+	$type  = '';
 	foreach ( preg_split( '/\r\n|\r|\n/', (string) $raw ) as $line ) {
 		$line = trim( $line );
 		if ( '' === $line ) {
 			continue;
 		}
 		if ( '#' === $line[0] ) {
-			$group = trim( ltrim( $line, '#' ) );
+			$head = trim( ltrim( $line, '#' ) );
+			if ( '' !== $head && '@' === $head[0] ) {
+				$type  = trim( ltrim( $head, '@' ) );
+				$group = '';
+			} else {
+				$group = $head;
+			}
 			continue;
 		}
 		$parts = array_map( 'trim', explode( '|', $line, 2 ) );
@@ -75,6 +85,7 @@ function sojib68_checklist_parse( $raw ) {
 			'text'  => $parts[0],
 			'note'  => isset( $parts[1] ) ? $parts[1] : '',
 			'group' => $group,
+			'type'  => $type,
 		);
 	}
 	return $items;
@@ -84,7 +95,16 @@ function sojib68_checklist_parse( $raw ) {
 function sojib68_checklist_to_text( array $items ) {
 	$out   = array();
 	$group = '';
+	$type  = '';
 	foreach ( $items as $item ) {
+		$item_type = isset( $item['type'] ) ? $item['type'] : '';
+		if ( $item_type !== $type ) {
+			$type  = $item_type;
+			$group = '';
+			if ( '' !== $type ) {
+				$out[] = '# @ ' . $type;
+			}
+		}
 		if ( $item['group'] !== $group ) {
 			$group = $item['group'];
 			if ( '' !== $group ) {
@@ -150,6 +170,7 @@ function sojib68_checklists_admin_page() {
 		<p><?php esc_html_e( 'প্রতিটি সেবার জন্য এক লাইনে একটি কাগজ লিখুন। যে সেবার তালিকা ফাঁকা থাকবে, সাইটে তার "কী কী লাগে" বাটন দেখাবে না।', 'sojib68' ); ?></p>
 		<p>
 			<code># সেকশনের শিরোনাম</code> &nbsp;—&nbsp; <?php esc_html_e( 'নিচের কাগজগুলোর একটি শিরোনাম (ঐচ্ছিক)', 'sojib68' ); ?><br>
+			<code># @ দলিলের ধরন</code> &nbsp;—&nbsp; <?php esc_html_e( 'এর নিচের কাগজ শুধু ওই ধরন বাছাই করলে দেখাবে (যেমন বিক্রয়, হেবা, বণ্টন)। প্রথম "# @" এর আগের কাগজ সব ধরনের জন্য সাধারণ।', 'sojib68' ); ?><br>
 			<code>কাগজের নাম | ছোট নোট</code> &nbsp;—&nbsp; <?php esc_html_e( '"|" এর পরের নোট ঐচ্ছিক, যেমন "দুই কপি" বা "প্রযোজ্য হলে"', 'sojib68' ); ?>
 		</p>
 
@@ -257,6 +278,8 @@ function sojib68_checklist_modal() {
 
 			<div class="ck-dialog__body">
 				<p class="ck-hint"><?php esc_html_e( 'যে কাগজগুলো প্রযোজ্য শুধু সেগুলো টিক দিন, তারপর প্রিন্ট করুন বা PDF হিসেবে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
+
+				<div class="ck-types" data-ck-types hidden></div>
 
 				<div class="ck-toolbar">
 					<strong class="ck-count" data-ck-count aria-live="polite"></strong>
