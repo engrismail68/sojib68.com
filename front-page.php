@@ -115,7 +115,6 @@ $how_we_work = array(
 </section>
 
 <!-- Services -->
-<?php $sojib68_checklists = sojib68_get_checklists(); // services that have a "কী কী কাগজ লাগে" list (wp-admin → কাগজপত্র তালিকা) ?>
 <section class="services" id="services">
 	<div class="site-container">
 		<div class="section-heading-center">
@@ -132,16 +131,9 @@ $how_we_work = array(
 					<div class="service-card__body">
 						<h3><?php echo esc_html( $service['title'] ); ?></h3>
 						<p><?php echo esc_html( $service['text'] ); ?></p>
-						<div class="service-card__actions">
-							<a href="#contact" class="btn btn-outline btn-sm service-card__cta" data-service="<?php echo esc_attr( $key ); ?>">
-								<?php esc_html_e( 'বিস্তারিত জানুন', 'sojib68' ); ?>
-							</a>
-							<?php if ( isset( $sojib68_checklists[ $key ] ) ) : ?>
-								<a href="<?php echo esc_url( sojib68_checklist_url( $key ) ); ?>" class="btn btn-primary btn-sm service-card__docs">
-									<?php esc_html_e( 'কী কী লাগে', 'sojib68' ); ?>
-								</a>
-							<?php endif; ?>
-						</div>
+						<a href="#contact" class="btn btn-outline btn-sm service-card__cta" data-service="<?php echo esc_attr( $key ); ?>">
+							<?php esc_html_e( 'বিস্তারিত জানুন', 'sojib68' ); ?>
+						</a>
 					</div>
 				</div>
 			<?php endforeach; ?>
