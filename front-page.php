@@ -36,23 +36,43 @@ $how_we_work = array(
 <section class="hero">
 	<div class="site-container hero__inner">
 		<div class="hero__content">
-			<p class="hero__greeting"><?php esc_html_e( 'আসসালামু আলাইকুম, আমি', 'sojib68' ); ?></p>
-			<h1 class="hero__name"><?php esc_html_e( 'Ismail Hossain Sojib', 'sojib68' ); ?></h1>
+			<p class="hero__greeting"><?php esc_html_e( 'Hi there,', 'sojib68' ); ?></p>
+			<h1 class="hero__name"><?php esc_html_e( 'I’m Ismail Hossain Sojib', 'sojib68' ); ?></h1>
 			<p class="hero__designation"><?php esc_html_e( 'Land & IT Consultant', 'sojib68' ); ?></p>
+			<p class="hero__tagline"><?php esc_html_e( 'জমির তথ্য বুঝে, সঠিক পদক্ষেপের পথে।', 'sojib68' ); ?></p>
 			<p class="hero__desc">
-				<?php esc_html_e( 'দলিল ও জমির কাগজপত্র পর্যালোচনা, প্রয়োজনীয় তথ্য অনুসন্ধান এবং পরবর্তী করণীয় নিয়ে পরামর্শ ও সহায়তা প্রদান করি।', 'sojib68' ); ?>
+				<?php esc_html_e( 'দলিল ও খতিয়ানের তথ্য পর্যালোচনা, প্রয়োজনীয় নথি অনুসন্ধান এবং কাগজপত্রের অসামঞ্জস্য চিহ্নিত করে করণীয় বুঝতে সহায়তা করি। জমি কেনাবেচা, রেজিস্ট্রেশন, নামজারি ও ভূমিসংক্রান্ত কাজে বাস্তব অভিজ্ঞতার সঙ্গে যুক্ত করি তথ্যপ্রযুক্তির দক্ষতা।', 'sojib68' ); ?>
 			</p>
-			<p class="hero__experience">
-				<?php esc_html_e( '২০২০ সাল থেকে বাবার সহকারী হিসেবে দলিল ও ভূমিসংক্রান্ত কাজে যুক্ত।', 'sojib68' ); ?>
-			</p>
-			<ul class="hero__education" aria-label="<?php esc_attr_e( 'শিক্ষাগত পরিচয়', 'sojib68' ); ?>">
-				<li><?php esc_html_e( 'Diploma in Engineering · Dhaka Polytechnic Institute', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( 'BSc in Computer Science and Engineering · Canadian University of Bangladesh', 'sojib68' ); ?></li>
-			</ul>
+
+			<dl class="hero__facts">
+				<div>
+					<dt><?php esc_html_e( 'অভিজ্ঞতা ও পেশাগত পরিচয়', 'sojib68' ); ?></dt>
+					<dd><?php esc_html_e( 'তিন প্রজন্মের দলিল লেখার পারিবারিক ধারাবাহিকতায়, ২০২০ সাল থেকে বাবা মোঃ নুরুল ইসলামের সহকারী হিসেবে কাজ করছি। নথি গোছানো, তথ্য অনুসন্ধান ও কাজের অগ্রগতি অনুসরণে প্রযুক্তি ব্যবহার আমার কাজের গুরুত্বপূর্ণ অংশ।', 'sojib68' ); ?></dd>
+				</div>
+				<div>
+					<dt><?php esc_html_e( 'শিক্ষাগত যোগ্যতা', 'sojib68' ); ?></dt>
+					<dd class="hero__edu">
+						<span><?php esc_html_e( 'Diploma in Engineering · Dhaka Polytechnic Institute', 'sojib68' ); ?></span>
+						<span><?php esc_html_e( 'BSc in Computer Science and Engineering · Canadian University of Bangladesh', 'sojib68' ); ?></span>
+					</dd>
+				</div>
+			</dl>
+
+			<?php
+			// Set SOJIB68_BOOKING_URL (functions.php) to a real booking link — WhatsApp, a calendar, a payment page.
+			// Until then the button opens the contact form instead of a dead link.
+			$sojib68_booking_url = ( defined( 'SOJIB68_BOOKING_URL' ) && SOJIB68_BOOKING_URL ) ? SOJIB68_BOOKING_URL : '';
+			?>
 			<div class="hero__actions">
-				<a href="#contact" class="btn btn-primary"><?php esc_html_e( 'পরামর্শের জন্য যোগাযোগ', 'sojib68' ); ?></a>
-				<a href="#about" class="btn btn-outline"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></a>
+				<a href="#contact" class="btn btn-primary"><?php esc_html_e( 'যোগাযোগ করুন', 'sojib68' ); ?></a>
+				<?php if ( $sojib68_booking_url ) : ?>
+					<a href="<?php echo esc_url( $sojib68_booking_url ); ?>" class="btn btn-outline" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'বিস্তারিত পরামর্শ বুক করুন', 'sojib68' ); ?> <span aria-hidden="true">↗</span></a>
+				<?php else : ?>
+					<a href="#contact" class="btn btn-outline"><?php esc_html_e( 'বিস্তারিত পরামর্শ বুক করুন', 'sojib68' ); ?></a>
+				<?php endif; ?>
 			</div>
+			<p class="hero__fee-note"><?php esc_html_e( 'নির্ধারিত ফি প্রযোজ্য। বুকিংয়ের আগে ফি ও আলোচনার সময় জানুন।', 'sojib68' ); ?></p>
+			<a href="#services" class="hero__textlink"><?php esc_html_e( 'আমার সেবাসমূহ', 'sojib68' ); ?> <span aria-hidden="true">→</span></a>
 		</div>
 		<div class="hero__media">
 			<img

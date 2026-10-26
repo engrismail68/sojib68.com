@@ -40,6 +40,9 @@ if ( ! defined( 'SOJIB68_EMAIL' ) ) {
 if ( ! defined( 'SOJIB68_ADDRESS' ) ) {
 	define( 'SOJIB68_ADDRESS', '' );
 }
+if ( ! defined( 'SOJIB68_BOOKING_URL' ) ) {
+	define( 'SOJIB68_BOOKING_URL', '' ); // e.g. a WhatsApp / calendar / payment link for "বিস্তারিত পরামর্শ বুক করুন"
+}
 if ( ! defined( 'SOJIB68_CRM_URL' ) ) {
 	define( 'SOJIB68_CRM_URL', home_url( '/crm/' ) );
 }
