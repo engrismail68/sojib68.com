@@ -273,7 +273,8 @@ function sojib68_checklists_admin_page() {
 				<li><?php esc_html_e( 'নিচে সেবার নামে চাপ দিয়ে খুলুন।', 'sojib68' ); ?></li>
 				<li><?php esc_html_e( '"সব ধরনের জন্য কাগজ" ঘরে এক লাইনে একটি করে কাগজ লিখুন (যা সবার লাগে)।', 'sojib68' ); ?></li>
 				<li><?php esc_html_e( '"+ দলিলের ধরন যোগ করুন" চেপে ধরনের নাম (যেমন হেবা) ও তার বাড়তি কাগজ লিখুন।', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( 'পৌর এলাকার মতো আলাদা বাছাই লাগলে "+ অন্য বাছাই যোগ করুন" চাপুন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'ওয়ারিশ সূত্রে বা ক্রয় সূত্রে মালিকানার আলাদা কাগজ লাগলে "+ মালিকানার সূত্র যোগ করুন" চেপে প্রতিটির জন্য একটি বক্স করুন। পৌর এলাকার মতো অন্য বাছাইয়ের জন্য "+ অন্য বাছাই যোগ করুন"।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'ধরন বা সূত্র বাছাই করলে তার কাগজগুলো নিজে থেকেই টিক পড়ে যায়; সাধারণ কাগজ গ্রাহক নিজে টিক দেন।', 'sojib68' ); ?></li>
 				<li><?php esc_html_e( 'সবশেষে "সংরক্ষণ করুন"। যে সেবার সব ঘর ফাঁকা, সাইটে তার "কী কী লাগে" বাটন আসে না।', 'sojib68' ); ?></li>
 			</ol>
 			<p class="description" style="margin-top:8px;"><?php esc_html_e( 'কাগজের নামের পরে "|" দিয়ে ছোট নোট লেখা যায়, যেমন: দাতার ছবি | ২ কপি।', 'sojib68' ); ?></p>
@@ -307,6 +308,7 @@ function sojib68_checklists_admin_page() {
 
 						<p style="margin:10px 0 0;">
 							<button type="button" class="button" data-ck-add="<?php echo esc_attr( SOJIB68_CHECKLIST_DEFAULT_KIND ); ?>">+ <?php esc_html_e( 'দলিলের ধরন যোগ করুন', 'sojib68' ); ?></button>
+							<button type="button" class="button" data-ck-add="মালিকানার সূত্র">+ <?php esc_html_e( 'মালিকানার সূত্র যোগ করুন (ওয়ারিশ / ক্রয়)', 'sojib68' ); ?></button>
 							<button type="button" class="button" data-ck-add="এলাকা">+ <?php esc_html_e( 'অন্য বাছাই যোগ করুন (যেমন এলাকা)', 'sojib68' ); ?></button>
 						</p>
 					</div>

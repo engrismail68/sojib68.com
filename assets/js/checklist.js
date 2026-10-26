@@ -313,7 +313,14 @@
 		update(); // keep what is ticked so far
 		var kind = b.getAttribute( 'data-ck-kind' );
 		var name = b.getAttribute( 'data-ck-type' );
-		if ( picked[ kind ] === name ) { delete picked[ kind ]; } else { picked[ kind ] = name; }
+		var before = picked[ kind ];
+		if ( before === name ) { delete picked[ kind ]; } else { picked[ kind ] = name; }
+		// papers of the answer just picked come ticked; the ones of an answer dropped go back
+		DATA[ current ].items.forEach( function ( item, i ) {
+			if ( ( item.kind || 'দলিলের ধরন' ) !== kind ) { return; }
+			if ( item.type === before && before !== picked[ kind ] ) { delete checked[ i ]; }
+			if ( item.type === picked[ kind ] && before !== picked[ kind ] ) { checked[ i ] = 1; }
+		} );
 		buildList( current );
 		refreshTypes();
 		update();
