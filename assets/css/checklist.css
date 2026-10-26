@@ -204,6 +204,33 @@ body.ck-open {
 	display: none;
 }
 
+.ck-gate {
+	margin: 0 0 6px;
+	padding: 14px 16px;
+	border: 1.5px dashed #9AA8A0;
+	border-radius: var(--radius-sm);
+	font-size: 0.95rem;
+	color: var(--ck-secondary);
+	text-align: center;
+}
+
+.ck-gate[hidden] {
+	display: none;
+}
+
+/* nothing but the type buttons until a type is picked */
+.ck-dialog--gate .ck-toolbar,
+.ck-dialog--gate .ck-list,
+.ck-dialog--gate .ck-extra,
+.ck-dialog--gate .ck-dialog__body > .ck-hint {
+	display: none;
+}
+
+.ck-print:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
 .ck-types__group + .ck-types__group {
 	margin-top: 14px;
 }

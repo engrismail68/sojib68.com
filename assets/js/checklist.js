@@ -25,6 +25,8 @@
 	var boxes = [];
 	var typesEl = modal.querySelector( '[data-ck-types]' );
 	var checked = {}; // item index => ticked, kept while the deed type changes
+	var gateEl = modal.querySelector( '[data-ck-gate]' );
+	var printBtn = modal.querySelector( '[data-ck-print]' );
 	var picked = {}; // question => the answer picked
 	var lastOpener = null;
 
@@ -158,6 +160,9 @@
 
 	modal.querySelector( '[data-ck-print]' ).addEventListener( 'click', function () {
 		update();
+		if ( applyGate() ) {
+			return;
+		}
 		if ( ! selected().length ) {
 			if ( msg ) {
 				msg.textContent = 'প্রিন্টের আগে অন্তত একটি কাগজ বাছাই করুন।';
@@ -280,7 +285,18 @@
 		} );
 	}
 
+	// The first question (normally the deed type) must be answered before the list shows.
+	function applyGate() {
+		var kinds = kindsOf( current );
+		var gated = kinds.length > 0 && ! picked[ kinds[ 0 ].name ];
+		dialog.classList.toggle( 'ck-dialog--gate', gated );
+		if ( gateEl ) { gateEl.hidden = ! gated; }
+		if ( printBtn ) { printBtn.disabled = gated; }
+		return gated;
+	}
+
 	function refreshTypes() {
+		applyGate();
 		var names = [];
 		typesEl.querySelectorAll( '[data-ck-type]' ).forEach( function ( b ) {
 			var on = picked[ b.getAttribute( 'data-ck-kind' ) ] === b.getAttribute( 'data-ck-type' );
