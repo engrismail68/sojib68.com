@@ -197,19 +197,17 @@ function sojib68_checklist_split( array $items ) {
 	return array( 'common' => sojib68_checklist_to_text( $common ), 'blocks' => array_values( $blocks ) );
 }
 
-/** One editor panel: one answer (e.g. হেবা) with its papers. Also the template the "+ নতুন" tab clones. */
+/** One editor row: a button name (e.g. হেবা) with its papers. Also the template the "+ নতুন" button clones. */
 function sojib68_checklist_block_html( $service_key, $index, $kind, $type, $text ) {
 	$base = 'lists[' . $service_key . '][blocks][' . $index . ']';
 	?>
-	<div class="ck-ed-panel" data-ck-panel>
+	<div class="ck-ed-row" data-ck-panel>
 		<input type="hidden" name="<?php echo esc_attr( $base ); ?>[kind]" value="<?php echo esc_attr( $kind ); ?>">
-		<div class="ck-ed-panel__head">
-			<label><span><?php esc_html_e( 'বাটনের নাম', 'sojib68' ); ?></span>
-				<input type="text" name="<?php echo esc_attr( $base ); ?>[type]" value="<?php echo esc_attr( $type ); ?>" data-ck-name placeholder="<?php esc_attr_e( 'যেমন: সাফ কবলা', 'sojib68' ); ?>"></label>
-			<button type="button" class="button-link-delete" data-ck-remove><?php esc_html_e( 'এই বাটনটি মুছুন', 'sojib68' ); ?></button>
+		<div class="ck-ed-row__name">
+			<input type="text" name="<?php echo esc_attr( $base ); ?>[type]" value="<?php echo esc_attr( $type ); ?>" data-ck-name placeholder="<?php esc_attr_e( 'নাম, যেমন: হেবা', 'sojib68' ); ?>">
+			<button type="button" class="button-link-delete" data-ck-remove><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
 		</div>
-		<label class="ck-ed-panel__papers"><span><?php esc_html_e( 'এতে যা যা লাগে (এক লাইনে একটি)', 'sojib68' ); ?></span>
-			<textarea name="<?php echo esc_attr( $base ); ?>[text]" rows="7" data-ck-text><?php echo esc_textarea( $text ); ?></textarea></label>
+		<textarea name="<?php echo esc_attr( $base ); ?>[text]" rows="4" data-ck-text placeholder="<?php esc_attr_e( 'এতে যা যা লাগে — এক লাইনে একটি', 'sojib68' ); ?>"><?php echo esc_textarea( $text ); ?></textarea>
 	</div>
 	<?php
 }
@@ -270,11 +268,10 @@ function sojib68_checklists_admin_page() {
 		<div style="max-width:900px;margin:12px 0 18px;padding:12px 16px;background:#fff;border-left:4px solid #198030;">
 			<strong><?php esc_html_e( 'কীভাবে কাজ করে', 'sojib68' ); ?></strong>
 			<ol style="margin:8px 0 0 18px;">
-				<li><?php esc_html_e( 'নিচে সেবার নামে চাপ দিয়ে খুলুন।', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( '"সব ধরনের জন্য কাগজ" — যা সব দলিলেই লাগে (আইডি, ছবি ইত্যাদি)।', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( '"দলিলের ধরন" — প্রতিটি ধরনের (সাফ কবলা, হেবা…) নিজস্ব ট্যাব। ট্যাবে চাপলে শুধু সেই ধরনের কাগজ দেখায়। "+ নতুন" দিয়ে ধরন যোগ হয়।', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( '"মালিকানার সূত্র" ও "এলাকা" একইভাবে — ঐচ্ছিক, লাগলে ব্যবহার করুন।', 'sojib68' ); ?></li>
-				<li><?php esc_html_e( 'সাইটে গ্রাহক ধরন বা সূত্র বাছলে তার কাগজগুলো নিজে থেকে টিক পড়ে যায়। সবশেষে "সংরক্ষণ করুন"।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'যে সেবার কাগজ লিখবেন, নিচে তার নামে চাপ দিন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'ঘর ১: সব দলিলেই যা লাগে (আইডি, ছবি…) তা লিখুন।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'ঘর ২: প্রতিটি ধরনের (সাফ কবলা, হেবা…) নাম ও তার বাড়তি কাগজ লিখুন। নতুন ধরনের জন্য "+ ধরন যোগ করুন"।', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'সবশেষে "সংরক্ষণ করুন"। সাইটে গ্রাহক ধরন বাছলেই সেই কাগজের তালিকা পাবেন ও প্রিন্ট করতে পারবেন।', 'sojib68' ); ?></li>
 			</ol>
 			<p class="description" style="margin-top:8px;"><?php esc_html_e( 'কাগজের নামের পরে "|" দিয়ে ছোট নোট লেখা যায়, যেমন: দাতার ছবি | ২ কপি।', 'sojib68' ); ?></p>
 		</div>
@@ -296,27 +293,42 @@ function sojib68_checklists_admin_page() {
 						<?php endif; ?>
 					</summary>
 					<div class="ck-ed-body">
-						<h3 class="ck-ed-h"><?php esc_html_e( 'সব ধরনের জন্য কাগজ', 'sojib68' ); ?></h3>
-						<textarea id="ck-common-<?php echo esc_attr( $key ); ?>" name="lists[<?php echo esc_attr( $key ); ?>][common]" rows="5" class="ck-ed-common" placeholder="<?php esc_attr_e( 'এক লাইনে একটি কাগজ', 'sojib68' ); ?>"><?php echo esc_textarea( $split['common'] ); ?></textarea>
+						<h3 class="ck-ed-h"><span class="ck-ed-n">১</span> <?php esc_html_e( 'সব ধরনের জন্য কাগজ', 'sojib68' ); ?></h3>
+						<textarea id="ck-common-<?php echo esc_attr( $key ); ?>" name="lists[<?php echo esc_attr( $key ); ?>][common]" rows="4" class="ck-ed-common" placeholder="<?php esc_attr_e( 'এক লাইনে একটি কাগজ', 'sojib68' ); ?>"><?php echo esc_textarea( $split['common'] ); ?></textarea>
 
 						<?php
 						$sections = array(
-							SOJIB68_CHECKLIST_DEFAULT_KIND => __( 'গ্রাহক সবার আগে এটি বাছাই করবেন। প্রতিটি ধরনের জন্য একটি করে ট্যাব।', 'sojib68' ),
-							'মালিকানার সূত্র'               => __( 'যেমন: ওয়ারিশ সূত্রে, ক্রয় সূত্রে (ঐচ্ছিক)।', 'sojib68' ),
-							'এলাকা'                        => __( 'যেমন: পৌর এলাকা (ঐচ্ছিক)।', 'sojib68' ),
+							SOJIB68_CHECKLIST_DEFAULT_KIND => __( 'প্রতিটি ধরনের জন্য একটি সারি: বাঁয়ে নাম, ডানে সেই ধরনের কাগজ।', 'sojib68' ),
+							'মালিকানার সূত্র'               => __( 'যেমন: ওয়ারিশ সূত্রে, ক্রয় সূত্রে।', 'sojib68' ),
+							'এলাকা'                        => __( 'যেমন: পৌর এলাকা।', 'sojib68' ),
 						);
 						foreach ( $split['blocks'] as $block ) {
 							if ( ! isset( $sections[ $block['kind'] ] ) ) {
 								$sections[ $block['kind'] ] = '';
 							}
 						}
-						$bi = 0;
+						$bi        = 0;
+						$more_open = false;
+						foreach ( $split['blocks'] as $block ) {
+							if ( SOJIB68_CHECKLIST_DEFAULT_KIND !== $block['kind'] ) {
+								$more_open = true;
+							}
+						}
 						foreach ( $sections as $kind => $help ) :
+							$is_main = SOJIB68_CHECKLIST_DEFAULT_KIND === $kind;
+							if ( ! $is_main && $kind === array_keys( $sections )[1] ) :
+								?>
+								<details class="ck-ed-more" <?php echo $more_open ? 'open' : ''; ?>>
+									<summary><?php esc_html_e( 'আরও বাছাই (ঐচ্ছিক) — মালিকানার সূত্র, এলাকা', 'sojib68' ); ?></summary>
+								<?php
+							endif;
 							?>
 							<section class="ck-ed-sec" data-ck-section data-ck-kind="<?php echo esc_attr( $kind ); ?>">
-								<h3 class="ck-ed-h"><?php echo esc_html( $kind ); ?></h3>
+								<h3 class="ck-ed-h">
+									<?php if ( $is_main ) : ?><span class="ck-ed-n">২</span><?php endif; ?>
+									<?php echo esc_html( $is_main ? __( 'ধরন অনুযায়ী কাগজ', 'sojib68' ) : $kind ); ?>
+								</h3>
 								<?php if ( '' !== $help ) : ?><p class="description"><?php echo esc_html( $help ); ?></p><?php endif; ?>
-								<div class="ck-ed-tabs" data-ck-tabs></div>
 								<div data-ck-panels>
 									<?php foreach ( $split['blocks'] as $block ) : ?>
 										<?php if ( $block['kind'] === $kind ) : ?>
@@ -324,8 +336,10 @@ function sojib68_checklists_admin_page() {
 										<?php endif; ?>
 									<?php endforeach; ?>
 								</div>
+								<button type="button" class="button" data-ck-add>+ <?php echo esc_html( $is_main ? __( 'ধরন যোগ করুন', 'sojib68' ) : __( 'যোগ করুন', 'sojib68' ) ); ?></button>
 							</section>
 						<?php endforeach; ?>
+						<?php if ( count( $sections ) > 1 ) : ?></details><?php endif; ?>
 					</div>
 				</details>
 			<?php endforeach; ?>
@@ -347,111 +361,42 @@ function sojib68_checklists_admin_page() {
 		<style>
 			.ck-ed { max-width: 900px; margin: 0 0 10px; background: #fff; border: 1px solid #c3c4c7; border-radius: 4px; }
 			.ck-ed > summary { padding: 12px 16px; font-size: 15px; font-weight: 600; cursor: pointer; }
-			.ck-ed-body { padding: 2px 18px 18px; }
-			.ck-ed-h { margin: 18px 0 6px; font-size: 14px; }
+			.ck-ed-body { padding: 0 18px 18px; }
+			.ck-ed-h { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; font-size: 14px; }
+			.ck-ed-n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #198030; color: #fff; font-size: 12px; }
 			.ck-ed-body .description { margin: 0 0 8px; }
 			.ck-ed-common { width: 100%; font-family: inherit; }
-			.ck-ed-sec { margin-top: 6px; padding-top: 2px; border-top: 1px solid #e2e4e7; }
-			.ck-ed-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
-			.ck-ed-tab { padding: 6px 14px; border: 1px solid #8c8f94; border-radius: 999px; background: #fff; font: inherit; cursor: pointer; }
-			.ck-ed-tab small { color: #646970; }
-			.ck-ed-tab.is-empty small { color: #b32d2e; }
-			.ck-ed-tab.is-on { border-color: #198030; background: #198030; color: #fff; }
-			.ck-ed-tab.is-on small { color: #e6f4ea; }
-			.ck-ed-tab--add { border-style: dashed; color: #198030; border-color: #198030; }
-			.ck-ed-panel { padding: 12px 14px; border: 1px solid #c3c4c7; border-radius: 4px; background: #f6f7f7; }
-			.ck-ed-panel[hidden] { display: none; }
-			.ck-ed-panel__head { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; justify-content: space-between; margin-bottom: 10px; }
-			.ck-ed-panel label span { display: block; margin-bottom: 3px; font-weight: 600; }
-			.ck-ed-panel__head input { min-width: 240px; }
-			.ck-ed-panel__papers textarea { width: 100%; font-family: inherit; }
+			.ck-ed-row { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; margin: 0 0 10px; padding: 10px; border: 1px solid #dcdcde; border-radius: 4px; background: #f6f7f7; }
+			.ck-ed-row__name input { width: 100%; font-weight: 600; }
+			.ck-ed-row__name .button-link-delete { margin-top: 6px; }
+			.ck-ed-row textarea { width: 100%; font-family: inherit; }
+			.ck-ed-more { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e4e7; }
+			.ck-ed-more > summary { cursor: pointer; font-weight: 600; color: #198030; }
+			@media (max-width: 700px) { .ck-ed-row { grid-template-columns: minmax(0, 1fr); } }
 		</style>
 		<script>
 		( function () {
 			var tpl = document.getElementById( 'ck-block-template' );
 			var n = 0;
-
-			function countLines( panel ) {
-				return panel.querySelector( '[data-ck-text]' ).value.split( /\r?\n/ ).filter( function ( l ) {
-					l = l.trim();
-					return l !== '' && l.charAt( 0 ) !== '#' && ! /^[.\u2026\s]+$/.test( l );
-				} ).length;
-			}
-
-			function panels( sec ) {
-				return Array.prototype.slice.call( sec.querySelectorAll( '[data-ck-panel]' ) );
-			}
-
-			function showTabs( sec, active ) {
-				var list = panels( sec );
-				if ( ! list.length ) {
-					active = null;
-				} else if ( list.indexOf( active ) < 0 ) {
-					active = list[ 0 ];
-				}
-				var bar = sec.querySelector( '[data-ck-tabs]' );
-				bar.innerHTML = '';
-				list.forEach( function ( panel ) {
-					var count = countLines( panel );
-					var b = document.createElement( 'button' );
-					b.type = 'button';
-					b.className = 'ck-ed-tab' + ( panel === active ? ' is-on' : '' ) + ( count ? '' : ' is-empty' );
-					b.appendChild( document.createTextNode( panel.querySelector( '[data-ck-name]' ).value.trim() || 'নামহীন' + ' ' ) );
-					var small = document.createElement( 'small' );
-					small.textContent = count ? '(' + count + ')' : '(ফাঁকা)';
-					b.appendChild( small );
-					b._panel = panel;
-					bar.appendChild( b );
-					panel.hidden = panel !== active;
-				} );
-				var add = document.createElement( 'button' );
-				add.type = 'button';
-				add.className = 'ck-ed-tab ck-ed-tab--add';
-				add.setAttribute( 'data-ck-add', '' );
-				add.textContent = '+ নতুন';
-				bar.appendChild( add );
-			}
-
-			function activeOf( sec ) {
-				return panels( sec ).filter( function ( p ) { return ! p.hidden; } )[ 0 ] || null;
-			}
-
-			document.querySelectorAll( '[data-ck-section]' ).forEach( function ( sec ) { showTabs( sec, null ); } );
-
 			document.addEventListener( 'click', function ( e ) {
-				var tab = e.target.closest( '.ck-ed-tab' );
-				if ( tab ) {
-					var sec = tab.closest( '[data-ck-section]' );
-					if ( tab.hasAttribute( 'data-ck-add' ) ) {
-						n += 1;
-						var card = tab.closest( '[data-ck-service]' );
-						var holder = document.createElement( 'div' );
-						holder.innerHTML = tpl.innerHTML
-							.replace( /__K__/g, card.getAttribute( 'data-ck-service' ) )
-							.replace( /__I__/g, 'n' + n )
-							.replace( /__KIND__/g, sec.getAttribute( 'data-ck-kind' ) );
-						var panel = holder.firstElementChild;
-						sec.querySelector( '[data-ck-panels]' ).appendChild( panel );
-						showTabs( sec, panel );
-						panel.querySelector( '[data-ck-name]' ).focus();
-					} else {
-						showTabs( sec, tab._panel );
-					}
+				var add = e.target.closest( '[data-ck-add]' );
+				if ( add ) {
+					var sec = add.closest( '[data-ck-section]' );
+					var card = add.closest( '[data-ck-service]' );
+					n += 1;
+					var holder = document.createElement( 'div' );
+					holder.innerHTML = tpl.innerHTML
+						.replace( /__K__/g, card.getAttribute( 'data-ck-service' ) )
+						.replace( /__I__/g, 'n' + n )
+						.replace( /__KIND__/g, sec.getAttribute( 'data-ck-kind' ) );
+					var row = holder.firstElementChild;
+					sec.querySelector( '[data-ck-panels]' ).appendChild( row );
+					row.querySelector( '[data-ck-name]' ).focus();
 					return;
 				}
 				var rm = e.target.closest( '[data-ck-remove]' );
-				if ( rm && window.confirm( 'এই বাটন ও তার কাগজগুলো মুছে ফেলবেন?' ) ) {
-					var s2 = rm.closest( '[data-ck-section]' );
+				if ( rm && window.confirm( 'এই সারি ও তার কাগজগুলো মুছে ফেলবেন?' ) ) {
 					rm.closest( '[data-ck-panel]' ).remove();
-					showTabs( s2, null );
-				}
-			} );
-
-			// the tab label and its paper count follow what is typed
-			document.addEventListener( 'input', function ( e ) {
-				var panel = e.target.closest( '[data-ck-panel]' );
-				if ( panel ) {
-					showTabs( panel.closest( '[data-ck-section]' ), panel );
 				}
 			} );
 		} )();
