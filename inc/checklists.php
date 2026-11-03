@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
+define( 'SOJIB68_CHECKLISTS_BACKUP_OPTION', 'sojib68_checklists_backup' ); // the lists as they were before the last save
 define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
 define( 'SOJIB68_CHECKLIST_DEFAULT_KIND', 'দলিলের ধরন' ); // the question a bare "# @ X" belongs to
 
@@ -265,6 +266,39 @@ function sojib68_checklists_admin_page() {
 			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'তালিকা সংরক্ষণ হয়েছে।', 'sojib68' ); ?></p></div>
 		<?php endif; ?>
 
+		<?php if ( isset( $_GET['empty'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-warning"><p><?php esc_html_e( 'ফর্মের কোনো তথ্য সার্ভারে পৌঁছায়নি, তাই কিছুই বদলানো হয়নি। আবার সংরক্ষণ করে দেখুন।', 'sojib68' ); ?></p></div>
+		<?php endif; ?>
+		<?php if ( isset( $_GET['restored'] ) ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'আগের তালিকা ফিরিয়ে আনা হয়েছে।', 'sojib68' ); ?></p></div>
+		<?php endif; ?>
+
+		<?php
+		$saved_now = sojib68_get_checklists();
+		$backup    = get_option( SOJIB68_CHECKLISTS_BACKUP_OPTION, array() );
+		?>
+		<div style="max-width:900px;margin:12px 0 10px;padding:10px 16px;background:#fff;border-left:4px solid #2271b1;">
+			<strong><?php esc_html_e( 'এখন সাইটে যা সংরক্ষিত আছে:', 'sojib68' ); ?></strong>
+			<?php
+			if ( $saved_now ) {
+				$bits = array();
+				foreach ( $saved_now as $k => $its ) {
+					$bits[] = $services[ $k ]['title'] . ' — ' . count( $its ) . ' টি কাগজ';
+				}
+				echo esc_html( implode( ' · ', $bits ) );
+			} else {
+				esc_html_e( 'কিছু নেই।', 'sojib68' );
+			}
+			?>
+			<?php if ( is_array( $backup ) && $backup ) : ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;margin-left:10px;">
+					<input type="hidden" name="action" value="sojib68_restore_checklists">
+					<?php wp_nonce_field( 'sojib68_restore_checklists' ); ?>
+					<button type="submit" class="button button-small" onclick="return confirm('শেষ সংরক্ষণের আগের তালিকা ফিরিয়ে আনবেন?');"><?php esc_html_e( 'আগের সংরক্ষণে ফিরে যান', 'sojib68' ); ?></button>
+				</form>
+			<?php endif; ?>
+		</div>
+
 		<div style="max-width:900px;margin:12px 0 18px;padding:12px 16px;background:#fff;border-left:4px solid #198030;">
 			<strong><?php esc_html_e( 'কীভাবে কাজ করে', 'sojib68' ); ?></strong>
 			<ol style="margin:8px 0 0 18px;">
@@ -412,13 +446,32 @@ function sojib68_checklists_handle_save() {
 	check_admin_referer( 'sojib68_save_checklists' );
 
 	$services = sojib68_get_services();
+	$old      = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
+	$old      = is_array( $old ) ? $old : array();
 	$posted   = isset( $_POST['lists'] ) && is_array( $_POST['lists'] ) ? wp_unslash( $_POST['lists'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
-	$clean    = array();
+
+	// Nothing arrived (e.g. the request was cut short): change nothing rather than wipe the lists.
+	if ( ! $posted ) {
+		wp_safe_redirect( add_query_arg( array( 'page' => 'sojib68-checklists', 'empty' => 1 ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	$clean = array();
 	foreach ( $services as $key => $service ) {
-		$items = sojib68_checklist_parse( sojib68_checklist_posted_text( isset( $posted[ $key ] ) ? $posted[ $key ] : '' ) );
+		if ( ! array_key_exists( $key, $posted ) ) {
+			// this service did not come through — keep what is stored for it
+			if ( isset( $old[ $key ] ) ) {
+				$clean[ $key ] = $old[ $key ];
+			}
+			continue;
+		}
+		$items = sojib68_checklist_parse( sojib68_checklist_posted_text( $posted[ $key ] ) );
 		if ( $items ) {
 			$clean[ $key ] = $items;
 		}
+	}
+	if ( $old && $old !== $clean ) {
+		update_option( SOJIB68_CHECKLISTS_BACKUP_OPTION, $old, false );
 	}
 	update_option( SOJIB68_CHECKLISTS_OPTION, $clean, false );
 
@@ -433,6 +486,21 @@ function sojib68_checklists_handle_save() {
 	exit;
 }
 add_action( 'admin_post_sojib68_save_checklists', 'sojib68_checklists_handle_save' );
+
+/** Put back the lists as they were before the last save. */
+function sojib68_checklists_handle_restore() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'এই কাজের অনুমতি নেই।', 'sojib68' ), 403 );
+	}
+	check_admin_referer( 'sojib68_restore_checklists' );
+	$backup = get_option( SOJIB68_CHECKLISTS_BACKUP_OPTION, array() );
+	if ( is_array( $backup ) && $backup ) {
+		update_option( SOJIB68_CHECKLISTS_OPTION, $backup, false );
+	}
+	wp_safe_redirect( add_query_arg( array( 'page' => 'sojib68-checklists', 'restored' => 1 ), admin_url( 'admin.php' ) ) );
+	exit;
+}
+add_action( 'admin_post_sojib68_restore_checklists', 'sojib68_checklists_handle_restore' );
 
 /* ---------------------------------------------------------------------
  * Homepage popup
