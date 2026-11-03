@@ -45,7 +45,7 @@
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	max-width: 720px;
+	max-width: 620px;
 	max-height: calc(100vh - 32px);
 	max-height: calc(100dvh - 32px);
 	border-radius: var(--radius-md);
@@ -63,7 +63,7 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
-	padding: 18px 22px 14px;
+	padding: 12px 18px 10px;
 	background: var(--color-cream);
 	border-bottom: 1px solid var(--color-border);
 }
@@ -77,19 +77,19 @@
 
 .ck-dialog__head h2 {
 	margin: 0;
-	font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
+	font-size: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
 	line-height: 1.35;
 	color: var(--color-heading);
 }
 
 .ck-dialog__close {
 	flex-shrink: 0;
-	width: 38px;
-	height: 38px;
+	width: 32px;
+	height: 32px;
 	border: 1px solid var(--color-border);
 	border-radius: 50%;
 	background: var(--color-white);
-	font-size: 1.5rem;
+	font-size: 1.3rem;
 	line-height: 1;
 	color: var(--color-heading);
 	cursor: pointer;
@@ -103,12 +103,13 @@
 .ck-dialog__body {
 	flex: 1;
 	min-height: 0;
-	padding: 16px 22px 8px;
+	padding: 12px 18px 4px;
 	overflow-y: auto;
 }
 
 .ck-dialog__body > .ck-hint {
-	margin-bottom: 12px;
+	margin-bottom: 8px;
+	font-size: 0.84rem;
 }
 
 .ck-dialog__body .ck-toolbar,
@@ -127,8 +128,21 @@
 }
 
 .ck-extra {
-	margin-top: 18px;
-	padding-bottom: 12px;
+	margin-top: 12px;
+	padding-bottom: 8px;
+}
+
+.ck-extra > summary {
+	display: inline-block;
+	padding: 4px 0;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--color-green);
+	cursor: pointer;
+}
+
+.ck-extra[open] > summary {
+	margin-bottom: 8px;
 }
 
 .ck-extra__row {
@@ -138,7 +152,7 @@
 }
 
 .ck-dialog__foot {
-	padding: 14px 22px 16px;
+	padding: 10px 18px 12px;
 	border-top: 1px solid var(--color-border);
 	background: var(--color-cream);
 }
@@ -193,8 +207,8 @@ body.ck-open {
 /* ---- deed type chips ---- */
 
 .ck-types {
-	margin: 0 0 14px;
-	padding: 14px 16px;
+	margin: 0 0 10px;
+	padding: 10px 14px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-sm);
 	background: var(--color-cream);
@@ -232,12 +246,12 @@ body.ck-open {
 }
 
 .ck-types__group + .ck-types__group {
-	margin-top: 14px;
+	margin-top: 10px;
 }
 
 .ck-types__label {
-	margin: 0 0 10px;
-	font-size: 0.9rem;
+	margin: 0 0 7px;
+	font-size: 0.86rem;
 	font-weight: 600;
 	color: var(--color-heading);
 }
@@ -249,12 +263,12 @@ body.ck-open {
 }
 
 .ck-type {
-	padding: 7px 16px;
+	padding: 5px 14px;
 	border: 1.5px solid #9AA8A0;
 	border-radius: 999px;
 	background: var(--color-white);
 	font: inherit;
-	font-size: 0.94rem;
+	font-size: 0.9rem;
 	font-weight: 600;
 	color: var(--color-heading);
 	cursor: pointer;
@@ -293,7 +307,7 @@ body.ck-open {
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px 16px;
-	padding: 14px 20px;
+	padding: 8px 14px;
 	background: var(--color-soft-green);
 	border-bottom: 1px solid var(--color-border);
 }
@@ -336,7 +350,7 @@ body.ck-open {
 	align-items: center;
 	justify-content: space-between;
 	gap: 4px 16px;
-	padding: 16px 20px 6px;
+	padding: 10px 14px 3px;
 	font-size: 0.88rem;
 	font-weight: 700;
 	letter-spacing: 0.02em;
@@ -360,8 +374,8 @@ body.ck-open {
 	position: relative;
 	display: flex;
 	align-items: flex-start;
-	gap: 14px;
-	padding: 15px 20px;
+	gap: 11px;
+	padding: 9px 14px;
 	cursor: pointer;
 	transition: background-color 0.12s ease;
 }
@@ -380,8 +394,8 @@ body.ck-open {
 .ck-item__box {
 	flex-shrink: 0;
 	position: relative;
-	width: 24px;
-	height: 24px;
+	width: 20px;
+	height: 20px;
 	margin-top: 2px;
 	border: 2px solid #9AA8A0;
 	border-radius: 6px;
@@ -397,10 +411,10 @@ body.ck-open {
 .ck-item input:checked + .ck-item__box::after {
 	content: "";
 	position: absolute;
-	left: 7px;
-	top: 2px;
-	width: 6px;
-	height: 12px;
+	left: 5.5px;
+	top: 1.5px;
+	width: 5px;
+	height: 10px;
 	border: solid #fff;
 	border-width: 0 2.5px 2.5px 0;
 	transform: rotate(45deg);
@@ -412,8 +426,8 @@ body.ck-open {
 }
 
 .ck-item__text {
-	font-size: 1.05rem;
-	line-height: 1.55;
+	font-size: 0.96rem;
+	line-height: 1.5;
 	color: var(--color-heading);
 }
 
@@ -472,7 +486,9 @@ body.ck-open {
 
 .ck-print {
 	width: 100%;
-	margin-top: 6px;
+	margin-top: 0;
+	padding: 10px 18px;
+	font-size: 0.98rem;
 }
 
 .ck-msg {

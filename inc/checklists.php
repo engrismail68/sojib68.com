@@ -480,7 +480,7 @@ function sojib68_checklist_modal() {
 			</header>
 
 			<div class="ck-dialog__body">
-				<p class="ck-hint"><?php esc_html_e( 'যে কাগজগুলো প্রযোজ্য শুধু সেগুলো টিক দিন, তারপর প্রিন্ট করুন বা PDF হিসেবে সংরক্ষণ করুন।', 'sojib68' ); ?></p>
+				<p class="ck-hint"><?php esc_html_e( 'যেগুলো প্রযোজ্য শুধু সেগুলোয় টিক দিন, তারপর প্রিন্ট বা PDF করুন।', 'sojib68' ); ?></p>
 
 				<div class="ck-types" data-ck-types hidden></div>
 				<p class="ck-gate" data-ck-gate hidden><?php esc_html_e( 'ধরন বাছাই করলে ওই দলিলের জন্য যা যা লাগবে তার তালিকা এখানে আসবে।', 'sojib68' ); ?></p>
@@ -495,8 +495,9 @@ function sojib68_checklist_modal() {
 
 				<ul class="ck-list" data-ck-list></ul>
 
-				<div class="ck-extra">
-					<p class="ck-hint"><?php esc_html_e( 'নিচের ঘরগুলো ঐচ্ছিক। এখানে লেখা তথ্য কোথাও জমা হয় না, শুধু প্রিন্টে আসে।', 'sojib68' ); ?></p>
+				<details class="ck-extra">
+					<summary><?php esc_html_e( '+ প্রিন্টে নাম / মোবাইল / নির্দেশনা যোগ করুন (ঐচ্ছিক)', 'sojib68' ); ?></summary>
+					<p class="ck-hint"><?php esc_html_e( 'এখানে লেখা তথ্য কোথাও জমা হয় না, শুধু প্রিন্টে আসে।', 'sojib68' ); ?></p>
 					<div class="ck-extra__row">
 						<div class="ck-field">
 							<label for="ck-name"><?php esc_html_e( 'নাম', 'sojib68' ); ?></label>
@@ -511,13 +512,13 @@ function sojib68_checklist_modal() {
 						<label for="ck-note"><?php esc_html_e( 'অতিরিক্ত নির্দেশনা', 'sojib68' ); ?></label>
 						<textarea id="ck-note" rows="2" data-ck-note></textarea>
 					</div>
-				</div>
+				</details>
 			</div>
 
 			<footer class="ck-dialog__foot">
 				<p class="ck-msg" data-ck-msg role="alert" hidden></p>
 				<button type="button" class="btn btn-primary ck-print" data-ck-print><?php esc_html_e( 'প্রিন্ট / PDF সংরক্ষণ', 'sojib68' ); ?></button>
-				<p class="ck-hint ck-hint--small"><?php esc_html_e( 'PDF চাইলে প্রিন্টের জানালায় "Save as PDF" / "PDF হিসেবে সংরক্ষণ" বেছে নিন।', 'sojib68' ); ?></p>
+				<p class="ck-hint ck-hint--small"><?php esc_html_e( 'PDF-এর জন্য প্রিন্টের জানালায় "Save as PDF" বেছে নিন।', 'sojib68' ); ?></p>
 			</footer>
 		</div>
 
