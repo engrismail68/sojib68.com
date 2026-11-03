@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
 define( 'SOJIB68_CHECKLISTS_BACKUP_OPTION', 'sojib68_checklists_backup' ); // the lists as they were before the last save
+define( 'SOJIB68_CHECKLISTS_REPORT_OPTION', 'sojib68_checklists_lastsave' ); // what the last save received and stored (shown on the editor page)
 define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
 define( 'SOJIB68_CHECKLIST_DEFAULT_KIND', 'দলিলের ধরন' ); // the question a bare "# @ X" belongs to
 
@@ -299,6 +300,20 @@ function sojib68_checklists_admin_page() {
 			<?php endif; ?>
 		</div>
 
+		<?php $report = get_option( SOJIB68_CHECKLISTS_REPORT_OPTION, array() ); ?>
+		<?php if ( is_array( $report ) && $report ) : ?>
+			<details style="max-width:900px;margin:0 0 10px;padding:8px 16px;background:#fff;border-left:4px solid #dba617;">
+				<summary style="cursor:pointer;font-weight:600;"><?php esc_html_e( 'শেষ সংরক্ষণের রিপোর্ট (সমস্যা হলে এটি পাঠান)', 'sojib68' ); ?></summary>
+				<pre style="white-space:pre-wrap;margin:8px 0 0;font-size:12px;"><?php
+				echo esc_html( sprintf( "সময়: %s | ফর্ম থেকে এসেছে: %d টি ঘর (সার্ভারের সীমা %s) | %d বাইট | জমা হয়েছে ও আবার পড়া গেছে: %s\n", $report['time'], $report['vars'], $report['max_vars'], $report['bytes'], $report['stored_ok'] ? 'হ্যাঁ' : 'না' ) );
+				foreach ( $report['services'] as $k => $r ) {
+					$title = isset( $services[ $k ]['title'] ) ? $services[ $k ]['title'] : $k;
+					echo esc_html( sprintf( "%s: এসেছে=%s, সাধারণ লেখা=%d অক্ষর, ধরনের সারি=%d, জমা=%d টি কাগজ\n", $title, $r['sent'] ? 'হ্যাঁ' : 'না', $r['common'], $r['blocks'], $r['saved'] ) );
+				}
+				?></pre>
+			</details>
+		<?php endif; ?>
+
 		<div style="max-width:900px;margin:12px 0 18px;padding:12px 16px;background:#fff;border-left:4px solid #198030;">
 			<strong><?php esc_html_e( 'কীভাবে কাজ করে', 'sojib68' ); ?></strong>
 			<ol style="margin:8px 0 0 18px;">
@@ -474,6 +489,27 @@ function sojib68_checklists_handle_save() {
 		update_option( SOJIB68_CHECKLISTS_BACKUP_OPTION, $old, false );
 	}
 	update_option( SOJIB68_CHECKLISTS_OPTION, $clean, false );
+
+	// A short report of what arrived and what was stored, shown on the editor page.
+	$read_back = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
+	$report    = array(
+		'time'      => current_time( 'mysql' ),
+		'vars'      => count( $_POST, COUNT_RECURSIVE ), // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		'max_vars'  => (string) ini_get( 'max_input_vars' ),
+		'bytes'     => isset( $_SERVER['CONTENT_LENGTH'] ) ? (int) $_SERVER['CONTENT_LENGTH'] : 0,
+		'stored_ok' => is_array( $read_back ) && $read_back == $clean, // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+		'services'  => array(),
+	);
+	foreach ( $services as $key => $service ) {
+		$row = isset( $posted[ $key ] ) ? $posted[ $key ] : null;
+		$report['services'][ $key ] = array(
+			'sent'   => null !== $row,
+			'common' => is_array( $row ) && isset( $row['common'] ) ? strlen( $row['common'] ) : 0,
+			'blocks' => is_array( $row ) && isset( $row['blocks'] ) && is_array( $row['blocks'] ) ? count( $row['blocks'] ) : 0,
+			'saved'  => isset( $clean[ $key ] ) ? count( $clean[ $key ] ) : 0,
+		);
+	}
+	update_option( SOJIB68_CHECKLISTS_REPORT_OPTION, $report, false );
 
 	$posted_office = isset( $_POST['office'] ) && is_array( $_POST['office'] ) ? wp_unslash( $_POST['office'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 	$office        = array();
