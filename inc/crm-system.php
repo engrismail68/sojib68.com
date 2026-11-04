@@ -674,6 +674,7 @@ function sojib68_crm_menu_items() {
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারি এন্ট্রি', 'sojib68' ),
 		'deed_registration-entry' => __( 'দলিল রেজিস্ট্রেশন', 'sojib68' ),
+		'deed_search-entry' => __( 'দলিল অনুসন্ধান ও সার্টিফাইড কপি', 'sojib68' ),
 	) + ( sojib68_crm_is_admin() ? array( 'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ) ) : array() );
 }
 
@@ -709,6 +710,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'entry-new' => 'plus',
 		'namjari-entry' => 'briefcase',
 		'deed_registration-entry' => 'briefcase',
+		'deed_search-entry' => 'briefcase',
 		'recycle-bin'   => 'trash',
 	);
 	$subs  = array(
@@ -719,6 +721,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
 		'deed_registration-entry' => __( 'অফিসে এন্ট্রি হওয়া দলিলগুলো এখানে কাজ হিসেবে আসে — অবস্থা বদলান, হিসাব দেখুন', 'sojib68' ),
+		'deed_search-entry' => __( 'দলিল অনুসন্ধান ও সার্টিফাইড কপির কাজের তথ্য এন্ট্রি, অবস্থা ও হিসাব', 'sojib68' ),
 		'recycle-bin'   => __( 'মুছে ফেলা কাজ — ফেরত আনুন বা স্থায়ীভাবে মুছুন', 'sojib68' ),
 	);
 
