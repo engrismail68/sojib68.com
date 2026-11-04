@@ -133,9 +133,19 @@ $how_we_work = array(
 						<h3><?php echo esc_html( $service['title'] ); ?></h3>
 						<p><?php echo esc_html( $service['text'] ); ?></p>
 						<div class="service-card__actions">
-							<a href="#contact" class="btn btn-outline btn-sm service-card__cta" data-service="<?php echo esc_attr( $key ); ?>">
-								<?php esc_html_e( 'বিস্তারিত জানুন', 'sojib68' ); ?>
-							</a>
+							<?php if ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) : ?>
+								<?php
+								/* translators: %s: service title */
+								$sojib68_wa_text = sprintf( __( 'আসসালামু আলাইকুম, আমি "%s" সম্পর্কে জানতে চাই।', 'sojib68' ), $service['title'] );
+								?>
+								<a href="https://wa.me/<?php echo esc_attr( SOJIB68_WHATSAPP ); ?>?text=<?php echo esc_attr( rawurlencode( $sojib68_wa_text ) ); ?>" class="btn btn-outline btn-sm service-card__cta" target="_blank" rel="noopener">
+									<?php esc_html_e( 'WhatsApp-এ জানুন', 'sojib68' ); ?>
+								</a>
+							<?php else : ?>
+								<a href="#contact" class="btn btn-outline btn-sm service-card__cta" data-service="<?php echo esc_attr( $key ); ?>">
+									<?php esc_html_e( 'বিস্তারিত জানুন', 'sojib68' ); ?>
+								</a>
+							<?php endif; ?>
 							<?php if ( isset( $sojib68_checklists[ $key ] ) ) : ?>
 								<button type="button" class="btn btn-primary btn-sm service-card__docs" data-ck-open="<?php echo esc_attr( $key ); ?>">
 									<?php esc_html_e( 'কী কী লাগে', 'sojib68' ); ?>

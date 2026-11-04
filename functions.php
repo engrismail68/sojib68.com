@@ -35,7 +35,7 @@ if ( ! defined( 'SOJIB68_PHONE' ) ) {
 	define( 'SOJIB68_PHONE', '' ); // e.g. '+8801XXXXXXXXX'
 }
 if ( ! defined( 'SOJIB68_WHATSAPP' ) ) {
-	define( 'SOJIB68_WHATSAPP', '' ); // e.g. '8801XXXXXXXXX' (digits only, with country code)
+	define( 'SOJIB68_WHATSAPP', '8801950087868' ); // digits only, with country code
 }
 if ( ! defined( 'SOJIB68_EMAIL' ) ) {
 	define( 'SOJIB68_EMAIL', get_option( 'admin_email' ) );
