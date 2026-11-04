@@ -168,7 +168,8 @@ $how_we_work = array(
 	</div>
 </section>
 
-<!-- Portfolio -->
+<!-- Portfolio: shown only once there are real case stories (sojib68_get_case_stories()); until then the whole section stays out -->
+<?php if ( ! empty( $case_stories ) ) : ?>
 <section class="portfolio" id="work">
 	<div class="site-container">
 		<div class="section-heading-center">
@@ -176,12 +177,7 @@ $how_we_work = array(
 			<h2><?php esc_html_e( 'আমার কাজের অভিজ্ঞতা', 'sojib68' ); ?></h2>
 		</div>
 
-		<?php if ( empty( $case_stories ) ) : ?>
-			<div class="work__empty">
-				<p><?php esc_html_e( 'এই অংশে শীঘ্রই বাস্তব কাজের অভিজ্ঞতা (অনুমতিপ্রাপ্ত ছবি ও বিবরণসহ) যুক্ত করা হবে।', 'sojib68' ); ?></p>
-			</div>
-		<?php else : ?>
-			<div class="portfolio__grid">
+		<div class="portfolio__grid">
 				<?php foreach ( $case_stories as $story ) : ?>
 					<article class="portfolio-card">
 						<?php if ( ! empty( $story['image'] ) ) : ?>
@@ -193,10 +189,10 @@ $how_we_work = array(
 						</div>
 					</article>
 				<?php endforeach; ?>
-			</div>
-		<?php endif; ?>
+		</div>
 	</div>
 </section>
+<?php endif; ?>
 
 <!-- How we work -->
 <section class="how-we-work">

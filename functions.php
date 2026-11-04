@@ -214,8 +214,8 @@ function sojib68_get_testimonials() {
 
 /**
  * Real case stories go here once available (with permission to
- * publish). Until then the portfolio section renders an honest
- * "content coming soon" placeholder instead of invented stories.
+ * publish). Until then the portfolio section (and its menu link) is not
+ * shown at all, rather than a placeholder or invented stories.
  */
 function sojib68_get_case_stories() {
 	return array();

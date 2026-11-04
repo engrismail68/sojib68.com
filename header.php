@@ -53,7 +53,9 @@
 				<li><a href="<?php echo esc_url( is_front_page() ? '#top' : home_url( '/' ) ); ?>"><?php esc_html_e( 'হোম', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#about' ) ); ?>"><?php esc_html_e( 'আমার সম্পর্কে', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php esc_html_e( 'সেবাসমূহ', 'sojib68' ); ?></a></li>
-				<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
+				<?php if ( function_exists( 'sojib68_get_case_stories' ) && sojib68_get_case_stories() ) : // the section only exists once there are real stories ?>
+					<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
+				<?php endif; ?>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
 			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-outline-light nav-cta"><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>
