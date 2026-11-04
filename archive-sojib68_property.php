@@ -20,7 +20,7 @@ $wa     = ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) ? SOJIB68_WHATSA
 		<div class="site-container">
 			<p class="eyebrow"><?php esc_html_e( 'জমি ও প্রপার্টি', 'sojib68' ); ?></p>
 			<h1><?php esc_html_e( 'দালালমুক্ত — নিজের জমি নিজে বিক্রি করুন', 'sojib68' ); ?></h1>
-			<p class="prop-hero__lead"><?php esc_html_e( 'জমি ও প্রপার্টির ক্রয়, বিক্রয় ও ভাড়ার বিজ্ঞাপন এক জায়গায়। ক্রেতা-বিক্রেতা সরাসরি কথা বলুন। কাগজপত্র যাচাইয়ে সাহায্য লাগলে দলিল-খতিয়ান বোঝেন এমন একজন ভূমি কনসালটেন্ট আছেন।', 'sojib68' ); ?></p>
+			<p class="prop-hero__lead"><?php esc_html_e( 'জমি ও প্রপার্টির ক্রয়, বিক্রয় ও ভাড়ার বিজ্ঞাপন এক জায়গায়। পছন্দের বিজ্ঞাপনটি সম্পর্কে মেসেজ দিন, নিরাপদে বিক্রেতার সঙ্গে যুক্ত করে দেওয়া হবে। কাগজপত্র যাচাইয়েও সাহায্য পাবেন।', 'sojib68' ); ?></p>
 
 			<div class="prop-paths">
 				<a class="prop-path" href="<?php echo esc_url( add_query_arg( 'ptype', 'sale', $action ) ); ?>#prop-results">
@@ -117,7 +117,7 @@ $wa     = ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) ? SOJIB68_WHATSA
 				<ol>
 					<li><strong><?php esc_html_e( 'তথ্য ও ছবি দিন', 'sojib68' ); ?></strong><span><?php esc_html_e( 'জমি বা প্রপার্টির এলাকা, পরিমাণ, কাগজপত্রের অবস্থা ও ছবি WhatsApp-এ পাঠান।', 'sojib68' ); ?></span></li>
 					<li><strong><?php esc_html_e( 'বিজ্ঞাপন প্রকাশ', 'sojib68' ); ?></strong><span><?php esc_html_e( 'আপনার অনুমতি নিয়ে বিস্তারিত বিবরণ ও ছবিসহ বিজ্ঞাপন এই পেজে দেওয়া হয়।', 'sojib68' ); ?></span></li>
-					<li><strong><?php esc_html_e( 'ক্রেতা যুক্ত হন', 'sojib68' ); ?></strong><span><?php esc_html_e( 'আগ্রহী ক্রেতা নিজের নাম ও নম্বর দিয়ে আপনার সঙ্গে সরাসরি যোগাযোগ করেন। কাগজ যাচাই লাগলে আমাকেও জানাতে পারেন।', 'sojib68' ); ?></span></li>
+					<li><strong><?php esc_html_e( 'ক্রেতা যুক্ত হন', 'sojib68' ); ?></strong><span><?php esc_html_e( 'আগ্রহী ক্রেতা আমাকে মেসেজ দেন। আপনার সম্মতি নিয়ে আমি তাঁকে আপনার সঙ্গে যুক্ত করে দিই। আপনার নম্বর সাইটে দেওয়া হয় না।', 'sojib68' ); ?></span></li>
 				</ol>
 				<a class="btn btn-primary" href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" data-inq-open data-inq-text="<?php echo esc_attr( __( 'আমি আমার জমি/প্রপার্টি বিক্রি বা ভাড়া দিতে চাই।\nএলাকা:\nপরিমাণ:\nদাম (আনুমানিক):', 'sojib68' ) ); ?>" data-lead="property_sell_form"><?php esc_html_e( 'বিজ্ঞাপনের তথ্য দিন', 'sojib68' ); ?></a>
 				<?php if ( $wa ) : ?>

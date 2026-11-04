@@ -1,8 +1,8 @@
 <?php
 /**
  * One জমি ও প্রপার্টি advertisement: full details and the way to connect through the owner.
- * The seller's number is printed here only for an "open" listing; otherwise it is handed out by
- * ajax after the buyer leaves a name and mobile (inc/properties.php, assets/js/property.js).
+ * The seller's name and number are never printed here: the buyer messages the owner (or leaves their own
+ * name and mobile) and the owner puts them in touch.
  */
 
 get_header();
@@ -22,8 +22,6 @@ while ( have_posts() ) :
 	$images   = sojib68_property_image_ids( $id );
 	$features = array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', (string) sojib68_property_meta( $id, 'features' ) ) ) );
 	$wa_url   = sojib68_property_whatsapp_url( $id );
-	$mode     = sojib68_property_meta( $id, 'contact_mode', 'gate' );
-	$seller   = 'open' === $mode ? sojib68_property_seller_contact( $id ) : ( sojib68_property_seller_contact( $id ) ? true : null ); // the number itself is only printed in "open" mode
 	$phone    = ( defined( 'SOJIB68_PHONE' ) && SOJIB68_PHONE ) ? SOJIB68_PHONE : '';
 	$back     = get_post_type_archive_link( SOJIB68_PROPERTY_CPT );
 	?>
@@ -90,17 +88,23 @@ while ( have_posts() ) :
 						</div>
 
 						<div class="prop-box prop-contact" data-prop-contact data-prop-id="<?php echo (int) $id; ?>">
-							<h2><?php esc_html_e( 'বিক্রেতার সঙ্গে সরাসরি কথা বলুন', 'sojib68' ); ?></h2>
+							<h2><?php esc_html_e( 'বিক্রেতার সঙ্গে যোগাযোগ করতে চান?', 'sojib68' ); ?></h2>
 							<?php if ( 'sold' === $st ) : ?>
-								<p class="prop-contact__sold"><?php esc_html_e( 'এই প্রপার্টিটি বিক্রি হয়ে গেছে।', 'sojib68' ); ?></p>
-							<?php elseif ( ! $seller ) : ?>
-								<p><?php esc_html_e( 'এই বিজ্ঞাপনের বিক্রেতার যোগাযোগ শীঘ্রই যুক্ত হবে। তথ্য জানতে নিচের নম্বরে যোগাযোগ করুন।', 'sojib68' ); ?></p>
-							<?php elseif ( 'open' === $mode ) : ?>
-								<?php if ( $seller['name'] ) : ?><p class="prop-seller__name"><?php echo esc_html( $seller['name'] ); ?></p><?php endif; ?>
-								<?php if ( $seller['wa'] ) : ?><a class="btn btn-primary" href="<?php echo esc_url( $seller['wa'] ); ?>" target="_blank" rel="noopener" data-lead="property_seller_whatsapp"><?php esc_html_e( 'বিক্রেতাকে WhatsApp করুন', 'sojib68' ); ?></a><?php endif; ?>
-								<a class="btn btn-outline" href="<?php echo esc_url( $seller['tel'] ); ?>" data-lead="property_seller_call"><?php esc_html_e( 'বিক্রেতাকে কল করুন', 'sojib68' ); ?> <span class="prop-contact__num"><?php echo esc_html( $seller['phone'] ); ?></span></a>
+								<p class="prop-contact__sold"><?php esc_html_e( 'এই প্রপার্টিটি বিক্রি হয়ে গেছে। অনুরূপ কিছু খুঁজতে আমাকে জানাতে পারেন।', 'sojib68' ); ?></p>
 							<?php else : ?>
-								<p><?php esc_html_e( 'নিজের নাম ও মোবাইল দিন, সঙ্গে সঙ্গে বিক্রেতার নম্বর দেখতে পাবেন।', 'sojib68' ); ?></p>
+								<p><?php esc_html_e( 'নিরাপত্তার জন্য বিক্রেতার নম্বর এখানে দেওয়া হয় না। আমাকে মেসেজ দিন, আমি বিক্রেতার সঙ্গে যোগাযোগ করিয়ে দেব।', 'sojib68' ); ?></p>
+							<?php endif; ?>
+							<?php if ( $wa_url ) : ?>
+								<a class="btn btn-primary" href="<?php echo esc_url( $wa_url ); ?>" target="_blank" rel="noopener" data-lead="property_whatsapp"><?php esc_html_e( 'WhatsApp-এ মেসেজ দিন', 'sojib68' ); ?></a>
+							<?php endif; ?>
+							<?php if ( $phone ) : ?>
+								<a class="btn btn-outline" href="tel:<?php echo esc_attr( $phone ); ?>" data-lead="property_call"><?php esc_html_e( 'কল করুন', 'sojib68' ); ?> <span class="prop-contact__num"><?php echo esc_html( preg_replace( '/^\+?880/', '0', $phone ) ); ?></span></a>
+							<?php endif; ?>
+							<p class="prop-contact__hint"><?php echo esc_html( sprintf( /* translators: %s: reference */ __( 'বার্তায় কোড %s উল্লেখ থাকবে।', 'sojib68' ), sojib68_property_ref( $id ) ) ); ?></p>
+
+							<?php if ( 'sold' !== $st ) : ?>
+								<div class="prop-or"><span><?php esc_html_e( 'অথবা', 'sojib68' ); ?></span></div>
+								<p class="prop-gate__lead"><strong><?php esc_html_e( 'নিজের নাম ও নম্বর রেখে যান', 'sojib68' ); ?></strong> — <?php esc_html_e( 'আমি আপনাকে ফোন করব।', 'sojib68' ); ?></p>
 								<form class="prop-gate" data-prop-gate novalidate>
 									<div class="prop-gate__field">
 										<label for="pg-name"><?php esc_html_e( 'আপনার নাম', 'sojib68' ); ?></label>
@@ -113,22 +117,16 @@ while ( have_posts() ) :
 										<span class="prop-gate__error" data-error-for="phone"></span>
 									</div>
 									<div class="prop-gate__hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
-									<button type="submit" class="btn btn-primary" data-prop-gate-submit><?php esc_html_e( 'বিক্রেতার নম্বর দেখুন', 'sojib68' ); ?></button>
+									<button type="submit" class="btn btn-outline" data-prop-gate-submit><?php esc_html_e( 'ফোন করুন আমাকে', 'sojib68' ); ?></button>
 									<p class="prop-gate__status" data-prop-gate-status role="status" aria-live="polite"></p>
 								</form>
-								<div class="prop-seller" data-prop-seller hidden></div>
+								<p class="prop-thanks" data-prop-thanks hidden></p>
 							<?php endif; ?>
 						</div>
 
 						<div class="prop-box prop-verify">
 							<h2><?php esc_html_e( 'কাগজপত্র যাচাই করাতে চান?', 'sojib68' ); ?></h2>
-							<p><?php esc_html_e( 'কেনা বা বিক্রির আগে দলিল, খতিয়ান ও খাজনার কাগজ দেখে বুঝতে চাইলে আমার সঙ্গে যোগাযোগ করুন। আপনি অন্য কাউকে দিয়ে যাচাই করালেও কোনো সমস্যা নেই।', 'sojib68' ); ?></p>
-							<?php if ( $wa_url ) : ?>
-								<a class="btn btn-outline" href="<?php echo esc_url( $wa_url ); ?>" target="_blank" rel="noopener" data-lead="property_verify_whatsapp"><?php esc_html_e( 'WhatsApp-এ জানান', 'sojib68' ); ?></a>
-							<?php endif; ?>
-							<?php if ( $phone ) : ?>
-								<a class="btn btn-outline" href="tel:<?php echo esc_attr( $phone ); ?>" data-lead="property_verify_call"><?php esc_html_e( 'কল করুন', 'sojib68' ); ?> <span class="prop-contact__num"><?php echo esc_html( preg_replace( '/^\+?880/', '0', $phone ) ); ?></span></a>
-							<?php endif; ?>
+							<p><?php esc_html_e( 'কেনা বা বিক্রির আগে দলিল, খতিয়ান ও খাজনার কাগজ দেখে বুঝতে চাইলে আমাকে জানান। আপনি অন্য কাউকে দিয়ে যাচাই করালেও কোনো সমস্যা নেই।', 'sojib68' ); ?></p>
 						</div>
 					</aside>
 				</div>

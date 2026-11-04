@@ -17,8 +17,8 @@
 
 
 /*
- * Seller contact behind a name + mobile: the buyer's details are saved as a lead on the server, which
- * answers with the seller's number. The number is not in the page until then.
+ * "নিজের নাম ও নম্বর রেখে যান": the buyer's name and mobile are sent to the server and become a lead
+ * (CRM + wp-admin). The seller's number is never in the page or in the answer.
  */
 ( function () {
 	'use strict';
@@ -30,7 +30,7 @@
 	}
 
 	var openedAt = Date.now();
-	var seller = box.querySelector( '[data-prop-seller]' );
+	var thanks = box.querySelector( '[data-prop-thanks]' );
 	var statusEl = form.querySelector( '[data-prop-gate-status]' );
 	var submit = form.querySelector( '[data-prop-gate-submit]' );
 	var busy = false;
@@ -46,45 +46,6 @@
 			var slot = form.querySelector( '[data-error-for="' + k + '"]' );
 			if ( slot ) { slot.textContent = map[ k ]; }
 		} );
-	}
-
-	function link( href, label, cls, lead, extra ) {
-		var a = document.createElement( 'a' );
-		a.className = 'btn ' + cls;
-		a.href = href;
-		a.setAttribute( 'data-lead', lead );
-		if ( /^https?:/.test( href ) ) { a.target = '_blank'; a.rel = 'noopener'; }
-		a.appendChild( document.createTextNode( label ) );
-		if ( extra ) {
-			var sp = document.createElement( 'span' );
-			sp.className = 'prop-contact__num';
-			sp.textContent = extra;
-			a.appendChild( sp );
-		}
-		return a;
-	}
-
-	function reveal( data ) {
-		form.hidden = true;
-		box.querySelectorAll( 'p' ).forEach( function ( p ) { if ( ! p.closest( '[data-prop-seller]' ) ) { p.hidden = true; } } );
-		seller.innerHTML = '';
-		if ( data.seller ) {
-			if ( data.seller.name ) {
-				var n = document.createElement( 'p' );
-				n.className = 'prop-seller__name';
-				n.textContent = data.seller.name;
-				seller.appendChild( n );
-			}
-			if ( data.seller.wa ) {
-				seller.appendChild( link( data.seller.wa, 'বিক্রেতাকে WhatsApp করুন', 'btn-primary', 'property_seller_whatsapp' ) );
-			}
-			seller.appendChild( link( data.seller.tel, 'বিক্রেতাকে কল করুন ', 'btn-outline', 'property_seller_call', data.seller.phone ) );
-		} else {
-			var m = document.createElement( 'p' );
-			m.textContent = data.message || 'ধন্যবাদ! বিক্রেতার নম্বর শীঘ্রই জানানো হবে।';
-			seller.appendChild( m );
-		}
-		seller.hidden = false;
 	}
 
 	form.addEventListener( 'input', function ( e ) {
@@ -138,7 +99,9 @@
 				if ( json && json.success ) {
 					say( '' );
 					if ( window.sojib68Track ) { window.sojib68Track( 'property_lead' ); }
-					reveal( json.data );
+					form.hidden = true;
+					thanks.textContent = ( json.data && json.data.message ) || 'ধন্যবাদ! শীঘ্রই আপনার সঙ্গে যোগাযোগ করা হবে।';
+					thanks.hidden = false;
 					return;
 				}
 				var d = json && json.data ? json.data : {};

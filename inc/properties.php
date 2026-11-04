@@ -2,11 +2,11 @@
 /**
  * জমি ও প্রপার্টি — seller advertisements the owner posts from wp-admin.
  *
- * A buyer finds an advertisement on /land-property/, reads the full details and talks to the seller
- * directly. The owner only provides the place (and, if asked, helps check the papers). By default the
- * seller's number appears after the buyer leaves their own name and mobile — that visit becomes a
- * lead in the CRM and in wp-admin → Consultation Requests. The seller's name and number are never
- * in the page's HTML before that; a listing can instead show them openly (contact_mode "open").
+ * A buyer finds an advertisement on /land-property/, reads the full details and messages the owner
+ * (WhatsApp, with the advertisement already named) or leaves their own name and mobile. The owner then
+ * gives the seller's contact by hand. For safety the seller's name and number are stored in wp-admin only
+ * and are never printed on the site or sent to the browser. A buyer leaving their details becomes a lead
+ * in the CRM and in wp-admin → Consultation Requests.
  *
  * Publishing an advertisement (wp-admin → জমি ও প্রপার্টি → নতুন বিজ্ঞাপন → প্রকাশ করুন) puts it on the page
  * straight away; "খসড়া" keeps it hidden.
@@ -178,14 +178,14 @@ function sojib68_property_image_ids( $post_id ) {
 	return $ids;
 }
 
-/** The owner's WhatsApp link, for a buyer or seller who wants the papers checked (the advertisement is named in the message). */
+/** The owner's WhatsApp link: the buyer's message names the advertisement (code, title, link). */
 function sojib68_property_whatsapp_url( $post_id ) {
 	if ( ! defined( 'SOJIB68_WHATSAPP' ) || ! SOJIB68_WHATSAPP ) {
 		return '';
 	}
 	$text = sprintf(
 		/* translators: 1: reference, 2: title, 3: link */
-		__( "আসসালামু আলাইকুম, \"জমি ও প্রপার্টি\" পেজের এই বিজ্ঞাপনের কাগজপত্র যাচাই করাতে চাই:\n%1\$s — %2\$s\n%3\$s", 'sojib68' ),
+		__( "আসসালামু আলাইকুম, \"জমি ও প্রপার্টি\" পেজের এই বিজ্ঞাপনটি সম্পর্কে জানতে চাই, বিক্রেতার সঙ্গে যোগাযোগ করিয়ে দিন:\n%1\$s — %2\$s\n%3\$s", 'sojib68' ),
 		sojib68_property_ref( $post_id ),
 		get_the_title( $post_id ),
 		get_permalink( $post_id )
@@ -200,7 +200,7 @@ function sojib68_property_whatsapp_url( $post_id ) {
 function sojib68_property_add_boxes() {
 	add_meta_box( 'sojib68_property_details', __( 'বিজ্ঞাপনের তথ্য', 'sojib68' ), 'sojib68_property_box_details', SOJIB68_PROPERTY_CPT, 'normal', 'high' );
 	add_meta_box( 'sojib68_property_gallery', __( 'ছবির গ্যালারি', 'sojib68' ), 'sojib68_property_box_gallery', SOJIB68_PROPERTY_CPT, 'normal', 'default' );
-	add_meta_box( 'sojib68_property_seller', __( 'বিক্রেতার যোগাযোগ', 'sojib68' ), 'sojib68_property_box_seller', SOJIB68_PROPERTY_CPT, 'normal', 'default' );
+	add_meta_box( 'sojib68_property_seller', __( 'বিক্রেতার তথ্য — শুধু আপনি দেখবেন, সাইটে আসবে না', 'sojib68' ), 'sojib68_property_box_seller', SOJIB68_PROPERTY_CPT, 'normal', 'default' );
 }
 add_action( 'add_meta_boxes', 'sojib68_property_add_boxes' );
 
@@ -314,20 +314,12 @@ function sojib68_property_box_gallery( $post ) {
 }
 
 function sojib68_property_box_seller( $post ) {
-	$mode = sojib68_property_meta( $post->ID, 'contact_mode', 'gate' );
 	?>
-	<p class="description" style="margin-top:0;"><?php esc_html_e( 'ক্রেতা বিক্রেতার সঙ্গে সরাসরি কথা বলবেন, তাই নাম ও মোবাইল সাইটে দেখানো হবে। বিক্রেতার অনুমতি নিয়ে দিন।', 'sojib68' ); ?></p>
+	<p class="description" style="margin-top:0;"><?php esc_html_e( 'নিরাপত্তার জন্য এগুলো সাইটে কোথাও দেখানো হয় না, ক্রেতার কাছেও যায় না। ক্রেতা আপনাকে মেসেজ দিলে আপনি এখান থেকে দেখে বিক্রেতার সঙ্গে যোগাযোগ করিয়ে দেবেন।', 'sojib68' ); ?></p>
 	<table class="form-table" role="presentation">
 		<tr><th><label for="sp_seller_name"><?php esc_html_e( 'বিক্রেতার নাম', 'sojib68' ); ?></label></th><td><input type="text" id="sp_seller_name" name="sp_seller_name" class="regular-text" value="<?php echo esc_attr( sojib68_property_meta( $post->ID, 'seller_name' ) ); ?>"></td></tr>
 		<tr><th><label for="sp_seller_phone"><?php esc_html_e( 'বিক্রেতার মোবাইল', 'sojib68' ); ?></label></th><td><input type="text" id="sp_seller_phone" name="sp_seller_phone" class="regular-text" value="<?php echo esc_attr( sojib68_property_meta( $post->ID, 'seller_phone' ) ); ?>" placeholder="01XXXXXXXXX"></td></tr>
-		<tr>
-			<th><?php esc_html_e( 'নম্বর কীভাবে দেখাবে', 'sojib68' ); ?></th>
-			<td>
-				<label><input type="radio" name="sp_contact_mode" value="gate" <?php checked( $mode, 'gate' ); ?>> <?php esc_html_e( 'ক্রেতা আগে নিজের নাম ও মোবাইল দেবেন, তারপর বিক্রেতার নম্বর দেখবেন (আপনার লিড হিসেবে জমা হবে) — প্রস্তাবিত', 'sojib68' ); ?></label><br>
-				<label><input type="radio" name="sp_contact_mode" value="open" <?php checked( $mode, 'open' ); ?>> <?php esc_html_e( 'সবার জন্য খোলা, বিজ্ঞাপনেই নম্বর দেখাবে', 'sojib68' ); ?></label>
-			</td>
-		</tr>
-		<tr><th><label for="sp_seller_note"><?php esc_html_e( 'আপনার নোট', 'sojib68' ); ?></label></th><td><textarea id="sp_seller_note" name="sp_seller_note" rows="3" class="large-text" placeholder="<?php esc_attr_e( 'শুধু আপনি দেখবেন, সাইটে আসবে না', 'sojib68' ); ?>"><?php echo esc_textarea( sojib68_property_meta( $post->ID, 'seller_note' ) ); ?></textarea></td></tr>
+		<tr><th><label for="sp_seller_note"><?php esc_html_e( 'আপনার নোট', 'sojib68' ); ?></label></th><td><textarea id="sp_seller_note" name="sp_seller_note" rows="3" class="large-text" placeholder="<?php esc_attr_e( 'যেমন: কমিশনের কথা, কাগজপত্র যাচাইয়ের অবস্থা', 'sojib68' ); ?>"><?php echo esc_textarea( sojib68_property_meta( $post->ID, 'seller_note' ) ); ?></textarea></td></tr>
 	</table>
 	<?php
 }
@@ -362,7 +354,6 @@ function sojib68_property_save( $post_id ) {
 	update_post_meta( $post_id, '_sp_features', isset( $_POST['sp_features'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sp_features'] ) ) : '' );
 	update_post_meta( $post_id, '_sp_seller_name', $text( 'sp_seller_name' ) );
 	update_post_meta( $post_id, '_sp_seller_phone', $text( 'sp_seller_phone' ) );
-	update_post_meta( $post_id, '_sp_contact_mode', isset( $_POST['sp_contact_mode'] ) && 'open' === $_POST['sp_contact_mode'] ? 'open' : 'gate' );
 	update_post_meta( $post_id, '_sp_seller_note', isset( $_POST['sp_seller_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['sp_seller_note'] ) ) : '' );
 
 	$ids = isset( $_POST['sp_gallery'] ) ? array_filter( array_map( 'intval', explode( ',', (string) wp_unslash( $_POST['sp_gallery'] ) ) ) ) : array();
@@ -384,39 +375,8 @@ function sojib68_property_purge_cache( $post_id ) {
 add_action( 'save_post', 'sojib68_property_purge_cache', 99 );
 add_action( 'trashed_post', 'sojib68_property_purge_cache', 99 );
 
-/** 01XXXXXXXXX -> 8801XXXXXXXXX for wa.me; other numbers keep their digits. */
-function sojib68_property_wa_number( $phone ) {
-	$d = preg_replace( '/\D+/', '', sojib68_property_digits( (string) $phone ) );
-	if ( preg_match( '/^01\d{9}$/', $d ) ) {
-		return '88' . $d;
-	}
-	return $d;
-}
-
-/** The seller's contact as buttons need it: name, display number, tel link, WhatsApp link (with the ad named). */
-function sojib68_property_seller_contact( $post_id ) {
-	$phone = trim( (string) sojib68_property_meta( $post_id, 'seller_phone' ) );
-	if ( '' === $phone ) {
-		return null;
-	}
-	$text = sprintf(
-		/* translators: 1: reference, 2: title, 3: link */
-		__( "আসসালামু আলাইকুম, \"জমি ও প্রপার্টি\" থেকে আপনার এই বিজ্ঞাপনটি দেখে যোগাযোগ করছি:\n%1\$s — %2\$s\n%3\$s", 'sojib68' ),
-		sojib68_property_ref( $post_id ),
-		get_the_title( $post_id ),
-		get_permalink( $post_id )
-	);
-	$wa = sojib68_property_wa_number( $phone );
-	return array(
-		'name'  => (string) sojib68_property_meta( $post_id, 'seller_name' ),
-		'phone' => $phone,
-		'tel'   => 'tel:' . ( preg_match( '/^88/', $wa ) ? '+' . $wa : $wa ),
-		'wa'    => $wa ? 'https://wa.me/' . $wa . '?text=' . rawurlencode( $text ) : '',
-	);
-}
-
 /* ---------------------------------------------------------------------
- * A buyer asks for the seller's contact: their name and mobile become a lead
+ * A buyer leaves their name and mobile: it becomes a lead (the owner then calls back / shares the seller's contact)
  * ------------------------------------------------------------------ */
 
 add_action( 'wp_ajax_nopriv_sojib68_property_lead', 'sojib68_property_lead_handle' );
@@ -457,7 +417,7 @@ function sojib68_property_lead_handle() {
 
 	$ref     = sojib68_property_ref( $post_id );
 	$title   = get_the_title( $post_id );
-	$details = sprintf( /* translators: 1: reference, 2: title, 3: link */ __( 'জমি ও প্রপার্টি: ক্রেতা বিক্রেতার যোগাযোগ চেয়েছেন। বিজ্ঞাপন %1$s — %2$s (%3$s)', 'sojib68' ), $ref, $title, get_permalink( $post_id ) );
+	$details = sprintf( /* translators: 1: reference, 2: title, 3: link */ __( 'জমি ও প্রপার্টি: ক্রেতা বিক্রেতার সঙ্গে যোগাযোগ করতে চেয়েছেন, তাঁকে ফোন করুন। বিজ্ঞাপন %1$s — %2$s (%3$s)', 'sojib68' ), $ref, $title, get_permalink( $post_id ) );
 
 	// One lead per buyer per advertisement per 10 minutes (a second click is not a second lead).
 	$dup_key = 'sojib68_prop_dup_' . md5( $post_id . '|' . $phone );
@@ -477,7 +437,7 @@ function sojib68_property_lead_handle() {
 			if ( ! is_wp_error( $lead_id ) && $lead_id ) {
 				$saved = true;
 				if ( function_exists( 'sojib68_crm_lead_log' ) ) {
-					sojib68_crm_lead_log( $lead_id, 'web_form', 'জমি ও প্রপার্টি: ' . $ref . ' — বিক্রেতার যোগাযোগ চেয়েছেন।' );
+					sojib68_crm_lead_log( $lead_id, 'web_form', 'জমি ও প্রপার্টি: ' . $ref . ' — ক্রেতা যোগাযোগ করতে চেয়েছেন।' );
 				}
 			}
 		}
@@ -504,11 +464,7 @@ function sojib68_property_lead_handle() {
 		}
 	}
 
-	$seller = sojib68_property_seller_contact( $post_id );
-	if ( ! $seller ) {
-		wp_send_json_success( array( 'seller' => null, 'message' => __( 'ধন্যবাদ! বিক্রেতার নম্বর শীঘ্রই আপনাকে জানানো হবে।', 'sojib68' ) ) );
-	}
-	wp_send_json_success( array( 'seller' => $seller ) );
+	wp_send_json_success( array( 'message' => __( 'ধন্যবাদ! আপনার তথ্য পেয়েছি। শীঘ্রই আপনার সঙ্গে যোগাযোগ করে বিক্রেতার সঙ্গে যুক্ত করে দেওয়া হবে।', 'sojib68' ) ) );
 }
 
 /** wp-admin list: show the reference, area, price and status next to the title. */

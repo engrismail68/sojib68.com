@@ -779,3 +779,37 @@
 	width: 100%;
 	margin-bottom: 10px;
 }
+
+.prop-or {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 6px 0 12px;
+	font-size: 0.82rem;
+	color: #566760;
+}
+
+.prop-or::before,
+.prop-or::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--color-border);
+}
+
+.prop-contact .prop-gate__lead {
+	margin: 0 0 12px;
+}
+
+.prop-thanks {
+	margin: 0 !important;
+	padding: 12px 14px;
+	border-radius: var(--radius-sm);
+	background: var(--color-soft-green);
+	font-weight: 600;
+	color: var(--color-green-deep) !important;
+}
+
+.prop-thanks[hidden] {
+	display: none;
+}
