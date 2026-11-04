@@ -406,19 +406,8 @@
 		} else {
 			sh = vals.sh;
 			inputs.push( [ 'জমি', format( sh ) + ' শতাংশ' ] );
-			var rest = sh;
-			var parts = [];
-			var each = [];
-			OKEYS.forEach( function ( k, i ) {
-				var u = OLD[ k ].shatangsho;
-				var n = i === OKEYS.length - 1 ? Math.round( ( rest / u ) * 100 ) / 100 : Math.floor( rest / u + 1e-9 );
-				rest -= n * u;
-				if ( n > 0 ) { parts.push( format( n ) + ' ' + OLD[ k ].label ); }
-				each.push( [ OLD[ k ].label, format( n ), false ] );
-			} );
-			// the whole thing in one line, then each part on its own row (zeros included)
-			extra = [ [ 'ভাগ করে (পূর্ণ সংখ্যায়)', '', 'head' ], [ 'মোট', parts.length ? parts.join( ', ' ) : '0' ] ].concat( each );
-			extra.push( [ 'প্রতিটি এককে আলাদাভাবে (সবটা এক এককে)', '', 'head' ] );
+			// each unit on its own: the whole amount expressed in that one unit
+			extra = [ [ 'প্রতিটি এককে আলাদাভাবে', '', 'head' ] ];
 			OKEYS.forEach( function ( k ) {
 				extra.push( [ OLD[ k ].label, format( sh / OLD[ k ].shatangsho ), false ] );
 			} );
