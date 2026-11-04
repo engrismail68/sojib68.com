@@ -225,7 +225,7 @@ function sojib68_office_handle_login_request() {
 
 			if ( is_wp_error( $user ) ) {
 				sojib68_office_register_failed_attempt();
-				$error = __( 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।', 'sojib68' );
+				$error = sojib68_2fa_is_2fa_error( $user ) ? $user->get_error_message() : __( 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।', 'sojib68' );
 			} elseif ( ! user_can( $user, SOJIB68_OFFICE_CAP ) ) {
 				wp_logout();
 				sojib68_office_register_failed_attempt();
@@ -292,6 +292,8 @@ function sojib68_office_render_login( $error = '' ) {
 							</button>
 						</div>
 					</div>
+
+					<?php echo sojib68_2fa_form_field_html( 'office-field', 'office-2fa', $locked ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in helper. ?>
 
 					<button type="submit" class="btn btn-primary office-login-submit" <?php echo $locked ? 'disabled' : ''; ?>>
 						<?php esc_html_e( 'লগইন করুন', 'sojib68' ); ?>

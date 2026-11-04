@@ -219,7 +219,7 @@ function sojib68_crm_handle_login_request() {
 
 			if ( is_wp_error( $user ) ) {
 				sojib68_crm_register_failed_attempt();
-				$error = __( 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।', 'sojib68' );
+				$error = sojib68_2fa_is_2fa_error( $user ) ? $user->get_error_message() : __( 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।', 'sojib68' );
 			} elseif ( ! user_can( $user, SOJIB68_CRM_CAP ) ) {
 				wp_logout();
 				sojib68_crm_register_failed_attempt();
@@ -281,6 +281,8 @@ function sojib68_crm_render_login( $error = '' ) {
 						<label for="crm-password"><?php esc_html_e( 'পাসওয়ার্ড', 'sojib68' ); ?></label>
 						<input type="password" id="crm-password" name="password" required autocomplete="current-password" <?php echo $locked ? 'disabled' : ''; ?>>
 					</div>
+
+					<?php echo sojib68_2fa_form_field_html( 'crm-field', 'crm-2fa', $locked ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in helper. ?>
 
 					<button type="submit" class="btn btn-primary crm-login-submit" <?php echo $locked ? 'disabled' : ''; ?>>
 						<?php esc_html_e( 'লগইন করুন', 'sojib68' ); ?>
