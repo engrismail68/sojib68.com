@@ -14,7 +14,8 @@
 			window.dataLayer = window.dataLayer || [];
 			window.dataLayer.push( { event: 'lead_action', lead_type: type } );
 			if ( typeof window.fbq === 'function' ) {
-				window.fbq( 'track', 'Contact', { lead_type: type } );
+				// a filled-in form is a Lead; a tap on WhatsApp / call / social is a Contact
+				window.fbq( 'track', type === 'inquiry_form' ? 'Lead' : 'Contact', { lead_type: type } );
 			}
 			if ( typeof window.gtag === 'function' ) {
 				window.gtag( 'event', 'generate_lead', { lead_type: type } );

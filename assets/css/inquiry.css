@@ -1,0 +1,247 @@
+/*
+ * "পরামর্শ নিন" popup form (header button, every page). Uses the site's own tokens from style.css.
+ */
+
+.inq-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 1100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+}
+
+.inq-modal[hidden] {
+	display: none;
+}
+
+.inq-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(14, 34, 22, 0.55);
+}
+
+.inq-dialog {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 480px;
+	max-height: calc(100vh - 32px);
+	max-height: calc(100dvh - 32px);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
+}
+
+.inq-dialog:focus {
+	outline: none;
+}
+
+.inq-dialog__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 14px 20px;
+	background: var(--color-cream);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.inq-dialog__head h2 {
+	margin: 0;
+	font-size: 1.3rem;
+	color: var(--color-heading);
+}
+
+.inq-dialog__close {
+	flex-shrink: 0;
+	width: 34px;
+	height: 34px;
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+	background: var(--color-white);
+	font-size: 1.4rem;
+	line-height: 1;
+	color: var(--color-heading);
+	cursor: pointer;
+}
+
+.inq-dialog__close:hover {
+	border-color: var(--color-green);
+	color: var(--color-green);
+}
+
+.inq-form {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.inq-body {
+	flex: 1;
+	min-height: 0;
+	padding: 16px 20px 6px;
+	overflow-y: auto;
+}
+
+.inq-hint {
+	margin: 0 0 14px;
+	font-size: 0.92rem;
+	color: #566760;
+}
+
+.inq-field {
+	margin-bottom: 12px;
+}
+
+.inq-field label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.inq-req {
+	color: var(--color-green);
+}
+
+.inq-field input,
+.inq-field textarea {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #CFD3C8;
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	font: inherit;
+	font-size: 1rem;
+	color: var(--color-heading);
+}
+
+.inq-field textarea {
+	resize: vertical;
+}
+
+.inq-field input:focus,
+.inq-field textarea:focus {
+	outline: none;
+	border-color: var(--color-green);
+	box-shadow: 0 0 0 3px rgba(25, 128, 48, 0.15);
+}
+
+.inq-field .has-error {
+	border-color: #b3401f;
+}
+
+.inq-error {
+	display: block;
+	margin-top: 4px;
+	font-size: 0.84rem;
+	color: #b3401f;
+}
+
+.inq-error:empty {
+	display: none;
+}
+
+.inq-hp {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.inq-status {
+	min-height: 1.3em;
+	margin: 4px 0 0;
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: #566760;
+}
+
+.inq-status.is-error {
+	color: #b3401f;
+}
+
+.inq-note {
+	margin: 8px 0 8px;
+	font-size: 0.8rem;
+	color: #566760;
+}
+
+.inq-foot {
+	padding: 10px 20px 14px;
+	border-top: 1px solid var(--color-border);
+	background: var(--color-cream);
+}
+
+.inq-submit {
+	width: 100%;
+}
+
+.inq-submit:disabled {
+	opacity: 0.6;
+	cursor: wait;
+}
+
+.inq-done {
+	padding: 30px 24px 28px;
+	text-align: center;
+}
+
+.inq-done[hidden],
+.inq-form[hidden] {
+	display: none;
+}
+
+.inq-done__tick {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 54px;
+	height: 54px;
+	margin: 0 0 10px;
+	border-radius: 50%;
+	background: var(--color-soft-green);
+	font-size: 1.7rem;
+	color: var(--color-green);
+}
+
+.inq-done h3 {
+	margin: 0 0 6px;
+	font-size: 1.3rem;
+	color: var(--color-heading);
+}
+
+.inq-done p:not(.inq-done__tick) {
+	margin: 0 0 18px;
+	color: var(--color-body);
+}
+
+body.inq-open {
+	overflow: hidden;
+}
+
+@media (max-width: 560px) {
+	.inq-modal {
+		padding: 0;
+		align-items: flex-end;
+	}
+
+	.inq-dialog {
+		max-width: none;
+		max-height: 94vh;
+		max-height: 94dvh;
+		border-radius: var(--radius-md) var(--radius-md) 0 0;
+	}
+}
+
+@media print {
+	.inq-modal {
+		display: none !important;
+	}
+}
