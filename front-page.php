@@ -142,7 +142,7 @@ $how_we_work = array(
 								/* translators: %s: service title */
 								$sojib68_wa_text = sprintf( __( 'আসসালামু আলাইকুম, আমি "%s" সম্পর্কে জানতে চাই।', 'sojib68' ), $service['title'] );
 								?>
-								<a href="https://wa.me/<?php echo esc_attr( SOJIB68_WHATSAPP ); ?>?text=<?php echo esc_attr( rawurlencode( $sojib68_wa_text ) ); ?>" class="btn btn-outline btn-sm service-card__cta" target="_blank" rel="noopener">
+								<a href="https://wa.me/<?php echo esc_attr( SOJIB68_WHATSAPP ); ?>?text=<?php echo esc_attr( rawurlencode( $sojib68_wa_text ) ); ?>" class="btn btn-outline btn-sm service-card__cta" target="_blank" rel="noopener" data-lead="whatsapp_card">
 									<?php esc_html_e( 'WhatsApp-এ জানুন', 'sojib68' ); ?>
 								</a>
 							<?php else : ?>
@@ -231,75 +231,49 @@ $how_we_work = array(
 </section>
 <?php endif; ?>
 
-<!-- Contact -->
-<section class="contact" id="contact">
-	<div class="site-container contact__inner">
-		<div class="contact__intro">
+<!-- Contact: one-tap actions (no form). Each button carries data-lead so ad platforms / analytics can count it as a lead (assets/js/track.js). -->
+<?php
+$sojib68_wa      = defined( 'SOJIB68_WHATSAPP' ) ? SOJIB68_WHATSAPP : '';
+$sojib68_phone   = defined( 'SOJIB68_PHONE' ) ? SOJIB68_PHONE : '';
+$sojib68_email   = defined( 'SOJIB68_EMAIL' ) ? SOJIB68_EMAIL : '';
+$sojib68_socials = function_exists( 'sojib68_get_social_links' ) ? sojib68_get_social_links() : array();
+?>
+<section class="contact contact--actions" id="contact">
+	<div class="site-container">
+		<div class="contact__head">
 			<h2><?php esc_html_e( 'আপনার জমির বিষয়টি নিয়ে কথা বলুন।', 'sojib68' ); ?></h2>
-			<p><?php esc_html_e( 'কী সহায়তা প্রয়োজন, সংক্ষেপে জানান। বিস্তারিত আলোচনার জন্য যোগাযোগ করা হবে।', 'sojib68' ); ?></p>
-
-			<ul class="contact__details">
-				<?php if ( defined( 'SOJIB68_PHONE' ) && SOJIB68_PHONE ) : ?>
-					<li><a href="tel:<?php echo esc_attr( SOJIB68_PHONE ); ?>"><?php esc_html_e( 'কল করুন', 'sojib68' ); ?>: <?php echo esc_html( SOJIB68_PHONE ); ?></a></li>
-				<?php endif; ?>
-				<?php if ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) : ?>
-					<li><a href="https://wa.me/<?php echo esc_attr( SOJIB68_WHATSAPP ); ?>" target="_blank" rel="noopener">WhatsApp</a></li>
-				<?php endif; ?>
-				<?php if ( defined( 'SOJIB68_EMAIL' ) && SOJIB68_EMAIL ) : ?>
-					<li><a href="mailto:<?php echo esc_attr( SOJIB68_EMAIL ); ?>"><?php echo esc_html( SOJIB68_EMAIL ); ?></a></li>
-				<?php endif; ?>
-				<?php if ( defined( 'SOJIB68_ADDRESS' ) && SOJIB68_ADDRESS ) : ?>
-					<li><?php echo esc_html( SOJIB68_ADDRESS ); ?></li>
-				<?php endif; ?>
-			</ul>
+			<p><?php esc_html_e( 'নিচের যেকোনো একটি মাধ্যমে সরাসরি যোগাযোগ করুন।', 'sojib68' ); ?></p>
 		</div>
 
-		<form class="contact__form" id="contact-form" novalidate>
-			<div class="form-row">
-				<label for="field-name"><?php esc_html_e( 'নাম', 'sojib68' ); ?> <span class="req">*</span></label>
-				<input type="text" id="field-name" name="name" required autocomplete="name">
-				<span class="field-error" data-error-for="name"></span>
-			</div>
+		<div class="contact__actions">
+			<?php if ( $sojib68_wa ) : ?>
+				<a class="contact__action contact__action--primary" href="https://wa.me/<?php echo esc_attr( $sojib68_wa ); ?>?text=<?php echo esc_attr( rawurlencode( __( 'আসসালামু আলাইকুম, আমি জমি সংক্রান্ত বিষয়ে জানতে চাই।', 'sojib68' ) ) ); ?>" target="_blank" rel="noopener" data-lead="whatsapp">
+					<span class="contact__action-label"><?php esc_html_e( 'WhatsApp-এ মেসেজ করুন', 'sojib68' ); ?></span>
+				</a>
+			<?php endif; ?>
+			<?php if ( $sojib68_phone ) : ?>
+				<a class="contact__action" href="tel:<?php echo esc_attr( $sojib68_phone ); ?>" data-lead="call">
+					<span class="contact__action-label"><?php esc_html_e( 'কল করুন', 'sojib68' ); ?></span>
+					<span class="contact__action-sub"><?php echo esc_html( preg_replace( '/^\+?880/', '0', $sojib68_phone ) ); ?></span>
+				</a>
+			<?php endif; ?>
+			<?php foreach ( $sojib68_socials as $network => $url ) : ?>
+				<a class="contact__action" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" data-lead="<?php echo esc_attr( $network ); ?>">
+					<span class="contact__action-label"><?php echo esc_html( ucfirst( $network ) ); ?></span>
+				</a>
+			<?php endforeach; ?>
+			<?php if ( $sojib68_email ) : ?>
+				<a class="contact__action" href="mailto:<?php echo esc_attr( $sojib68_email ); ?>" data-lead="email">
+					<span class="contact__action-label"><?php esc_html_e( 'ইমেইল করুন', 'sojib68' ); ?></span>
+					<span class="contact__action-sub"><?php echo esc_html( $sojib68_email ); ?></span>
+				</a>
+			<?php endif; ?>
+		</div>
 
-			<div class="form-row">
-				<label for="field-phone"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?> <span class="req">*</span></label>
-				<input type="tel" id="field-phone" name="phone" required autocomplete="tel">
-				<span class="field-error" data-error-for="phone"></span>
-			</div>
-
-			<div class="form-row">
-				<label for="field-service"><?php esc_html_e( 'সেবার ধরন', 'sojib68' ); ?> <span class="req">*</span></label>
-				<select id="field-service" name="service" required>
-					<option value=""><?php esc_html_e( '— নির্বাচন করুন —', 'sojib68' ); ?></option>
-					<?php foreach ( $services as $key => $service ) : ?>
-						<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $service['title'] ); ?></option>
-					<?php endforeach; ?>
-					<option value="other"><?php esc_html_e( 'অন্যান্য', 'sojib68' ); ?></option>
-				</select>
-				<span class="field-error" data-error-for="service"></span>
-			</div>
-
-			<div class="form-row">
-				<label for="field-message"><?php esc_html_e( 'সংক্ষিপ্ত বিবরণ', 'sojib68' ); ?> <span class="req">*</span></label>
-				<textarea id="field-message" name="message" rows="4" required></textarea>
-				<span class="field-error" data-error-for="message"></span>
-			</div>
-
-			<div class="form-row form-row--honeypot" aria-hidden="true">
-				<label for="field-website"><?php esc_html_e( 'Website', 'sojib68' ); ?></label>
-				<input type="text" id="field-website" name="sojib68_website" tabindex="-1" autocomplete="off">
-			</div>
-
-			<button type="submit" class="btn btn-primary contact__submit">
-				<span class="btn-label"><?php esc_html_e( 'পরামর্শের অনুরোধ পাঠান', 'sojib68' ); ?></span>
-			</button>
-
-			<p class="contact__status" role="status" aria-live="polite"></p>
-
-			<p class="contact__disclaimer">
-				<?php esc_html_e( 'এই ফর্মে দলিলের ছবি, জাতীয় পরিচয়পত্র বা সংবেদনশীল ব্যক্তিগত তথ্য পাঠাবেন না।', 'sojib68' ); ?>
-			</p>
-		</form>
+		<?php if ( defined( 'SOJIB68_ADDRESS' ) && SOJIB68_ADDRESS ) : ?>
+			<p class="contact__address"><?php echo esc_html( SOJIB68_ADDRESS ); ?></p>
+		<?php endif; ?>
+		<p class="contact__disclaimer-light"><?php esc_html_e( 'দলিলের ছবি, জাতীয় পরিচয়পত্র বা সংবেদনশীল ব্যক্তিগত তথ্য প্রথম বার্তায় পাঠাবেন না।', 'sojib68' ); ?></p>
 	</div>
 </section>
 

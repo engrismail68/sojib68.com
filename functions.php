@@ -33,7 +33,7 @@ require_once get_theme_file_path( 'inc/crm-system.php' );
  * is hidden on the front end instead of showing a placeholder.
  */
 if ( ! defined( 'SOJIB68_PHONE' ) ) {
-	define( 'SOJIB68_PHONE', '' ); // e.g. '+8801XXXXXXXXX'
+	define( 'SOJIB68_PHONE', '+8801950087868' );
 }
 if ( ! defined( 'SOJIB68_WHATSAPP' ) ) {
 	define( 'SOJIB68_WHATSAPP', '8801950087868' ); // digits only, with country code
@@ -89,6 +89,16 @@ function sojib68_enqueue_assets() {
 		get_theme_file_uri( 'assets/js/main.js' ),
 		array(),
 		$script_version,
+		true
+	);
+
+	// Counts a click on a contact action (data-lead) as a lead for analytics / ad pixels, if any are installed.
+	$track_path = get_theme_file_path( 'assets/js/track.js' );
+	wp_enqueue_script(
+		'sojib68-track',
+		get_theme_file_uri( 'assets/js/track.js' ),
+		array(),
+		file_exists( $track_path ) ? filemtime( $track_path ) : '1.0.0',
 		true
 	);
 

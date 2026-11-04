@@ -74,6 +74,7 @@
 		if ( place ) { lines.push( 'জমির এলাকা: ' + place ); }
 		if ( msg ) { lines.push( 'সংক্ষেপে: ' + msg ); }
 		var url = 'https://wa.me/' + DATA.wa + '?text=' + encodeURIComponent( lines.join( '\n' ) );
+		if ( window.sojib68Track ) { window.sojib68Track( 'whatsapp_form' ); }
 		window.open( url, '_blank', 'noopener' );
 	}
 
