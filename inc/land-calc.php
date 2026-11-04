@@ -64,29 +64,61 @@ function sojib68_land_calc_modal() {
 				<button type="button" class="lc-dialog__close" data-lc-close aria-label="<?php esc_attr_e( 'বন্ধ করুন', 'sojib68' ); ?>">&times;</button>
 			</header>
 
+			<div class="lc-tabs" role="tablist">
+				<button type="button" class="lc-tab is-on" role="tab" aria-selected="true" data-lc-tab="convert"><?php esc_html_e( 'একক রূপান্তর', 'sojib68' ); ?></button>
+				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="area"><?php esc_html_e( 'বাহু থেকে ক্ষেত্রফল', 'sojib68' ); ?></button>
+			</div>
+
 			<div class="lc-dialog__body">
-				<p class="lc-hint"><?php esc_html_e( 'জমির পরিমাণ লিখে এককটি বাছুন, সব এককে হিসাব সঙ্গে সঙ্গে দেখা যাবে।', 'sojib68' ); ?></p>
 
-				<div class="lc-form">
-					<div class="lc-field lc-field--num">
-						<label for="lc-value"><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></label>
-						<input type="text" id="lc-value" inputmode="decimal" autocomplete="off" placeholder="<?php esc_attr_e( 'যেমন: 5.5', 'sojib68' ); ?>" data-lc-value>
+				<div data-lc-panel="convert">
+					<p class="lc-hint"><?php esc_html_e( 'জমির পরিমাণ লিখে এককটি বাছুন, সব এককে হিসাব সঙ্গে সঙ্গে দেখা যাবে।', 'sojib68' ); ?></p>
+
+					<div class="lc-form">
+						<div class="lc-field lc-field--num">
+							<label for="lc-value"><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></label>
+							<input type="text" id="lc-value" inputmode="decimal" autocomplete="off" placeholder="<?php esc_attr_e( 'যেমন: 5.5', 'sojib68' ); ?>" data-lc-value>
+						</div>
+						<div class="lc-field">
+							<label for="lc-unit"><?php esc_html_e( 'একক', 'sojib68' ); ?></label>
+							<select id="lc-unit" data-lc-unit></select>
+						</div>
 					</div>
-					<div class="lc-field">
-						<label for="lc-unit"><?php esc_html_e( 'একক', 'sojib68' ); ?></label>
-						<select id="lc-unit" data-lc-unit></select>
-					</div>
+					<p class="lc-msg" data-lc-msg role="alert" hidden></p>
+
+					<ul class="lc-results" data-lc-results aria-live="polite"></ul>
 				</div>
-				<p class="lc-msg" data-lc-msg role="alert" hidden></p>
 
-				<ul class="lc-results" data-lc-results aria-live="polite"></ul>
+				<div data-lc-panel="area" hidden>
+					<p class="lc-hint"><?php esc_html_e( 'জমির আকৃতি বাছুন, তারপর প্রতিটি বাহুর মাপ দিন। ছবির নামের সঙ্গে মিলিয়ে লিখুন।', 'sojib68' ); ?></p>
+
+					<div class="lc-shapes" data-lc-shapes></div>
+
+					<div class="lc-area-grid">
+						<div class="lc-diagram" data-lc-diagram aria-hidden="true"></div>
+						<div>
+							<div class="lc-field lc-field--unit">
+								<label for="lc-lunit"><?php esc_html_e( 'মাপের একক', 'sojib68' ); ?></label>
+								<select id="lc-lunit" data-lc-lunit>
+									<option value="ft"><?php esc_html_e( 'ফুট', 'sojib68' ); ?></option>
+									<option value="m"><?php esc_html_e( 'মিটার', 'sojib68' ); ?></option>
+								</select>
+							</div>
+							<div class="lc-sides" data-lc-sides></div>
+						</div>
+					</div>
+					<p class="lc-msg" data-lc-amsg role="alert" hidden></p>
+
+					<ul class="lc-results" data-lc-aresults aria-live="polite"></ul>
+					<p class="lc-note lc-note--quad" data-lc-quadnote hidden><?php esc_html_e( 'চতুর্ভুজে কর্ণ (AC) হলো জমির ভেতর দিয়ে A থেকে C কোণায় সোজা টানা মাপ। শুধু চার বাহু দিয়ে ক্ষেত্রফল ঠিক হয় না, তাই কর্ণ লাগে।', 'sojib68' ); ?></p>
+				</div>
 
 				<p class="lc-note">
 					<?php
 					echo esc_html(
 						sprintf(
 							/* translators: %s: square feet in one shotangsho */
-							__( 'হিসাবের ভিত্তি: ১ শতাংশ = %s বর্গফুট; ঢাকার হিসাবে ১ কাঠা = ৭২০ বর্গফুট (২০ ছটাক), ১ বিঘা = ২০ কাঠা; ১ একর = ১০০ শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপের বিকল্প নয়।', 'sojib68' ),
+							__( 'হিসাবের ভিত্তি: ১ শতাংশ = %s বর্গফুট; ঢাকার হিসাবে ১ কাঠা = ৭২০ বর্গফুট (২০ ছটাক), ১ বিঘা = ২০ কাঠা; ১ একর = ১০০ শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ),
 							number_format_i18n( 435.6, 2 )
 						)
 					);

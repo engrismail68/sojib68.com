@@ -28,7 +28,7 @@
 	display: flex;
 	flex-direction: column;
 	width: 100%;
-	max-width: 520px;
+	max-width: 560px;
 	max-height: calc(100vh - 32px);
 	max-height: calc(100dvh - 32px);
 	border-radius: var(--radius-md);
@@ -193,6 +193,121 @@
 	color: #566760;
 }
 
+/* ---- tabs ---- */
+
+.lc-tabs {
+	display: flex;
+	gap: 6px;
+	padding: 10px 18px 0;
+	border-bottom: 1px solid var(--color-border);
+	background: var(--color-white);
+}
+
+.lc-tab {
+	margin-bottom: -1px;
+	padding: 8px 14px;
+	border: 1px solid transparent;
+	border-bottom: 0;
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+	background: none;
+	font: inherit;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: #566760;
+	cursor: pointer;
+}
+
+.lc-tab:hover {
+	color: var(--color-green);
+}
+
+.lc-tab.is-on {
+	border-color: var(--color-border);
+	background: var(--color-white);
+	border-bottom: 1px solid var(--color-white);
+	color: var(--color-green);
+}
+
+/* ---- area from the sides ---- */
+
+.lc-shapes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.lc-chip {
+	padding: 5px 14px;
+	border: 1.5px solid #9AA8A0;
+	border-radius: 999px;
+	background: var(--color-white);
+	font: inherit;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--color-heading);
+	cursor: pointer;
+}
+
+.lc-chip:hover {
+	border-color: var(--color-green);
+}
+
+.lc-chip.is-on {
+	border-color: var(--color-green);
+	background: var(--color-green);
+	color: #fff;
+}
+
+.lc-area-grid {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+	gap: 16px;
+	align-items: start;
+}
+
+.lc-diagram {
+	padding: 6px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-cream);
+}
+
+.lc-diagram svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.lc-diagram text {
+	font-family: var(--font-en);
+	font-size: 13px;
+	font-weight: 700;
+	fill: var(--color-heading);
+}
+
+.lc-field--unit {
+	margin-bottom: 10px;
+}
+
+.lc-sides {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 10px;
+}
+
+.lc-field--side label {
+	font-family: var(--font-en);
+}
+
+.lc-note--quad {
+	margin-top: 10px;
+}
+
+.lc-note[hidden] {
+	display: none;
+}
+
 body.lc-open {
 	overflow: hidden;
 }
@@ -211,9 +326,18 @@ body.lc-open {
 	}
 
 	.lc-dialog__head,
-	.lc-dialog__body {
+	.lc-dialog__body,
+	.lc-tabs {
 		padding-left: 16px;
 		padding-right: 16px;
+	}
+
+	.lc-area-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.lc-diagram {
+		max-width: 190px;
 	}
 }
 
