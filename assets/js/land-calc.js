@@ -130,7 +130,7 @@
 			svg: '<svg viewBox="0 0 160 120"><rect x="36" y="14" width="88" height="88" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="64" y="64">জমি</text></svg>'
 		},
 		tri: {
-			label: 'ত্রিভুজ (৩ কোণা)',
+			label: 'ত্রিভুজ (3 কোণা)',
 			hint: 'ছবির ক, খ, গ কোণা। এক কোণা থেকে পরের কোণা পর্যন্ত মাপ দিন।',
 			sides: [
 				{ label: 'ক – খ', hint: 'ক কোণা থেকে খ কোণা পর্যন্ত' },
@@ -140,7 +140,7 @@
 			svg: '<svg viewBox="0 0 160 120"><polygon points="24,98 138,98 76,18" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="8" y="110">ক</text><text x="142" y="110">খ</text><text x="72" y="12">গ</text></svg>'
 		},
 		quad: {
-			label: 'চতুর্ভুজ (৪ কোণা)',
+			label: 'চতুর্ভুজ (4 কোণা)',
 			hint: 'ছবির ক, খ, গ, ঘ কোণা। এক কোণা থেকে পরের কোণা পর্যন্ত মাপ দিন, আর ক থেকে গ পর্যন্ত কোণাকুণি মাপটিও (বিন্দু-বিন্দু দাগ) দিন।',
 			sides: [
 				{ label: 'ক – খ', hint: 'ক কোণা থেকে খ কোণা পর্যন্ত' },
@@ -275,7 +275,7 @@
 		},
 		share: {
 			label: 'মোট জমির অংশ → শতাংশ',
-			hint: 'মোট জমি কত শতাংশ এবং তার কত অংশ (১৬ আনায় পুরো জমি) লিখুন।',
+			hint: 'মোট জমি কত শতাংশ এবং তার কত অংশ (16 আনায় পুরো জমি) লিখুন।',
 			fields: [ { key: 'total', label: 'মোট জমি (শতাংশ)', hint: 'পুরো জমির পরিমাণ' } ].concat(
 				OKEYS.map( function ( k ) { return { key: k, label: OLD[ k ].label, hint: 'অংশ' }; } )
 			)
@@ -295,8 +295,8 @@
 	var otable = modal.querySelector( '[data-lc-otable]' );
 
 	otable.textContent = 'আপনার এলাকার মাপ: ' + OKEYS.map( function ( k ) {
-		return '১ ' + OLD[ k ].label + ' = ' + format( OLD[ k ].shatangsho ) + ' শতাংশ';
-	} ).join( '; ' ) + '। ১ আনা = ২০ গণ্ডা, ১ গণ্ডা = ৪ কড়া, ১ কড়া = ৩ ক্রান্তি; ১৬ আনায় পুরো।';
+		return '1 ' + OLD[ k ].label + ' = ' + format( OLD[ k ].shatangsho ) + ' শতাংশ';
+	} ).join( '; ' ) + '। 1 আনা = 20 গণ্ডা, 1 গণ্ডা = 4 কড়া, 1 কড়া = 3 ক্রান্তি; 16 আনায় পুরো।';
 
 	Object.keys( OMODES ).forEach( function ( k ) {
 		var b = document.createElement( 'button' );
@@ -391,7 +391,7 @@
 			} );
 			var whole = 16 * OLD[ OKEYS[ 0 ] ].shatangsho; // 16 আনা
 			if ( part > whole ) {
-				omsg.textContent = 'অংশ ১৬ আনার বেশি হতে পারে না। মাপগুলো আবার দেখুন।';
+				omsg.textContent = 'অংশ 16 আনার বেশি হতে পারে না। মাপগুলো আবার দেখুন।';
 				omsg.hidden = false;
 				return;
 			}
@@ -408,7 +408,7 @@
 				rest -= n * u;
 				if ( n > 0 ) { parts.push( format( n ) + ' ' + OLD[ k ].label ); }
 			} );
-			extra = [ [ 'আনা-গণ্ডা-কড়া-ক্রান্তিতে', parts.length ? parts.join( ', ' ) : '০' ] ];
+			extra = [ [ 'আনা-গণ্ডা-কড়া-ক্রান্তিতে', parts.length ? parts.join( ', ' ) : '0' ] ];
 		}
 		omsg.hidden = true;
 		var sqft = sh * SQFT_PER_SHOTANGSHO;
