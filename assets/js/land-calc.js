@@ -57,6 +57,12 @@
 		if ( extra ) {
 			extra.forEach( function ( row ) {
 				var li = document.createElement( 'li' );
+				if ( row[ 2 ] === 'head' ) {
+					li.className = 'lc-result-head';
+					li.textContent = row[ 0 ];
+					ul.appendChild( li );
+					return;
+				}
 				li.className = 'lc-result' + ( row[ 2 ] === false ? '' : ' is-from' );
 				var n = document.createElement( 'span' );
 				n.className = 'lc-result__name';
@@ -411,7 +417,12 @@
 				each.push( [ OLD[ k ].label, format( n ), false ] );
 			} );
 			// the whole thing in one line, then each part on its own row (zeros included)
-			extra = [ [ 'মোট', parts.length ? parts.join( ', ' ) : '0' ] ].concat( each );
+			extra = [ [ 'ভাগ করে (পূর্ণ সংখ্যায়)', '', 'head' ], [ 'মোট', parts.length ? parts.join( ', ' ) : '0' ] ].concat( each );
+			extra.push( [ 'প্রতিটি এককে আলাদাভাবে (সবটা এক এককে)', '', 'head' ] );
+			OKEYS.forEach( function ( k ) {
+				extra.push( [ OLD[ k ].label, format( sh / OLD[ k ].shatangsho ), false ] );
+			} );
+			extra.push( [ 'অন্যান্য এককে', '', 'head' ] );
 		}
 		omsg.hidden = true;
 		var sqft = sh * SQFT_PER_SHOTANGSHO;
@@ -489,6 +500,15 @@
 		setSheetText( '[data-sheet-date]', todayBn() );
 		extraRows.forEach( function ( r ) {
 			var tr = document.createElement( 'tr' );
+			if ( r[ 2 ] === 'head' ) {
+				tr.className = 'is-head';
+				var hth = document.createElement( 'th' );
+				hth.colSpan = 2;
+				hth.textContent = r[ 0 ];
+				tr.appendChild( hth );
+				rows.appendChild( tr );
+				return;
+			}
 			tr.className = r[ 2 ] === false ? '' : 'is-from';
 			var th = document.createElement( 'th' );
 			th.textContent = r[ 0 ];
