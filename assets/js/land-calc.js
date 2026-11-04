@@ -19,6 +19,10 @@
 	var results = modal.querySelector( '[data-lc-results]' );
 	var msg = modal.querySelector( '[data-lc-msg]' );
 	var lastOpener = null;
+	var printBtn = modal.querySelector( '[data-lc-print]' );
+	var sheet = modal.querySelector( '[data-lc-sheet]' );
+	var calc = { convert: null, area: null }; // the last good result of each tab
+	var tab = 'convert';
 	var keys = Object.keys( UNITS );
 
 	var BN = '০১২৩৪৫৬৭৮৯';
@@ -63,9 +67,15 @@
 		} );
 	}
 
+	function updatePrint() {
+		if ( printBtn ) { printBtn.disabled = ! calc[ tab ]; }
+	}
+
 	function render() {
 		var v = parseNumber( input.value );
 		results.innerHTML = '';
+		calc.convert = null;
+		updatePrint();
 		if ( v === null ) {
 			msg.hidden = true;
 			return;
@@ -77,6 +87,8 @@
 		}
 		msg.hidden = true;
 		renderList( results, v * UNITS[ select.value ].sqft, select.value );
+		calc.convert = { value: v, unit: select.value };
+		updatePrint();
 	}
 
 	// ----- area from the sides -----
@@ -186,6 +198,8 @@
 	function renderArea() {
 		var fields = Array.prototype.slice.call( sidesEl.querySelectorAll( '[data-lc-side]' ) );
 		aresults.innerHTML = '';
+		calc.area = null;
+		updatePrint();
 		var vals = fields.map( function ( f ) { return parseNumber( f.value ); } );
 		if ( vals.some( function ( v ) { return v === null; } ) ) {
 			amsg.hidden = true; // still being filled in
@@ -222,11 +236,94 @@
 		amsg.hidden = true;
 		var sqft = lunit.value === 'm' ? area * SQFT_PER_SQM : area;
 		renderList( aresults, sqft, 'sqft' );
+		calc.area = {
+			shape: SHAPES[ shape ].label,
+			unit: lunit.value === 'm' ? 'মিটার' : 'ফুট',
+			sides: SHAPES[ shape ].sides.map( function ( sd, i ) { return { label: sd.label, value: vals[ i ] }; } ),
+			sqft: sqft,
+			svg: SHAPES[ shape ].svg
+		};
+		updatePrint();
 	}
+
+	// ----- printed slip -----
+
+	function todayBn() {
+		var d = new Date();
+		try {
+			return d.toLocaleDateString( 'bn-BD', { day: 'numeric', month: 'long', year: 'numeric' } );
+		} catch ( e ) {
+			return d.getDate() + '/' + ( d.getMonth() + 1 ) + '/' + d.getFullYear();
+		}
+	}
+
+	function setSheetText( sel, text ) {
+		var el = sheet.querySelector( sel );
+		if ( el ) { el.textContent = text; }
+	}
+
+	function addLi( ul, label, value ) {
+		var li = document.createElement( 'li' );
+		var b = document.createElement( 'b' );
+		b.textContent = label + ': ';
+		li.appendChild( b );
+		li.appendChild( document.createTextNode( value ) );
+		ul.appendChild( li );
+	}
+
+	function buildSheet() {
+		var data = calc[ tab ];
+		if ( ! data ) { return false; }
+		var inputs = sheet.querySelector( '[data-sheet-inputs]' );
+		var rows = sheet.querySelector( '[data-sheet-results]' );
+		var diagram = sheet.querySelector( '[data-sheet-diagram]' );
+		inputs.innerHTML = '';
+		rows.innerHTML = '';
+		var base;
+		var fromKey;
+		if ( tab === 'convert' ) {
+			setSheetText( '[data-sheet-title]', 'জমির এককের হিসাব' );
+			addLi( inputs, 'দেওয়া পরিমাণ', format( data.value ) + ' ' + UNITS[ data.unit ].label );
+			diagram.innerHTML = '';
+			base = data.value * UNITS[ data.unit ].sqft;
+			fromKey = data.unit;
+		} else {
+			setSheetText( '[data-sheet-title]', 'জমির ক্ষেত্রফলের হিসাব' );
+			addLi( inputs, 'জমির আকৃতি', data.shape );
+			data.sides.forEach( function ( sd ) {
+				addLi( inputs, sd.label, format( sd.value ) + ' ' + data.unit );
+			} );
+			diagram.innerHTML = data.svg;
+			base = data.sqft;
+			fromKey = 'sqft';
+		}
+		setSheetText( '[data-sheet-date]', todayBn() );
+		keys.forEach( function ( k ) {
+			var tr = document.createElement( 'tr' );
+			if ( k === fromKey ) { tr.className = 'is-from'; }
+			var th = document.createElement( 'th' );
+			th.textContent = UNITS[ k ].label;
+			var td = document.createElement( 'td' );
+			td.textContent = format( base / UNITS[ k ].sqft );
+			tr.appendChild( th );
+			tr.appendChild( td );
+			rows.appendChild( tr );
+		} );
+		return true;
+	}
+
+	if ( printBtn ) {
+		printBtn.addEventListener( 'click', function () {
+			if ( buildSheet() ) { window.print(); }
+		} );
+	}
+	window.addEventListener( 'beforeprint', function () { if ( ! modal.hidden ) { buildSheet(); } } );
 
 	// ----- tabs -----
 
 	function showTab( name ) {
+		tab = name;
+		updatePrint();
 		modal.querySelectorAll( '[data-lc-tab]' ).forEach( function ( b ) {
 			var on = b.getAttribute( 'data-lc-tab' ) === name;
 			b.classList.toggle( 'is-on', on );

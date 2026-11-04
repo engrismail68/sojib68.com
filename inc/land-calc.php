@@ -49,7 +49,8 @@ function sojib68_land_calc_modal() {
 	if ( ! is_front_page() ) {
 		return;
 	}
-	$units = sojib68_land_units();
+	$units  = sojib68_land_units();
+	$office = function_exists( 'sojib68_checklist_office' ) ? sojib68_checklist_office() : array( 'name' => '', 'person' => '', 'phone' => '', 'channels' => '' );
 	?>
 	<script type="application/json" id="lc-data"><?php echo wp_json_encode( $units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
 
@@ -126,6 +127,46 @@ function sojib68_land_calc_modal() {
 					?>
 				</p>
 			</div>
+
+			<footer class="lc-dialog__foot">
+				<button type="button" class="btn btn-primary lc-print" data-lc-print disabled><?php esc_html_e( 'প্রিন্ট / PDF সংরক্ষণ', 'sojib68' ); ?></button>
+				<p class="lc-hint lc-hint--small"><?php esc_html_e( 'হিসাব বের হলে প্রিন্ট করা যাবে। PDF-এর জন্য প্রিন্টের জানালায় "Save as PDF" বেছে নিন।', 'sojib68' ); ?></p>
+			</footer>
+		</div>
+
+		<!-- Printed slip (hidden on screen, filled by land-calc.js) -->
+		<div class="lc-sheet" data-lc-sheet aria-hidden="true">
+			<header class="lc-sheet__head">
+				<div>
+					<p class="lc-sheet__org"><?php echo esc_html( $office['name'] ); ?></p>
+					<p class="lc-sheet__role"><?php echo esc_html( $office['person'] ); ?></p>
+				</div>
+				<?php if ( '' !== $office['phone'] ) : ?>
+					<div class="lc-sheet__phone">
+						<span class="lc-sheet__phone-label"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></span>
+						<strong><?php echo esc_html( $office['phone'] ); ?></strong>
+						<?php if ( '' !== $office['channels'] ) : ?>
+							<span class="lc-sheet__channels"><?php echo esc_html( $office['channels'] ); ?></span>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
+			</header>
+
+			<h2 class="lc-sheet__title" data-sheet-title></h2>
+			<p class="lc-sheet__date"><?php esc_html_e( 'তারিখ:', 'sojib68' ); ?> <span data-sheet-date></span></p>
+
+			<div class="lc-sheet__cols">
+				<div>
+					<h3><?php esc_html_e( 'দেওয়া তথ্য', 'sojib68' ); ?></h3>
+					<ul class="lc-sheet__inputs" data-sheet-inputs></ul>
+				</div>
+				<div class="lc-sheet__diagram" data-sheet-diagram></div>
+			</div>
+
+			<h3><?php esc_html_e( 'হিসাবের ফল', 'sojib68' ); ?></h3>
+			<table class="lc-sheet__table"><tbody data-sheet-results></tbody></table>
+
+			<p class="lc-sheet__foot"><?php esc_html_e( 'ভিত্তি: ১ শতাংশ = ৪৩৫.৬০ বর্গফুট; ঢাকার হিসাবে ১ কাঠা = ৭২০ বর্গফুট (২০ ছটাক), ১ বিঘা = ২০ কাঠা; ১ একর = ১০০ শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ); ?></p>
 		</div>
 	</div>
 	<?php

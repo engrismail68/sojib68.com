@@ -356,8 +356,209 @@ body.lc-open {
 	}
 }
 
+.lc-dialog__foot {
+	padding: 10px 18px 12px;
+	border-top: 1px solid var(--color-border);
+	background: var(--color-cream);
+}
+
+.lc-print {
+	width: 100%;
+	padding: 10px 18px;
+	font-size: 0.98rem;
+}
+
+.lc-print:disabled {
+	opacity: 0.45;
+	cursor: not-allowed;
+}
+
+.lc-hint--small {
+	margin: 8px 0 0;
+	font-size: 0.78rem;
+}
+
+/* the printed slip stays out of sight on screen */
+.lc-sheet {
+	display: none;
+}
+
+/* =====================================================================
+ * Print: only the slip — a compact half-A4 with a dashed cut line.
+ * ================================================================== */
+
 @media print {
-	.lc-modal {
+	@page {
+		size: A4 portrait;
+		margin: 10mm 12mm;
+	}
+
+	body.lc-open > *:not(.lc-modal) {
 		display: none !important;
+	}
+
+	.lc-modal {
+		position: static;
+		display: block;
+		padding: 0;
+	}
+
+	.lc-modal__backdrop,
+	.lc-dialog {
+		display: none !important;
+	}
+
+	body.lc-open {
+		overflow: visible;
+		background: #fff !important;
+		color: #000;
+		font-size: 10pt;
+	}
+
+	.lc-sheet {
+		display: block;
+		padding: 6mm 7mm 5mm;
+		border: 0.8pt dashed #8A8A8A;
+		color: #111;
+		break-inside: avoid;
+	}
+
+	.lc-sheet__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 14pt;
+		padding-bottom: 6pt;
+		border-bottom: 1.6pt solid #198030;
+	}
+
+	.lc-sheet__org {
+		margin: 0;
+		font-size: 17pt;
+		font-weight: 800;
+		line-height: 1.3;
+		color: #198030;
+	}
+
+	.lc-sheet__role {
+		margin: 1pt 0 0;
+		font-size: 10.5pt;
+		font-weight: 600;
+		color: #222;
+	}
+
+	.lc-sheet__phone {
+		text-align: right;
+		line-height: 1.3;
+		white-space: nowrap;
+	}
+
+	.lc-sheet__phone-label {
+		display: block;
+		font-size: 7.5pt;
+		color: #555;
+	}
+
+	.lc-sheet__phone strong {
+		display: block;
+		font-family: var(--font-en);
+		font-size: 13.5pt;
+		letter-spacing: 0.03em;
+		color: #000;
+	}
+
+	.lc-sheet__channels {
+		display: block;
+		font-family: var(--font-en);
+		font-size: 8.5pt;
+		font-weight: 600;
+		color: #198030;
+	}
+
+	.lc-sheet__title {
+		margin: 8pt 0 2pt;
+		font-size: 13pt;
+		line-height: 1.4;
+		color: #000;
+	}
+
+	.lc-sheet__date {
+		margin: 0 0 6pt;
+		font-size: 9.5pt;
+	}
+
+	.lc-sheet h3 {
+		margin: 6pt 0 3pt;
+		font-size: 10pt;
+		color: #0f6023;
+	}
+
+	.lc-sheet__cols {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 14pt;
+	}
+
+	.lc-sheet__inputs {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		font-size: 10.5pt;
+		line-height: 1.55;
+	}
+
+	.lc-sheet__diagram {
+		flex: 0 0 34mm;
+	}
+
+	.lc-sheet__diagram svg {
+		display: block;
+		width: 100%;
+		height: auto;
+		border: 0.5pt solid #C4C4C4;
+	}
+
+	.lc-sheet__diagram text {
+		font-size: 12px;
+		font-weight: 700;
+		fill: #000;
+	}
+
+	.lc-sheet__table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 10.5pt;
+	}
+
+	.lc-sheet__table th,
+	.lc-sheet__table td {
+		padding: 3pt 6pt;
+		border-bottom: 0.5pt solid #C4C4C4;
+	}
+
+	.lc-sheet__table th {
+		text-align: left;
+		font-weight: 500;
+	}
+
+	.lc-sheet__table td {
+		text-align: right;
+		font-family: var(--font-en);
+		font-weight: 700;
+	}
+
+	.lc-sheet__table tr.is-from th,
+	.lc-sheet__table tr.is-from td {
+		font-weight: 800;
+		border-bottom: 1pt solid #198030;
+	}
+
+	.lc-sheet__foot {
+		margin: 6pt 0 0;
+		padding-top: 4pt;
+		border-top: 0.5pt solid #C4C4C4;
+		font-size: 7.5pt;
+		color: #555;
 	}
 }
