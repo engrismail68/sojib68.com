@@ -20,9 +20,162 @@
 }
 
 .prop-hero__lead {
-	max-width: 620px;
+	max-width: 660px;
 	margin: 0 auto;
+	font-size: 1.05rem;
+	line-height: 1.8;
 	color: var(--color-body);
+}
+
+.prop-paths {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+	max-width: 860px;
+	margin: 30px auto 0;
+	text-align: left;
+}
+
+.prop-path {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 18px 20px;
+	border: 1.5px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.prop-path:hover {
+	border-color: var(--color-green);
+	transform: translateY(-2px);
+}
+
+.prop-path strong {
+	font-size: 1.12rem;
+	color: var(--color-heading);
+}
+
+.prop-path span {
+	font-size: 0.9rem;
+	color: #566760;
+}
+
+.prop-path--sell {
+	border-color: var(--color-green);
+	background: var(--color-green);
+}
+
+.prop-path--sell strong {
+	color: #fff;
+}
+
+.prop-path--sell span {
+	color: #dcebdf;
+}
+
+.prop-path--sell:hover {
+	background: var(--color-green-deep);
+}
+
+.prop-points {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px 26px;
+	margin: 26px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.prop-points li {
+	position: relative;
+	padding-left: 24px;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--color-green-deep);
+}
+
+.prop-points li::before {
+	content: "";
+	position: absolute;
+	left: 3px;
+	top: 0.35em;
+	width: 6px;
+	height: 11px;
+	border: solid var(--color-green);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg);
+}
+
+.prop-list__title {
+	margin: 0 0 14px;
+	font-size: 1.4rem;
+	color: var(--color-heading);
+}
+
+.prop-how {
+	margin-top: 44px;
+	padding: 30px 28px;
+	border-radius: var(--radius-md);
+	background: var(--color-green-deep);
+	color: #e3efe4;
+	text-align: center;
+}
+
+.prop-how h2 {
+	margin: 0 0 20px;
+	font-size: 1.4rem;
+	color: #fff;
+}
+
+.prop-how ol {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+	margin: 0 0 24px;
+	padding: 0;
+	list-style: none;
+	counter-reset: step;
+	text-align: left;
+}
+
+.prop-how li {
+	position: relative;
+	padding: 16px 16px 16px 54px;
+	border-radius: var(--radius-sm);
+	background: rgba(255, 255, 255, 0.08);
+	counter-increment: step;
+}
+
+.prop-how li::before {
+	content: counter(step);
+	position: absolute;
+	left: 14px;
+	top: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: #fff;
+	font-family: var(--font-en);
+	font-weight: 700;
+	color: var(--color-green-deep);
+}
+
+.prop-how li strong {
+	display: block;
+	margin-bottom: 4px;
+	color: #fff;
+}
+
+.prop-how li span {
+	font-size: 0.92rem;
+	line-height: 1.6;
+	color: #cfe0d2;
 }
 
 .prop-list {
@@ -481,6 +634,11 @@
 }
 
 @media (max-width: 900px) {
+	.prop-paths,
+	.prop-how ol {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	.prop-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}

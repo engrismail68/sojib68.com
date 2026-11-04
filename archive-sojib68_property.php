@@ -19,15 +19,40 @@ $wa     = ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) ? SOJIB68_WHATSA
 	<section class="prop-hero">
 		<div class="site-container">
 			<p class="eyebrow"><?php esc_html_e( 'জমি ও প্রপার্টি', 'sojib68' ); ?></p>
-			<h1><?php esc_html_e( 'বিক্রি ও ভাড়ার জমি-প্রপার্টি', 'sojib68' ); ?></h1>
-			<p class="prop-hero__lead"><?php esc_html_e( 'পছন্দের বিজ্ঞাপনটির বিস্তারিত দেখুন। আরও জানতে বা বিক্রেতার সঙ্গে কথা বলতে আমার মাধ্যমে যুক্ত হোন।', 'sojib68' ); ?></p>
+			<h1><?php esc_html_e( 'দালালমুক্ত — নিজের জমি নিজে বিক্রি করুন', 'sojib68' ); ?></h1>
+			<p class="prop-hero__lead"><?php esc_html_e( 'জমি ও প্রপার্টির ক্রয়, বিক্রয় ও ভাড়ার বিজ্ঞাপন এক জায়গায়। দলিল-খতিয়ান বোঝেন এমন একজন ভূমি কনসালটেন্ট পাশে থেকে ক্রেতা-বিক্রেতাকে যুক্ত করে দেন।', 'sojib68' ); ?></p>
+
+			<div class="prop-paths">
+				<a class="prop-path" href="<?php echo esc_url( add_query_arg( 'ptype', 'sale', $action ) ); ?>#prop-results">
+					<strong><?php esc_html_e( 'কিনতে চাই', 'sojib68' ); ?></strong>
+					<span><?php esc_html_e( 'বিক্রির জমি-প্রপার্টি দেখুন', 'sojib68' ); ?></span>
+				</a>
+				<a class="prop-path" href="<?php echo esc_url( add_query_arg( 'ptype', 'rent', $action ) ); ?>#prop-results">
+					<strong><?php esc_html_e( 'ভাড়া নিতে চাই', 'sojib68' ); ?></strong>
+					<span><?php esc_html_e( 'ভাড়ার প্রপার্টি দেখুন', 'sojib68' ); ?></span>
+				</a>
+				<?php if ( $wa ) : ?>
+					<a class="prop-path prop-path--sell" href="https://wa.me/<?php echo esc_attr( $wa ); ?>?text=<?php echo esc_attr( rawurlencode( __( 'আসসালামু আলাইকুম, আমি আমার জমি/প্রপার্টি বিক্রি বা ভাড়া দিতে চাই।', 'sojib68' ) ) ); ?>" target="_blank" rel="noopener" data-lead="property_sell_whatsapp">
+						<strong><?php esc_html_e( 'আমার জমি বিক্রি করতে চাই', 'sojib68' ); ?></strong>
+						<span><?php esc_html_e( 'বিজ্ঞাপন দিতে WhatsApp-এ জানান', 'sojib68' ); ?></span>
+					</a>
+				<?php endif; ?>
+			</div>
+
+			<ul class="prop-points">
+				<li><?php esc_html_e( 'নিজের জমির বিজ্ঞাপন নিজের শর্তে', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'দলিল-খতিয়ান বোঝা মানুষ পাশে', 'sojib68' ); ?></li>
+				<li><?php esc_html_e( 'বিস্তারিত তথ্য ও ছবিসহ বিজ্ঞাপন', 'sojib68' ); ?></li>
+			</ul>
 		</div>
 	</section>
 
 	<section class="prop-list">
 		<div class="site-container">
 
-			<form method="get" action="<?php echo esc_url( $action ); ?>" class="prop-filter">
+			<h2 class="prop-list__title" id="prop-results"><?php esc_html_e( 'সব বিজ্ঞাপন', 'sojib68' ); ?></h2>
+
+			<form method="get" action="<?php echo esc_url( $action ); ?>#prop-results" class="prop-filter">
 				<select name="ptype" aria-label="<?php esc_attr_e( 'বিক্রয় বা ভাড়া', 'sojib68' ); ?>">
 					<option value=""><?php esc_html_e( 'বিক্রয় ও ভাড়া', 'sojib68' ); ?></option>
 					<?php foreach ( $types as $k => $label ) : ?>
@@ -89,15 +114,17 @@ $wa     = ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) ? SOJIB68_WHATSA
 				</div>
 			<?php endif; ?>
 
-			<?php if ( $wa ) : ?>
-				<aside class="prop-sellcta">
-					<div>
-						<h2><?php esc_html_e( 'জমি বা প্রপার্টি বিক্রি বা ভাড়া দিতে চান?', 'sojib68' ); ?></h2>
-						<p><?php esc_html_e( 'আপনার জমি-প্রপার্টির তথ্য জানান। যাচাই করে এখানে বিজ্ঞাপন দেওয়া হবে, ক্রেতা আমার মাধ্যমে আপনার সঙ্গে যুক্ত হবেন।', 'sojib68' ); ?></p>
-					</div>
-					<a class="btn btn-primary" href="https://wa.me/<?php echo esc_attr( $wa ); ?>?text=<?php echo esc_attr( rawurlencode( __( 'আসসালামু আলাইকুম, আমি আমার জমি/প্রপার্টি বিক্রি বা ভাড়া দিতে চাই।', 'sojib68' ) ) ); ?>" target="_blank" rel="noopener" data-lead="property_sell_whatsapp"><?php esc_html_e( 'WhatsApp-এ জানান', 'sojib68' ); ?></a>
-				</aside>
-			<?php endif; ?>
+			<aside class="prop-how">
+				<h2><?php esc_html_e( 'বিক্রি করতে চান? তিন ধাপে', 'sojib68' ); ?></h2>
+				<ol>
+					<li><strong><?php esc_html_e( 'তথ্য ও ছবি দিন', 'sojib68' ); ?></strong><span><?php esc_html_e( 'জমি বা প্রপার্টির এলাকা, পরিমাণ, কাগজপত্রের অবস্থা ও ছবি WhatsApp-এ পাঠান।', 'sojib68' ); ?></span></li>
+					<li><strong><?php esc_html_e( 'বিজ্ঞাপন প্রকাশ', 'sojib68' ); ?></strong><span><?php esc_html_e( 'আপনার অনুমতি নিয়ে বিস্তারিত বিবরণসহ বিজ্ঞাপন এই পেজে দেওয়া হয়।', 'sojib68' ); ?></span></li>
+					<li><strong><?php esc_html_e( 'ক্রেতা যুক্ত হন', 'sojib68' ); ?></strong><span><?php esc_html_e( 'আগ্রহী ক্রেতা আমার মাধ্যমে যোগাযোগ করেন, আমি আপনাকে তাঁর সঙ্গে যুক্ত করে দিই।', 'sojib68' ); ?></span></li>
+				</ol>
+				<?php if ( $wa ) : ?>
+					<a class="btn btn-primary" href="https://wa.me/<?php echo esc_attr( $wa ); ?>?text=<?php echo esc_attr( rawurlencode( __( 'আসসালামু আলাইকুম, আমি আমার জমি/প্রপার্টি বিক্রি বা ভাড়া দিতে চাই।', 'sojib68' ) ) ); ?>" target="_blank" rel="noopener" data-lead="property_sell_whatsapp"><?php esc_html_e( 'WhatsApp-এ বিজ্ঞাপনের তথ্য পাঠান', 'sojib68' ); ?></a>
+				<?php endif; ?>
+			</aside>
 
 		</div>
 	</section>
