@@ -102,6 +102,82 @@ function sojib68_inquiry_modal() {
 add_action( 'wp_footer', 'sojib68_inquiry_modal', 8 );
 
 /* ---------------------------------------------------------------------
+ * Log of what happened to each submission (wp-admin → Consultation Requests → ফর্ম জমার লগ)
+ * ------------------------------------------------------------------ */
+
+define( 'SOJIB68_INQUIRY_LOG_OPTION', 'sojib68_inquiry_log' );
+
+/** Keeps the last 30 outcomes, newest first, so a missing lead can be traced. */
+function sojib68_inquiry_log( $result, $name = '', $phone = '', $detail = '' ) {
+	$log = get_option( SOJIB68_INQUIRY_LOG_OPTION, array() );
+	$log = is_array( $log ) ? $log : array();
+	array_unshift( $log, array(
+		'time'   => current_time( 'mysql' ),
+		'result' => $result,
+		'name'   => $name,
+		'phone'  => $phone,
+		'detail' => $detail,
+	) );
+	update_option( SOJIB68_INQUIRY_LOG_OPTION, array_slice( $log, 0, 30 ), false );
+}
+
+function sojib68_inquiry_result_label( $result ) {
+	$labels = array(
+		'crm'       => 'CRM-এ নতুন লিড হয়েছে',
+		'fallback'  => 'CRM-এ হয়নি — পুরোনো "Consultation Requests" তালিকায় জমা হয়েছে',
+		'duplicate' => 'আগেই জমা ছিল (১০ মিনিটের মধ্যে একই নম্বর ও একই বিবরণ), নতুন লিড হয়নি',
+		'too_fast'  => 'আটকানো হয়েছে: খুব দ্রুত জমা (স্বয়ংক্রিয় মনে হয়েছে)',
+		'spam'      => 'আটকানো হয়েছে: লুকানো ঘর পূরণ করা (স্প্যাম)',
+		'limit'     => 'আটকানো হয়েছে: একই IP থেকে ঘণ্টায় অনেকবার',
+		'invalid'   => 'তথ্য ঠিক ছিল না, জমা হয়নি',
+		'error'     => 'ত্রুটি: কোথাও জমা হয়নি',
+	);
+	return isset( $labels[ $result ] ) ? $labels[ $result ] : $result;
+}
+
+function sojib68_inquiry_admin_menu() {
+	add_submenu_page(
+		'edit.php?post_type=sojib68_lead',
+		__( 'ফর্ম জমার লগ', 'sojib68' ),
+		__( 'ফর্ম জমার লগ', 'sojib68' ),
+		'manage_options',
+		'sojib68-inquiry-log',
+		'sojib68_inquiry_log_page'
+	);
+}
+add_action( 'admin_menu', 'sojib68_inquiry_admin_menu' );
+
+function sojib68_inquiry_log_page() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	$log = get_option( SOJIB68_INQUIRY_LOG_OPTION, array() );
+	$log = is_array( $log ) ? $log : array();
+	?>
+	<div class="wrap">
+		<h1><?php esc_html_e( 'পরামর্শ ফর্ম — জমার লগ', 'sojib68' ); ?></h1>
+		<p><?php esc_html_e( 'ওয়েবসাইটের "পরামর্শ নিন" ফর্মে যা জমা পড়েছে (শেষ ৩০টি) এবং প্রতিটির কী হয়েছে। CRM-এ লিড না দেখলে এখানে কারণ দেখুন।', 'sojib68' ); ?></p>
+		<table class="widefat striped" style="max-width:1000px;">
+			<thead><tr><th><?php esc_html_e( 'সময়', 'sojib68' ); ?></th><th><?php esc_html_e( 'নাম', 'sojib68' ); ?></th><th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th><th><?php esc_html_e( 'কী হয়েছে', 'sojib68' ); ?></th></tr></thead>
+			<tbody>
+			<?php if ( ! $log ) : ?>
+				<tr><td colspan="4"><?php esc_html_e( 'এখনো কিছু জমা পড়েনি।', 'sojib68' ); ?></td></tr>
+			<?php endif; ?>
+			<?php foreach ( $log as $row ) : ?>
+				<tr>
+					<td><?php echo esc_html( $row['time'] ); ?></td>
+					<td><?php echo esc_html( $row['name'] ); ?></td>
+					<td><?php echo esc_html( $row['phone'] ); ?></td>
+					<td><?php echo esc_html( sojib68_inquiry_result_label( $row['result'] ) . ( '' !== $row['detail'] ? ' — ' . $row['detail'] : '' ) ); ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+	<?php
+}
+
+/* ---------------------------------------------------------------------
  * Submission
  * ------------------------------------------------------------------ */
 
@@ -134,12 +210,14 @@ function sojib68_inquiry_handle() {
 	$hp   = isset( $_POST['website'] ) ? trim( (string) wp_unslash( $_POST['website'] ) ) : '';
 	$took = isset( $_POST['t'] ) ? (int) $_POST['t'] : 0;
 	if ( '' !== $hp || $took < SOJIB68_INQUIRY_MIN_MS ) {
+		sojib68_inquiry_log( '' !== $hp ? 'spam' : 'too_fast', isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '', isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '', $took . ' ms' );
 		wp_send_json_success( array( 'message' => 'ok' ) );
 	}
 
 	$rate_key = sojib68_inquiry_rate_key();
 	$count    = (int) get_transient( $rate_key );
 	if ( $count >= SOJIB68_INQUIRY_MAX_PER_HOUR ) {
+		sojib68_inquiry_log( 'limit', isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '', isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '' );
 		sojib68_inquiry_fail( __( 'অনেকবার চেষ্টা হয়েছে। একটু পরে আবার চেষ্টা করুন, অথবা সরাসরি WhatsApp-এ জানান।', 'sojib68' ), array(), 429 );
 	}
 
@@ -161,27 +239,35 @@ function sojib68_inquiry_handle() {
 		$errors['message'] = __( 'সমস্যার বিবরণ লিখুন।', 'sojib68' );
 	}
 	if ( $errors ) {
+		sojib68_inquiry_log( 'invalid', $name, $phone, implode( ', ', array_keys( $errors ) ) );
 		sojib68_inquiry_fail( __( 'চিহ্নিত ঘরগুলো ঠিক করুন।', 'sojib68' ), $errors );
 	}
 
 	set_transient( $rate_key, $count + 1, HOUR_IN_SECONDS );
 
-	$saved = false;
+	$saved  = false;
+	$result = '';
+	$detail = '';
 
 	// 1) The CRM: the lead shows up in /crm as a new lead.
 	if ( function_exists( 'sojib68_crm_lead_save' ) ) {
 		$recent = false;
 		if ( function_exists( 'sojib68_crm_find_leads_by_phone' ) ) {
 			foreach ( sojib68_crm_find_leads_by_phone( $phone ) as $existing ) {
-				// a double click / resend within 10 minutes is not a second lead
+				// a double click / resend (same number, same words) within 10 minutes is not a second lead
 				if ( strtotime( $existing['created_at'] ) > current_time( 'timestamp' ) - 10 * MINUTE_IN_SECONDS ) {
-					$recent = true;
-					break;
+					$before = function_exists( 'sojib68_crm_lead_get' ) ? sojib68_crm_lead_get( $existing['id'] ) : null;
+					if ( $before && isset( $before['details'] ) && $before['details'] === $message ) {
+						$recent = true;
+						$detail = 'লিড ' . $existing['lead_code'];
+						break;
+					}
 				}
 			}
 		}
 		if ( $recent ) {
-			$saved = true;
+			$saved  = true;
+			$result = 'duplicate';
 		} else {
 			$lead_id = sojib68_crm_lead_save( array(
 				'name'         => $name,
@@ -194,7 +280,9 @@ function sojib68_inquiry_handle() {
 				'status'       => 'new',
 			) );
 			if ( ! is_wp_error( $lead_id ) && $lead_id ) {
-				$saved = true;
+				$saved  = true;
+				$result = 'crm';
+				$detail = 'লিড #' . (int) $lead_id;
 				if ( function_exists( 'sojib68_crm_lead_log' ) ) {
 					sojib68_crm_lead_log( $lead_id, 'web_form', 'ওয়েবসাইটের "পরামর্শ নিন" ফর্ম থেকে এসেছে।' );
 				}
@@ -204,6 +292,13 @@ function sojib68_inquiry_handle() {
 
 	// 2) Fallback: a private "Consultation Request" in wp-admin, so a lead is never lost.
 	if ( ! $saved ) {
+		if ( ! function_exists( 'sojib68_crm_lead_save' ) ) {
+			$detail = 'CRM উপলব্ধ নয়';
+		} elseif ( isset( $lead_id ) && is_wp_error( $lead_id ) ) {
+			$detail = $lead_id->get_error_message();
+		} else {
+			$detail = 'CRM লিড তৈরি করতে পারেনি';
+		}
 		$post_id = wp_insert_post( array(
 			'post_type'    => 'sojib68_lead',
 			'post_status'  => 'private',
@@ -213,9 +308,12 @@ function sojib68_inquiry_handle() {
 		if ( ! is_wp_error( $post_id ) && $post_id ) {
 			update_post_meta( $post_id, 'phone', $phone );
 			update_post_meta( $post_id, 'area', $address );
-			$saved = true;
+			$saved  = true;
+			$result = 'fallback';
 		}
 	}
+
+	sojib68_inquiry_log( $saved ? $result : 'error', $name, $phone, $detail );
 
 	if ( ! $saved ) {
 		sojib68_inquiry_fail( __( 'দুঃখিত, এই মুহূর্তে জমা দেওয়া যায়নি। অনুগ্রহ করে WhatsApp-এ জানান।', 'sojib68' ), array(), 500 );
