@@ -2,9 +2,8 @@
 /**
  * "পরামর্শ নিন" form (header button, every page): নাম, মোবাইল নং, ঠিকানা, সমস্যার বিস্তারিত বর্ণনা.
  *
- * A submission becomes a new lead in the CRM (/crm → লিড, status "নতুন", note says it came from the
- * website). If the CRM cannot take it, it is saved as a private "Consultation Request" (the old
- * place) so nothing is lost. The owner is also e-mailed, best effort.
+ * A submission is saved in wp-admin → Consultation Requests (always) and also as a new lead in the
+ * CRM (/crm → লিড, status "নতুন"). The owner is also e-mailed, best effort.
  *
  * No nonce on purpose: pages may be served from a cache and a cached nonce goes stale. Spam is
  * held back by a hidden field, a minimum fill time and a per-IP limit.
@@ -123,9 +122,10 @@ function sojib68_inquiry_log( $result, $name = '', $phone = '', $detail = '' ) {
 
 function sojib68_inquiry_result_label( $result ) {
 	$labels = array(
-		'crm'       => 'CRM-এ নতুন লিড হয়েছে',
-		'fallback'  => 'CRM-এ হয়নি — পুরোনো "Consultation Requests" তালিকায় জমা হয়েছে',
-		'duplicate' => 'আগেই জমা ছিল (১০ মিনিটের মধ্যে একই নম্বর ও একই বিবরণ), নতুন লিড হয়নি',
+		'both'      => 'জমা হয়েছে: wp-admin → Consultation Requests এবং CRM লিড, দুই জায়গাতেই',
+		'wp_only'   => 'জমা হয়েছে: wp-admin → Consultation Requests-এ (CRM লিড তৈরি হয়নি)',
+		'crm_only'  => 'জমা হয়েছে: শুধু CRM লিড (wp-admin তালিকায় হয়নি)',
+		'duplicate' => 'একই নম্বর ও একই বিবরণ ১০ মিনিটের মধ্যে আবার এসেছিল, তাই নতুন কিছু হয়নি',
 		'too_fast'  => 'আটকানো হয়েছে: খুব দ্রুত জমা (স্বয়ংক্রিয় মনে হয়েছে)',
 		'spam'      => 'আটকানো হয়েছে: লুকানো ঘর পূরণ করা (স্প্যাম)',
 		'limit'     => 'আটকানো হয়েছে: একই IP থেকে ঘণ্টায় অনেকবার',
@@ -176,6 +176,32 @@ function sojib68_inquiry_log_page() {
 	</div>
 	<?php
 }
+
+/* ---------------------------------------------------------------------
+ * wp-admin → Consultation Requests: show the phone and address in the list
+ * ------------------------------------------------------------------ */
+
+function sojib68_inquiry_list_columns( $columns ) {
+	$out = array();
+	foreach ( $columns as $key => $label ) {
+		$out[ $key ] = $label;
+		if ( 'title' === $key ) {
+			$out['sojib68_phone'] = __( 'মোবাইল', 'sojib68' );
+			$out['sojib68_area']  = __( 'ঠিকানা', 'sojib68' );
+		}
+	}
+	return $out;
+}
+add_filter( 'manage_sojib68_lead_posts_columns', 'sojib68_inquiry_list_columns' );
+
+function sojib68_inquiry_list_column( $column, $post_id ) {
+	if ( 'sojib68_phone' === $column ) {
+		echo esc_html( (string) get_post_meta( $post_id, 'phone', true ) );
+	} elseif ( 'sojib68_area' === $column ) {
+		echo esc_html( (string) get_post_meta( $post_id, 'area', true ) );
+	}
+}
+add_action( 'manage_sojib68_lead_posts_custom_column', 'sojib68_inquiry_list_column', 10, 2 );
 
 /* ---------------------------------------------------------------------
  * Submission
@@ -245,79 +271,76 @@ function sojib68_inquiry_handle() {
 
 	set_transient( $rate_key, $count + 1, HOUR_IN_SECONDS );
 
-	$saved  = false;
-	$result = '';
-	$detail = '';
+	// The same words from the same number within 10 minutes is a double click, not a second request.
+	$dup_key = 'sojib68_inq_dup_' . md5( $phone . '|' . $message );
+	if ( get_transient( $dup_key ) ) {
+		sojib68_inquiry_log( 'duplicate', $name, $phone );
+		wp_send_json_success( array( 'message' => 'ok' ) );
+	}
 
-	// 1) The CRM: the lead shows up in /crm as a new lead.
+	// 1) wp-admin → Consultation Requests: always. Everything is in the content, so it reads at a glance.
+	$content = implode( "\n", array(
+		'নাম: ' . $name,
+		'মোবাইল: ' . $phone,
+		'ঠিকানা: ' . ( '' !== $address ? $address : '-' ),
+		'',
+		'সমস্যার বিবরণ:',
+		$message,
+	) );
+	$post_id = wp_insert_post( array(
+		'post_type'    => 'sojib68_lead',
+		'post_status'  => 'private',
+		'post_title'   => sprintf( '%s — %s', $name, $phone ),
+		'post_content' => $content,
+	), true );
+	$wp_ok = ! is_wp_error( $post_id ) && $post_id;
+	if ( $wp_ok ) {
+		update_post_meta( $post_id, 'phone', $phone );
+		update_post_meta( $post_id, 'area', $address );
+	}
+
+	// 2) The CRM as well, so the lead is in /crm too (best effort; the wp-admin entry is the safety net).
+	$crm_note = '';
+	$crm_ok   = false;
 	if ( function_exists( 'sojib68_crm_lead_save' ) ) {
-		$recent = false;
-		if ( function_exists( 'sojib68_crm_find_leads_by_phone' ) ) {
-			foreach ( sojib68_crm_find_leads_by_phone( $phone ) as $existing ) {
-				// a double click / resend (same number, same words) within 10 minutes is not a second lead
-				if ( strtotime( $existing['created_at'] ) > current_time( 'timestamp' ) - 10 * MINUTE_IN_SECONDS ) {
-					$before = function_exists( 'sojib68_crm_lead_get' ) ? sojib68_crm_lead_get( $existing['id'] ) : null;
-					if ( $before && isset( $before['details'] ) && $before['details'] === $message ) {
-						$recent = true;
-						$detail = 'লিড ' . $existing['lead_code'];
-						break;
-					}
-				}
+		$lead_id = sojib68_crm_lead_save( array(
+			'name'         => $name,
+			'phone'        => $phone,
+			'address'      => $address,
+			'details'      => $message,
+			'notes'        => 'ওয়েবসাইটের "পরামর্শ নিন" ফর্ম থেকে এসেছে।',
+			'source'       => 'facebook_internet',
+			'service_type' => 'other_land_service',
+			'status'       => 'new',
+		) );
+		if ( ! is_wp_error( $lead_id ) && $lead_id ) {
+			$crm_ok   = true;
+			$crm_note = 'CRM লিড #' . (int) $lead_id;
+			if ( function_exists( 'sojib68_crm_lead_log' ) ) {
+				sojib68_crm_lead_log( $lead_id, 'web_form', 'ওয়েবসাইটের "পরামর্শ নিন" ফর্ম থেকে এসেছে।' );
 			}
-		}
-		if ( $recent ) {
-			$saved  = true;
-			$result = 'duplicate';
 		} else {
-			$lead_id = sojib68_crm_lead_save( array(
-				'name'         => $name,
-				'phone'        => $phone,
-				'address'      => $address,
-				'details'      => $message,
-				'notes'        => 'ওয়েবসাইটের "পরামর্শ নিন" ফর্ম থেকে এসেছে।',
-				'source'       => 'facebook_internet',
-				'service_type' => 'other_land_service',
-				'status'       => 'new',
-			) );
-			if ( ! is_wp_error( $lead_id ) && $lead_id ) {
-				$saved  = true;
-				$result = 'crm';
-				$detail = 'লিড #' . (int) $lead_id;
-				if ( function_exists( 'sojib68_crm_lead_log' ) ) {
-					sojib68_crm_lead_log( $lead_id, 'web_form', 'ওয়েবসাইটের "পরামর্শ নিন" ফর্ম থেকে এসেছে।' );
-				}
-			}
+			$crm_note = is_wp_error( $lead_id ) ? 'CRM: ' . $lead_id->get_error_message() : 'CRM লিড তৈরি করতে পারেনি';
 		}
+	} else {
+		$crm_note = 'CRM উপলব্ধ নয়';
 	}
 
-	// 2) Fallback: a private "Consultation Request" in wp-admin, so a lead is never lost.
-	if ( ! $saved ) {
-		if ( ! function_exists( 'sojib68_crm_lead_save' ) ) {
-			$detail = 'CRM উপলব্ধ নয়';
-		} elseif ( isset( $lead_id ) && is_wp_error( $lead_id ) ) {
-			$detail = $lead_id->get_error_message();
-		} else {
-			$detail = 'CRM লিড তৈরি করতে পারেনি';
-		}
-		$post_id = wp_insert_post( array(
-			'post_type'    => 'sojib68_lead',
-			'post_status'  => 'private',
-			'post_title'   => sprintf( '%s — পরামর্শ নিন', $name ),
-			'post_content' => $message,
-		), true );
-		if ( ! is_wp_error( $post_id ) && $post_id ) {
-			update_post_meta( $post_id, 'phone', $phone );
-			update_post_meta( $post_id, 'area', $address );
-			$saved  = true;
-			$result = 'fallback';
-		}
+	if ( $wp_ok && $crm_ok ) {
+		$result = 'both';
+	} elseif ( $wp_ok ) {
+		$result = 'wp_only';
+	} elseif ( $crm_ok ) {
+		$result = 'crm_only';
+	} else {
+		$result = 'error';
 	}
+	sojib68_inquiry_log( $result, $name, $phone, trim( ( $wp_ok ? 'Consultation Request #' . (int) $post_id . '. ' : '' ) . $crm_note ) );
 
-	sojib68_inquiry_log( $saved ? $result : 'error', $name, $phone, $detail );
-
-	if ( ! $saved ) {
+	if ( ! $wp_ok && ! $crm_ok ) {
 		sojib68_inquiry_fail( __( 'দুঃখিত, এই মুহূর্তে জমা দেওয়া যায়নি। অনুগ্রহ করে WhatsApp-এ জানান।', 'sojib68' ), array(), 500 );
 	}
+	set_transient( $dup_key, 1, 10 * MINUTE_IN_SECONDS );
 
 	// Best-effort e-mail to the owner.
 	$notify_to = defined( 'SOJIB68_EMAIL' ) && SOJIB68_EMAIL ? SOJIB68_EMAIL : get_option( 'admin_email' );
