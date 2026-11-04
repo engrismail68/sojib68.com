@@ -58,6 +58,7 @@
 				<?php endif; ?>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
+			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-outline-light nav-cta" data-inq-open><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>
 		</nav>
 	</div>
 </header>

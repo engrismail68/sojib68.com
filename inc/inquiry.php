@@ -14,10 +14,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// The form is built and tested but has no button on the site right now (the header
-// "পরামর্শ নিন" button was removed). To bring it back, put data-inq-open on any link or
-// button and set this to true — nothing is loaded on the pages while it is false.
-define( 'SOJIB68_INQUIRY_ENABLED', false );
+// The form opens from any link or button that has the attribute data-inq-open (the header
+// "পরামর্শ নিন" button). Set this to false to switch it off: nothing is loaded on the pages
+// and the submit endpoint is closed.
+define( 'SOJIB68_INQUIRY_ENABLED', true );
 
 define( 'SOJIB68_INQUIRY_MAX_PER_HOUR', 5 );
 define( 'SOJIB68_INQUIRY_MIN_MS', 2500 );
