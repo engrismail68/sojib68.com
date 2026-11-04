@@ -82,6 +82,8 @@ function sojib68_land_calc_modal() {
 				<button type="button" class="lc-dialog__close" data-lc-close aria-label="<?php esc_attr_e( 'বন্ধ করুন', 'sojib68' ); ?>">&times;</button>
 			</header>
 
+			<p class="lc-region"><?php esc_html_e( 'হিসাবের মাপ: লক্ষ্মীপুর, চাঁদপুর, নোয়াখালী ও ঢাকা অঞ্চলের প্রচলিত মাপ অনুযায়ী', 'sojib68' ); ?></p>
+
 			<div class="lc-tabs" role="tablist">
 				<button type="button" class="lc-tab is-on" role="tab" aria-selected="true" data-lc-tab="convert"><?php esc_html_e( 'একক রূপান্তর', 'sojib68' ); ?></button>
 				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="area"><?php esc_html_e( 'বাহু থেকে ক্ষেত্রফল', 'sojib68' ); ?></button>
@@ -148,7 +150,7 @@ function sojib68_land_calc_modal() {
 					echo esc_html(
 						sprintf(
 							/* translators: %s: square feet in one shotangsho */
-							__( 'হিসাবের ভিত্তি: 1 শতাংশ = %s বর্গফুট; ঢাকার হিসাবে 1 কাঠা = 720 বর্গফুট (20 ছটাক), 1 বিঘা = 20 কাঠা; 1 একর = 100 শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ),
+							__( 'এই হিসাবের মাপ লক্ষ্মীপুর, চাঁদপুর, নোয়াখালী ও ঢাকা অঞ্চলের প্রচলিত মাপ অনুযায়ী; অন্য এলাকায় মান আলাদা হতে পারে। ভিত্তি: 1 শতাংশ = %s বর্গফুট; ঢাকার হিসাবে 1 কাঠা = 720 বর্গফুট (20 ছটাক), 1 বিঘা = 20 কাঠা; 1 একর = 100 শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ),
 							number_format_i18n( 435.6, 2 )
 						)
 					);
@@ -194,7 +196,7 @@ function sojib68_land_calc_modal() {
 			<h3><?php esc_html_e( 'হিসাবের ফল', 'sojib68' ); ?></h3>
 			<table class="lc-sheet__table"><tbody data-sheet-results></tbody></table>
 
-			<p class="lc-sheet__foot"><?php esc_html_e( 'ভিত্তি: 1 শতাংশ = 435.60 বর্গফুট; ঢাকার হিসাবে 1 কাঠা = 720 বর্গফুট (20 ছটাক), 1 বিঘা = 20 কাঠা; 1 একর = 100 শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ); ?></p>
+			<p class="lc-sheet__foot"><?php esc_html_e( 'মাপ লক্ষ্মীপুর, চাঁদপুর, নোয়াখালী ও ঢাকা অঞ্চলের প্রচলিত হিসাব অনুযায়ী। ভিত্তি: 1 শতাংশ = 435.60 বর্গফুট; ঢাকার হিসাবে 1 কাঠা = 720 বর্গফুট (20 ছটাক), 1 বিঘা = 20 কাঠা; 1 একর = 100 শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপ বা দলিলের বিকল্প নয়।', 'sojib68' ); ?></p>
 		</div>
 	</div>
 	<?php

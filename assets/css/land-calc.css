@@ -193,6 +193,16 @@
 	color: #566760;
 }
 
+.lc-region {
+	margin: 0;
+	padding: 7px 18px;
+	background: var(--color-soft-green);
+	border-bottom: 1px solid var(--color-border);
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--color-green-deep);
+}
+
 /* ---- tabs ---- */
 
 .lc-tabs {
@@ -342,6 +352,7 @@ body.lc-open {
 
 	.lc-dialog__head,
 	.lc-dialog__body,
+	.lc-region,
 	.lc-tabs {
 		padding-left: 16px;
 		padding-right: 16px;

@@ -429,12 +429,9 @@
 	// ----- printed slip -----
 
 	function todayBn() {
+		var months = [ 'জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর' ];
 		var d = new Date();
-		try {
-			return d.toLocaleDateString( 'bn-BD', { day: 'numeric', month: 'long', year: 'numeric' } );
-		} catch ( e ) {
-			return d.getDate() + '/' + ( d.getMonth() + 1 ) + '/' + d.getFullYear();
-		}
+		return d.getDate() + ' ' + months[ d.getMonth() ] + ', ' + d.getFullYear(); // English digits: easier to read in the page font
 	}
 
 	function setSheetText( sel, text ) {
