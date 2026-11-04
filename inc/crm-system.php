@@ -666,16 +666,22 @@ function sojib68_crm_handle_cash_add() {
  * ------------------------------------------------------------------ */
 
 function sojib68_crm_menu_items() {
-	return array(
+	$items = array(
 		'dashboard' => __( 'ড্যাশবোর্ড', 'sojib68' ),
 		'notifications' => __( 'নোটিফিকেশন', 'sojib68' ),
 		'leads'     => __( 'সব লিড', 'sojib68' ),
 		'works'     => __( 'সব কাজ', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
-		'namjari-entry' => __( 'নামজারি এন্ট্রি', 'sojib68' ),
-		'deed_registration-entry' => __( 'দলিল রেজিস্ট্রেশন', 'sojib68' ),
-		'deed_search-entry' => __( 'দলিল অনুসন্ধান ও সার্টিফাইড কপি', 'sojib68' ),
-	) + ( sojib68_crm_is_admin() ? array( 'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ) ) : array() );
+	);
+	// One entry page per work category (নামজারি, দলিল রেজিস্ট্রেশন, দলিল অনুসন্ধান…): enter the work,
+	// change its status, keep its accounts.
+	foreach ( sojib68_crm_service_types() as $type => $label ) {
+		$items[ $type . '-entry' ] = 'namjari' === $type ? __( 'নামজারি এন্ট্রি', 'sojib68' ) : $label;
+	}
+	if ( sojib68_crm_is_admin() ) {
+		$items['recycle-bin'] = __( 'রিসাইকেল বিন', 'sojib68' );
+	}
+	return $items;
 }
 
 /**
@@ -709,8 +715,6 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'works'     => 'briefcase',
 		'entry-new' => 'plus',
 		'namjari-entry' => 'briefcase',
-		'deed_registration-entry' => 'briefcase',
-		'deed_search-entry' => 'briefcase',
 		'recycle-bin'   => 'trash',
 	);
 	$subs  = array(
@@ -720,10 +724,17 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
-		'deed_registration-entry' => __( 'অফিসে এন্ট্রি হওয়া দলিলগুলো এখানে কাজ হিসেবে আসে — অবস্থা বদলান, হিসাব দেখুন', 'sojib68' ),
-		'deed_search-entry' => __( 'দলিল অনুসন্ধান ও সার্টিফাইড কপির কাজের তথ্য এন্ট্রি, অবস্থা ও হিসাব', 'sojib68' ),
 		'recycle-bin'   => __( 'মুছে ফেলা কাজ — ফেরত আনুন বা স্থায়ীভাবে মুছুন', 'sojib68' ),
 	);
+
+	// Every category's entry page: same icon, and a one-line description.
+	foreach ( sojib68_crm_service_types() as $svc_type => $svc_label ) {
+		$icons[ $svc_type . '-entry' ] = 'briefcase';
+		if ( empty( $subs[ $svc_type . '-entry' ] ) ) {
+			$subs[ $svc_type . '-entry' ] = sprintf( /* translators: %s: category */ __( '%s — কাজের তথ্য এন্ট্রি, অবস্থা বদলানো ও হিসাব', 'sojib68' ), $svc_label );
+		}
+	}
+	$subs['deed_registration-entry'] = __( 'অফিসে এন্ট্রি হওয়া দলিলগুলো এখানে কাজ হিসেবে আসে — অবস্থা বদলান, হিসাব দেখুন', 'sojib68' );
 
 	$page_title = isset( $menu[ $page_key ] ) ? $menu[ $page_key ] : sprintf( /* translators: %s: service */ __( '%s এন্ট্রি', 'sojib68' ), sojib68_crm_service_types()[ $entry_type ] );
 	if ( 'entry-new' === $page_key && ! empty( $_GET['id'] ) ) {
