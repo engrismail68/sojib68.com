@@ -37,6 +37,7 @@ function sojib68_land_units() {
  * Old local measures, each in শতাংশ — the owner's area values:
  *  1 আনা = 20 গণ্ডা, 1 গণ্ডা = 4 কড়া, 1 কড়া = 3 ক্রান্তি,
  *  1 গণ্ডা = 6 শতাংশ, 1 কড়া = 1.5 শতাংশ (so 1 ক্রান্তি = 0.5, 1 আনা = 120 শতাংশ).
+ * 1 ক্রান্তি = 20 তিল (the traditional next step), so 1 তিল = 0.025 শতাংশ.
  * 16 আনা is the whole when a share of a property is meant.
  */
 function sojib68_land_old_units() {
@@ -45,6 +46,7 @@ function sojib68_land_old_units() {
 		'ganda'  => array( 'label' => 'গণ্ডা', 'shatangsho' => 6 ),
 		'kora'   => array( 'label' => 'কড়া', 'shatangsho' => 1.5 ),
 		'kranti' => array( 'label' => 'ক্রান্তি', 'shatangsho' => 0.5 ),
+		'til'    => array( 'label' => 'তিল', 'shatangsho' => 0.025 ),
 	);
 	return apply_filters( 'sojib68_land_old_units', $units );
 }
@@ -136,7 +138,7 @@ function sojib68_land_calc_modal() {
 				</div>
 
 				<div data-lc-panel="old" hidden>
-					<p class="lc-hint"><?php esc_html_e( 'আনা, গণ্ডা, কড়া, ক্রান্তির মাপ শতাংশে বদলে নিন। আপনার প্রয়োজনের বাটনটি বাছুন।', 'sojib68' ); ?></p>
+					<p class="lc-hint"><?php esc_html_e( 'আনা, গণ্ডা, কড়া, ক্রান্তি, তিলের মাপ শতাংশে বদলে নিন। আপনার প্রয়োজনের বাটনটি বাছুন।', 'sojib68' ); ?></p>
 					<div class="lc-shapes" data-lc-omodes></div>
 					<p class="lc-shapehint" data-lc-omodehint></p>
 					<div class="lc-sides lc-sides--old" data-lc-ofields></div>

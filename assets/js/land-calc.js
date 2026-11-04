@@ -57,7 +57,7 @@
 		if ( extra ) {
 			extra.forEach( function ( row ) {
 				var li = document.createElement( 'li' );
-				li.className = 'lc-result is-from';
+				li.className = 'lc-result' + ( row[ 2 ] === false ? '' : ' is-from' );
 				var n = document.createElement( 'span' );
 				n.className = 'lc-result__name';
 				n.textContent = row[ 0 ];
@@ -270,7 +270,7 @@
 	var OMODES = {
 		fixed: {
 			label: 'আনা-গণ্ডা → শতাংশ',
-			hint: 'যত আনা, গণ্ডা, কড়া, ক্রান্তি আছে লিখুন (যেটা নেই সেটা ফাঁকা রাখুন)। আপনার এলাকার মাপে শতাংশ হবে।',
+			hint: 'যত আনা, গণ্ডা, কড়া, ক্রান্তি, তিল আছে লিখুন (যেটা নেই সেটা ফাঁকা রাখুন)। আপনার এলাকার মাপে শতাংশ হবে।',
 			fields: OKEYS.map( function ( k ) { return { key: k, label: OLD[ k ].label, hint: '' }; } )
 		},
 		share: {
@@ -282,7 +282,7 @@
 		},
 		back: {
 			label: 'শতাংশ → আনা-গণ্ডা',
-			hint: 'শতাংশে জমির পরিমাণ লিখুন, আনা-গণ্ডা-কড়া-ক্রান্তিতে কত হয় দেখুন।',
+			hint: 'শতাংশে জমির পরিমাণ লিখুন, আনা, গণ্ডা, কড়া, ক্রান্তি ও তিলে কত হয় দেখুন।',
 			fields: [ { key: 'sh', label: 'জমি (শতাংশ)', hint: '' } ]
 		}
 	};
@@ -296,7 +296,7 @@
 
 	otable.textContent = 'আপনার এলাকার মাপ: ' + OKEYS.map( function ( k ) {
 		return '1 ' + OLD[ k ].label + ' = ' + format( OLD[ k ].shatangsho ) + ' শতাংশ';
-	} ).join( '; ' ) + '। 1 আনা = 20 গণ্ডা, 1 গণ্ডা = 4 কড়া, 1 কড়া = 3 ক্রান্তি; 16 আনায় পুরো।';
+	} ).join( '; ' ) + '। 1 আনা = 20 গণ্ডা, 1 গণ্ডা = 4 কড়া, 1 কড়া = 3 ক্রান্তি, 1 ক্রান্তি = 20 তিল; 16 আনায় পুরো।';
 
 	Object.keys( OMODES ).forEach( function ( k ) {
 		var b = document.createElement( 'button' );
@@ -402,13 +402,16 @@
 			inputs.push( [ 'জমি', format( sh ) + ' শতাংশ' ] );
 			var rest = sh;
 			var parts = [];
+			var each = [];
 			OKEYS.forEach( function ( k, i ) {
 				var u = OLD[ k ].shatangsho;
 				var n = i === OKEYS.length - 1 ? Math.round( ( rest / u ) * 100 ) / 100 : Math.floor( rest / u + 1e-9 );
 				rest -= n * u;
 				if ( n > 0 ) { parts.push( format( n ) + ' ' + OLD[ k ].label ); }
+				each.push( [ OLD[ k ].label, format( n ), false ] );
 			} );
-			extra = [ [ 'আনা-গণ্ডা-কড়া-ক্রান্তিতে', parts.length ? parts.join( ', ' ) : '0' ] ];
+			// the whole thing in one line, then each part on its own row (zeros included)
+			extra = [ [ 'মোট', parts.length ? parts.join( ', ' ) : '0' ] ].concat( each );
 		}
 		omsg.hidden = true;
 		var sqft = sh * SQFT_PER_SHOTANGSHO;
@@ -486,7 +489,7 @@
 		setSheetText( '[data-sheet-date]', todayBn() );
 		extraRows.forEach( function ( r ) {
 			var tr = document.createElement( 'tr' );
-			tr.className = 'is-from';
+			tr.className = r[ 2 ] === false ? '' : 'is-from';
 			var th = document.createElement( 'th' );
 			th.textContent = r[ 0 ];
 			var td = document.createElement( 'td' );
