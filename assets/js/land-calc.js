@@ -85,23 +85,42 @@
 	var SHAPES = {
 		rect: {
 			label: 'আয়তক্ষেত্র',
-			sides: [ 'দৈর্ঘ্য (ক)', 'প্রস্থ (খ)' ],
-			svg: '<svg viewBox="0 0 160 120"><rect x="10" y="30" width="112" height="64" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="62" y="22">ক</text><text x="130" y="66">খ</text></svg>'
+			hint: 'সোজা আয়তাকার জমি, চার কোণাই সমকোণ।',
+			sides: [
+				{ label: 'দৈর্ঘ্য', hint: 'লম্বা দিকের মাপ' },
+				{ label: 'প্রস্থ', hint: 'ছোট দিকের মাপ' }
+			],
+			svg: '<svg viewBox="0 0 160 120"><rect x="10" y="26" width="140" height="68" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="52" y="18">দৈর্ঘ্য (লম্বা)</text><text x="52" y="64">জমি</text></svg>'
 		},
 		sq: {
 			label: 'বর্গক্ষেত্র',
-			sides: [ 'এক বাহুর মাপ' ],
-			svg: '<svg viewBox="0 0 160 120"><rect x="36" y="14" width="88" height="88" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="72" y="12">ক</text></svg>'
+			hint: 'চার দিকের মাপ সমান, চার কোণাই সমকোণ।',
+			sides: [
+				{ label: 'এক দিকের মাপ', hint: 'চার দিকের যেকোনো একটি' }
+			],
+			svg: '<svg viewBox="0 0 160 120"><rect x="36" y="14" width="88" height="88" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="64" y="64">জমি</text></svg>'
 		},
 		tri: {
-			label: 'ত্রিভুজ (৩ বাহু)',
-			sides: [ 'AB', 'BC', 'CA' ],
-			svg: '<svg viewBox="0 0 160 120"><polygon points="20,100 140,100 70,18" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="8" y="112">A</text><text x="144" y="112">B</text><text x="66" y="12">C</text></svg>'
+			label: 'ত্রিভুজ (৩ কোণা)',
+			hint: 'ছবির ক, খ, গ কোণা। এক কোণা থেকে পরের কোণা পর্যন্ত মাপ দিন।',
+			sides: [
+				{ label: 'ক – খ', hint: 'ক কোণা থেকে খ কোণা পর্যন্ত' },
+				{ label: 'খ – গ', hint: 'খ কোণা থেকে গ কোণা পর্যন্ত' },
+				{ label: 'গ – ক', hint: 'গ কোণা থেকে ক কোণা পর্যন্ত' }
+			],
+			svg: '<svg viewBox="0 0 160 120"><polygon points="24,98 138,98 76,18" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="8" y="110">ক</text><text x="142" y="110">খ</text><text x="72" y="12">গ</text></svg>'
 		},
 		quad: {
-			label: 'চতুর্ভুজ (৪ বাহু + ১ কর্ণ)',
-			sides: [ 'AB', 'BC', 'CD', 'DA', 'AC (কর্ণ)' ],
-			svg: '<svg viewBox="0 0 160 120"><polygon points="18,98 142,92 126,20 30,30" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><line x1="18" y1="98" x2="126" y2="20" stroke="#198030" stroke-width="1.6" stroke-dasharray="5 4"/><text x="6" y="110">A</text><text x="144" y="104">B</text><text x="128" y="16">C</text><text x="18" y="24">D</text></svg>'
+			label: 'চতুর্ভুজ (৪ কোণা)',
+			hint: 'ছবির ক, খ, গ, ঘ কোণা। এক কোণা থেকে পরের কোণা পর্যন্ত মাপ দিন, আর ক থেকে গ পর্যন্ত কোণাকুণি মাপটিও (বিন্দু-বিন্দু দাগ) দিন।',
+			sides: [
+				{ label: 'ক – খ', hint: 'ক কোণা থেকে খ কোণা পর্যন্ত' },
+				{ label: 'খ – গ', hint: 'খ কোণা থেকে গ কোণা পর্যন্ত' },
+				{ label: 'গ – ঘ', hint: 'গ কোণা থেকে ঘ কোণা পর্যন্ত' },
+				{ label: 'ঘ – ক', hint: 'ঘ কোণা থেকে ক কোণা পর্যন্ত' },
+				{ label: 'কোণাকুণি মাপ (ক – গ)', hint: 'ক থেকে গ-এ জমির ভেতর দিয়ে সোজা মাপ' }
+			],
+			svg: '<svg viewBox="0 0 160 120"><polygon points="22,98 138,92 124,20 34,30" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><line x1="22" y1="98" x2="124" y2="20" stroke="#198030" stroke-width="1.6" stroke-dasharray="5 4"/><text x="8" y="110">ক</text><text x="142" y="104">খ</text><text x="126" y="16">গ</text><text x="20" y="26">ঘ</text></svg>'
 		}
 	};
 
@@ -112,6 +131,7 @@
 	var amsg = modal.querySelector( '[data-lc-amsg]' );
 	var aresults = modal.querySelector( '[data-lc-aresults]' );
 	var quadNote = modal.querySelector( '[data-lc-quadnote]' );
+	var shapeHint = modal.querySelector( '[data-lc-shapehint]' );
 	var shape = 'rect';
 
 	Object.keys( SHAPES ).forEach( function ( k ) {
@@ -126,12 +146,14 @@
 	function buildSides() {
 		var def = SHAPES[ shape ];
 		sidesEl.innerHTML = '';
-		def.sides.forEach( function ( name, i ) {
+		def.sides.forEach( function ( side, i ) {
 			var wrap = document.createElement( 'div' );
 			wrap.className = 'lc-field lc-field--side';
 			var label = document.createElement( 'label' );
 			label.setAttribute( 'for', 'lc-side-' + i );
-			label.textContent = name;
+			label.textContent = side.label;
+			var hint = document.createElement( 'small' );
+			hint.textContent = side.hint;
 			var inp = document.createElement( 'input' );
 			inp.type = 'text';
 			inp.id = 'lc-side-' + i;
@@ -139,10 +161,12 @@
 			inp.setAttribute( 'autocomplete', 'off' );
 			inp.setAttribute( 'data-lc-side', '' );
 			wrap.appendChild( label );
+			wrap.appendChild( hint );
 			wrap.appendChild( inp );
 			sidesEl.appendChild( wrap );
 		} );
 		diagramEl.innerHTML = def.svg;
+		shapeHint.textContent = def.hint;
 		quadNote.hidden = shape !== 'quad';
 		shapesEl.querySelectorAll( '[data-lc-shape]' ).forEach( function ( b ) {
 			var on = b.getAttribute( 'data-lc-shape' ) === shape;
@@ -180,7 +204,7 @@
 		} else if ( shape === 'tri' ) {
 			area = triArea( vals[ 0 ], vals[ 1 ], vals[ 2 ] );
 			if ( area === null ) {
-				amsg.textContent = 'এই তিন মাপে ত্রিভুজ হয় না। যেকোনো দুই বাহুর যোগফল তৃতীয় বাহুর চেয়ে বড় হতে হবে। মাপগুলো আবার দেখুন।';
+				amsg.textContent = 'এই তিন মাপে ত্রিভুজ হয় না। যেকোনো দুই দিকের মাপের যোগফল তৃতীয় দিকের চেয়ে বড় হতে হবে। মাপগুলো আবার দেখুন।';
 				amsg.hidden = false;
 				return;
 			}
@@ -189,7 +213,7 @@
 			var t1 = triArea( vals[ 0 ], vals[ 1 ], vals[ 4 ] );
 			var t2 = triArea( vals[ 2 ], vals[ 3 ], vals[ 4 ] );
 			if ( t1 === null || t2 === null ) {
-				amsg.textContent = ( t1 === null ? 'AB, BC ও কর্ণ AC' : 'CD, DA ও কর্ণ AC' ) + ' মিলে ত্রিভুজ হয় না। কর্ণ এত ছোট বা বড় হতে পারে না; মাপগুলো আবার দেখুন।';
+				amsg.textContent = ( t1 === null ? 'ক–খ, খ–গ ও কোণাকুণি মাপ' : 'গ–ঘ, ঘ–ক ও কোণাকুণি মাপ' ) + ' মিলে হয় না। কোণাকুণি মাপ এত ছোট বা বড় হতে পারে না; মাপগুলো আবার দেখুন।';
 				amsg.hidden = false;
 				return;
 			}

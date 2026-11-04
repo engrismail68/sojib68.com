@@ -90,9 +90,10 @@ function sojib68_land_calc_modal() {
 				</div>
 
 				<div data-lc-panel="area" hidden>
-					<p class="lc-hint"><?php esc_html_e( 'জমির আকৃতি বাছুন, তারপর প্রতিটি বাহুর মাপ দিন। ছবির নামের সঙ্গে মিলিয়ে লিখুন।', 'sojib68' ); ?></p>
+					<p class="lc-hint"><?php esc_html_e( 'আপনার জমির আকৃতির বাটনটি বাছুন, তারপর ঘরগুলোতে মাপ লিখুন (ফুট বা মিটারে)।', 'sojib68' ); ?></p>
 
 					<div class="lc-shapes" data-lc-shapes></div>
+					<p class="lc-shapehint" data-lc-shapehint></p>
 
 					<div class="lc-area-grid">
 						<div class="lc-diagram" data-lc-diagram aria-hidden="true"></div>
@@ -110,7 +111,7 @@ function sojib68_land_calc_modal() {
 					<p class="lc-msg" data-lc-amsg role="alert" hidden></p>
 
 					<ul class="lc-results" data-lc-aresults aria-live="polite"></ul>
-					<p class="lc-note lc-note--quad" data-lc-quadnote hidden><?php esc_html_e( 'চতুর্ভুজে কর্ণ (AC) হলো জমির ভেতর দিয়ে A থেকে C কোণায় সোজা টানা মাপ। শুধু চার বাহু দিয়ে ক্ষেত্রফল ঠিক হয় না, তাই কর্ণ লাগে।', 'sojib68' ); ?></p>
+					<p class="lc-note lc-note--quad" data-lc-quadnote hidden><?php esc_html_e( 'কোণাকুণি মাপ হলো জমির ভেতর দিয়ে ক কোণা থেকে গ কোণায় সোজা টানা মাপ (ছবির বিন্দু-বিন্দু দাগ)। শুধু চার দিকের মাপ দিয়ে ক্ষেত্রফল ঠিক হয় না, তাই এটিও লাগে।', 'sojib68' ); ?></p>
 				</div>
 
 				<p class="lc-note">
