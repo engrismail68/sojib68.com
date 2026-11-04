@@ -83,6 +83,16 @@
 
 	var SQFT_PER_SQM = 10.7639104;
 	var SHAPES = {
+		rect: {
+			label: 'আয়তক্ষেত্র',
+			sides: [ 'দৈর্ঘ্য (ক)', 'প্রস্থ (খ)' ],
+			svg: '<svg viewBox="0 0 160 120"><rect x="10" y="30" width="112" height="64" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="62" y="22">ক</text><text x="130" y="66">খ</text></svg>'
+		},
+		sq: {
+			label: 'বর্গক্ষেত্র',
+			sides: [ 'এক বাহুর মাপ' ],
+			svg: '<svg viewBox="0 0 160 120"><rect x="36" y="14" width="88" height="88" fill="#E8F3EA" stroke="#198030" stroke-width="2"/><text x="72" y="12">ক</text></svg>'
+		},
 		tri: {
 			label: 'ত্রিভুজ (৩ বাহু)',
 			sides: [ 'AB', 'BC', 'CA' ],
@@ -102,7 +112,7 @@
 	var amsg = modal.querySelector( '[data-lc-amsg]' );
 	var aresults = modal.querySelector( '[data-lc-aresults]' );
 	var quadNote = modal.querySelector( '[data-lc-quadnote]' );
-	var shape = 'tri';
+	var shape = 'rect';
 
 	Object.keys( SHAPES ).forEach( function ( k ) {
 		var b = document.createElement( 'button' );
@@ -163,7 +173,11 @@
 			return;
 		}
 		var area;
-		if ( shape === 'tri' ) {
+		if ( shape === 'rect' ) {
+			area = vals[ 0 ] * vals[ 1 ];
+		} else if ( shape === 'sq' ) {
+			area = vals[ 0 ] * vals[ 0 ];
+		} else if ( shape === 'tri' ) {
 			area = triArea( vals[ 0 ], vals[ 1 ], vals[ 2 ] );
 			if ( area === null ) {
 				amsg.textContent = 'এই তিন মাপে ত্রিভুজ হয় না। যেকোনো দুই বাহুর যোগফল তৃতীয় বাহুর চেয়ে বড় হতে হবে। মাপগুলো আবার দেখুন।';
