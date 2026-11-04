@@ -19,7 +19,7 @@ $wa     = ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) ? SOJIB68_WHATSA
 	<section class="prop-hero">
 		<div class="site-container">
 			<p class="eyebrow"><?php esc_html_e( 'জমি ও প্রপার্টি', 'sojib68' ); ?></p>
-			<h1><?php esc_html_e( 'দালালমুক্ত — নিজের জমি নিজে বিক্রি করুন', 'sojib68' ); ?></h1>
+			<h1><?php esc_html_e( 'নিজের জমি নিজে বিক্রি করুন', 'sojib68' ); ?></h1>
 			<p class="prop-hero__lead"><?php esc_html_e( 'জমি ও প্রপার্টির ক্রয়, বিক্রয় ও ভাড়ার বিজ্ঞাপন এক জায়গায়। পছন্দের বিজ্ঞাপনটি সম্পর্কে মেসেজ দিন, নিরাপদে বিক্রেতার সঙ্গে যুক্ত করে দেওয়া হবে। কাগজপত্র যাচাইয়েও সাহায্য পাবেন।', 'sojib68' ); ?></p>
 
 			<div class="prop-paths">
