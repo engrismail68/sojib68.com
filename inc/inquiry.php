@@ -14,10 +14,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// The form is built and tested but has no button on the site right now (the header
+// "পরামর্শ নিন" button was removed). To bring it back, put data-inq-open on any link or
+// button and set this to true — nothing is loaded on the pages while it is false.
+define( 'SOJIB68_INQUIRY_ENABLED', false );
+
 define( 'SOJIB68_INQUIRY_MAX_PER_HOUR', 5 );
 define( 'SOJIB68_INQUIRY_MIN_MS', 2500 );
 
 function sojib68_inquiry_enqueue() {
+	if ( ! SOJIB68_INQUIRY_ENABLED ) {
+		return;
+	}
 	$css = get_theme_file_path( 'assets/css/inquiry.css' );
 	$js  = get_theme_file_path( 'assets/js/inquiry.js' );
 	wp_enqueue_style( 'sojib68-inquiry', get_theme_file_uri( 'assets/css/inquiry.css' ), array( 'sojib68-style' ), file_exists( $css ) ? filemtime( $css ) : '1.0.0' );
@@ -30,6 +38,9 @@ function sojib68_inquiry_enqueue() {
 add_action( 'wp_enqueue_scripts', 'sojib68_inquiry_enqueue', 30 );
 
 function sojib68_inquiry_modal() {
+	if ( ! SOJIB68_INQUIRY_ENABLED ) {
+		return;
+	}
 	?>
 	<div class="inq-modal" data-inq-modal hidden>
 		<div class="inq-modal__backdrop" data-inq-close></div>
@@ -115,6 +126,10 @@ function sojib68_inquiry_fail( $message, $errors = array(), $code = 422 ) {
 }
 
 function sojib68_inquiry_handle() {
+	if ( ! SOJIB68_INQUIRY_ENABLED ) {
+		wp_send_json_error( array( 'message' => '' ), 404 );
+	}
+
 	// Hidden field filled in, or sent too fast to be a person: pretend all is well, store nothing.
 	$hp   = isset( $_POST['website'] ) ? trim( (string) wp_unslash( $_POST['website'] ) ) : '';
 	$took = isset( $_POST['t'] ) ? (int) $_POST['t'] : 0;
