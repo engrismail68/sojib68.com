@@ -407,11 +407,11 @@
 			sh = vals.sh;
 			inputs.push( [ 'জমি', format( sh ) + ' শতাংশ' ] );
 			// each unit on its own: the whole amount expressed in that one unit
-			extra = [ [ 'প্রতিটি এককে আলাদাভাবে', '', 'head' ] ];
+			extra = [ [ format( sh ) + ' শতাংশ জমি সমান', '', 'head' ] ];
 			OKEYS.forEach( function ( k ) {
 				extra.push( [ OLD[ k ].label, format( sh / OLD[ k ].shatangsho ), false ] );
 			} );
-			extra.push( [ 'অন্যান্য এককে', '', 'head' ] );
+			extra.push( [ 'আরও যেসব এককে সমান', '', 'head' ] );
 		}
 		omsg.hidden = true;
 		var sqft = sh * SQFT_PER_SHOTANGSHO;
