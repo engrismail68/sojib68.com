@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'SOJIB68_CHECKLISTS_OPTION', 'sojib68_checklists' );
 define( 'SOJIB68_CHECKLISTS_BACKUP_OPTION', 'sojib68_checklists_backup' ); // the lists as they were before the last save
 define( 'SOJIB68_CHECKLISTS_REPORT_OPTION', 'sojib68_checklists_lastsave' ); // what the last save received and stored (shown on the editor page)
+define( 'SOJIB68_CHECKLIST_KINDLABELS_OPTION', 'sojib68_checklist_kind_labels' ); // service => the heading above its first question
 define( 'SOJIB68_CHECKLIST_OFFICE_OPTION', 'sojib68_checklist_office' );
 define( 'SOJIB68_CHECKLIST_DEFAULT_KIND', 'দলিলের ধরন' ); // the question a bare "# @ X" belongs to
 
@@ -53,6 +54,19 @@ function sojib68_checklist_office() {
 		}
 	}
 	return $office;
+}
+
+/**
+ * The heading shown for each service's first question (the one stored as "দলিলের ধরন").
+ * Set per service in wp-admin; empty means "দলিলের ধরন". Only the wording changes.
+ */
+function sojib68_checklist_kind_labels() {
+	$defaults = array(
+		'document-issue' => 'সমস্যার ধরন',
+	);
+	$stored = get_option( SOJIB68_CHECKLIST_KINDLABELS_OPTION, array() );
+	$labels = is_array( $stored ) ? array_merge( $defaults, array_filter( $stored, 'strlen' ) ) : $defaults;
+	return $labels;
 }
 
 /** Lists shipped with the theme. Empty on purpose — the real lists come from the owner. */
@@ -342,6 +356,12 @@ function sojib68_checklists_admin_page() {
 						<?php endif; ?>
 					</summary>
 					<div class="ck-ed-body">
+						<?php $kind_labels_now = sojib68_checklist_kind_labels(); ?>
+						<p style="margin:12px 0 0;">
+							<label><strong><?php esc_html_e( 'গ্রাহকের সামনে বাছাইয়ের শিরোনাম', 'sojib68' ); ?></strong>
+								<input type="text" name="lists[<?php echo esc_attr( $key ); ?>][kind_label]" value="<?php echo esc_attr( isset( $kind_labels_now[ $key ] ) ? $kind_labels_now[ $key ] : '' ); ?>" placeholder="<?php echo esc_attr( SOJIB68_CHECKLIST_DEFAULT_KIND ); ?>" class="regular-text" style="margin-left:8px;"></label>
+							<span class="description" style="margin-left:6px;"><?php esc_html_e( 'যেমন: সমস্যার ধরন। ফাঁকা রাখলে "দলিলের ধরন" লেখা আসবে।', 'sojib68' ); ?></span>
+						</p>
 						<h3 class="ck-ed-h"><span class="ck-ed-n">১</span> <?php esc_html_e( 'সব ধরনের জন্য কাগজ', 'sojib68' ); ?></h3>
 						<textarea id="ck-common-<?php echo esc_attr( $key ); ?>" name="lists[<?php echo esc_attr( $key ); ?>][common]" rows="4" class="ck-ed-common" placeholder="<?php esc_attr_e( 'এক লাইনে একটি কাগজ', 'sojib68' ); ?>"><?php echo esc_textarea( $split['common'] ); ?></textarea>
 
@@ -481,7 +501,8 @@ function sojib68_checklists_handle_save() {
 		exit;
 	}
 
-	$clean = array();
+	$clean              = array();
+	$kind_labels_saved = array();
 	foreach ( $services as $key => $service ) {
 		if ( ! array_key_exists( $key, $posted ) ) {
 			// this service did not come through — keep what is stored for it
@@ -489,6 +510,12 @@ function sojib68_checklists_handle_save() {
 				$clean[ $key ] = $old[ $key ];
 			}
 			continue;
+		}
+		if ( is_array( $posted[ $key ] ) && isset( $posted[ $key ]['kind_label'] ) ) {
+			$label = trim( sanitize_text_field( $posted[ $key ]['kind_label'] ) );
+			if ( '' !== $label ) {
+				$kind_labels_saved[ $key ] = $label;
+			}
 		}
 		$items = sojib68_checklist_parse( sojib68_checklist_posted_text( $posted[ $key ] ) );
 		if ( $items ) {
@@ -499,6 +526,7 @@ function sojib68_checklists_handle_save() {
 		update_option( SOJIB68_CHECKLISTS_BACKUP_OPTION, $old, false );
 	}
 	update_option( SOJIB68_CHECKLISTS_OPTION, $clean, false );
+	update_option( SOJIB68_CHECKLIST_KINDLABELS_OPTION, $kind_labels_saved, false );
 
 	// A short report of what arrived and what was stored, shown on the editor page.
 	$read_back = get_option( SOJIB68_CHECKLISTS_OPTION, array() );
@@ -577,10 +605,12 @@ function sojib68_checklist_modal() {
 	$services = sojib68_get_services();
 	$office   = sojib68_checklist_office();
 	$data     = array();
+	$kind_labels = sojib68_checklist_kind_labels();
 	foreach ( $lists as $key => $items ) {
 		$data[ $key ] = array(
-			'title' => $services[ $key ]['title'],
-			'items' => array_values( $items ),
+			'title'     => $services[ $key ]['title'],
+			'items'     => array_values( $items ),
+			'kindLabel' => isset( $kind_labels[ $key ] ) ? $kind_labels[ $key ] : '',
 		);
 	}
 	?>

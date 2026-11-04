@@ -256,6 +256,11 @@
 		return kinds;
 	}
 
+	// The heading for a question; the first one can be reworded per service (e.g. "সমস্যার ধরন").
+	function kindLabel( key, name ) {
+		return name === 'দলিলের ধরন' && DATA[ key ].kindLabel ? DATA[ key ].kindLabel : name;
+	}
+
 	function buildTypes( key ) {
 		var kinds = kindsOf( key );
 		typesEl.innerHTML = '';
@@ -266,7 +271,7 @@
 			wrap.className = 'ck-types__group';
 			var lab = document.createElement( 'p' );
 			lab.className = 'ck-types__label';
-			lab.textContent = k.name + ' বাছাই করুন';
+			lab.textContent = kindLabel( key, k.name ) + ' বাছাই করুন';
 			wrap.appendChild( lab );
 			var row = document.createElement( 'div' );
 			row.className = 'ck-types__row';
@@ -336,6 +341,10 @@
 		checked = {};
 		picked = {};
 		buildTypes( key );
+		var firstKind = kindsOf( key )[ 0 ];
+		if ( gateEl && firstKind ) {
+			gateEl.textContent = kindLabel( key, firstKind.name ) + ' বাছাই করলে তার জন্য যা যা লাগবে তার তালিকা এখানে আসবে।';
+		}
 		buildList( key );
 		refreshTypes();
 		nameIn.value = '';
