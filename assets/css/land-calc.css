@@ -1,0 +1,224 @@
+/*
+ * জমির হিসাব — the unit-conversion popup on the homepage. Uses the site's own tokens from style.css.
+ * Loaded on the homepage only.
+ */
+
+.lc-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+}
+
+.lc-modal[hidden] {
+	display: none;
+}
+
+.lc-modal__backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(14, 34, 22, 0.55);
+}
+
+.lc-dialog {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	max-width: 520px;
+	max-height: calc(100vh - 32px);
+	max-height: calc(100dvh - 32px);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+	overflow: hidden;
+}
+
+.lc-dialog:focus {
+	outline: none;
+}
+
+.lc-dialog__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 12px 18px 10px;
+	background: var(--color-cream);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.lc-dialog__eyebrow {
+	margin: 0 0 2px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: var(--color-green);
+}
+
+.lc-dialog__head h2 {
+	margin: 0;
+	font-size: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+	line-height: 1.35;
+	color: var(--color-heading);
+}
+
+.lc-dialog__close {
+	flex-shrink: 0;
+	width: 32px;
+	height: 32px;
+	border: 1px solid var(--color-border);
+	border-radius: 50%;
+	background: var(--color-white);
+	font-size: 1.3rem;
+	line-height: 1;
+	color: var(--color-heading);
+	cursor: pointer;
+}
+
+.lc-dialog__close:hover {
+	border-color: var(--color-green);
+	color: var(--color-green);
+}
+
+.lc-dialog__body {
+	flex: 1;
+	min-height: 0;
+	padding: 14px 18px 18px;
+	overflow-y: auto;
+}
+
+.lc-hint {
+	margin: 0 0 12px;
+	font-size: 0.88rem;
+	line-height: 1.6;
+	color: #566760;
+}
+
+.lc-form {
+	display: grid;
+	grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+	gap: 12px;
+}
+
+.lc-field label {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.lc-field input,
+.lc-field select {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #CFD3C8;
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	font: inherit;
+	font-size: 1rem;
+	color: var(--color-heading);
+}
+
+.lc-field input:focus,
+.lc-field select:focus {
+	outline: none;
+	border-color: var(--color-green);
+	box-shadow: 0 0 0 3px rgba(25, 128, 48, 0.15);
+}
+
+.lc-msg {
+	margin: 10px 0 0;
+	padding: 8px 12px;
+	border-radius: var(--radius-sm);
+	background: #FDECEA;
+	font-size: 0.9rem;
+	color: #A8271F;
+}
+
+.lc-msg[hidden] {
+	display: none;
+}
+
+.lc-results {
+	margin: 14px 0 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+}
+
+.lc-results:empty {
+	display: none;
+}
+
+.lc-result {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 9px 14px;
+}
+
+.lc-result + .lc-result {
+	border-top: 1px solid var(--color-border);
+}
+
+.lc-result.is-from {
+	background: var(--color-soft-green);
+}
+
+.lc-result__name {
+	font-size: 0.95rem;
+	color: var(--color-heading);
+}
+
+.lc-result__val {
+	font-family: var(--font-en);
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: var(--color-green-deep);
+	text-align: right;
+	word-break: break-all;
+}
+
+.lc-note {
+	margin: 14px 0 0;
+	font-size: 0.8rem;
+	line-height: 1.6;
+	color: #566760;
+}
+
+body.lc-open {
+	overflow: hidden;
+}
+
+@media (max-width: 560px) {
+	.lc-modal {
+		padding: 0;
+		align-items: flex-end;
+	}
+
+	.lc-dialog {
+		max-width: none;
+		max-height: 94vh;
+		max-height: 94dvh;
+		border-radius: var(--radius-md) var(--radius-md) 0 0;
+	}
+
+	.lc-dialog__head,
+	.lc-dialog__body {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+}
+
+@media print {
+	.lc-modal {
+		display: none !important;
+	}
+}

@@ -532,6 +532,12 @@ section {
   align-self: flex-start;
 }
 
+.service-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ---------- Portfolio ---------- */
 
 .portfolio {

@@ -141,6 +141,11 @@ $how_we_work = array(
 									<?php esc_html_e( 'কী কী লাগে', 'sojib68' ); ?>
 								</button>
 							<?php endif; ?>
+							<?php if ( defined( 'SOJIB68_LAND_CALC_SERVICE' ) && SOJIB68_LAND_CALC_SERVICE === $key ) : ?>
+								<button type="button" class="btn btn-primary btn-sm service-card__docs" data-lc-open>
+									<?php esc_html_e( 'জমির হিসাব', 'sojib68' ); ?>
+								</button>
+							<?php endif; ?>
 						</div>
 					</div>
 				</div>

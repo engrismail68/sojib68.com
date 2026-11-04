@@ -1,0 +1,100 @@
+<?php
+/**
+ * জমির একক রূপান্তর — a small calculator on the homepage ("জমির হিসাব" button on the
+ * জমি পরিমাপ card). Everything is worked out in the visitor's browser; nothing is stored.
+ *
+ * The unit sizes live in sojib68_land_units() (square feet per unit) so they are easy
+ * to correct in one place. They are an approximate guide, not an official measurement.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** The service card that shows the "জমির হিসাব" button (key from sojib68_get_services()). */
+define( 'SOJIB68_LAND_CALC_SERVICE', 'measurement' );
+
+/**
+ * Units, each in square feet.
+ *  - শতাংশ: 435.60 sq ft (the owner's local measure)
+ *  - কাঠা: Dhaka measure, 720 sq ft; ছটাক = 1/20 কাঠা; বিঘা = 20 কাঠা
+ *  - একর = 100 শতাংশ
+ */
+function sojib68_land_units() {
+	$units = array(
+		'shotangsho' => array( 'label' => 'শতাংশ', 'sqft' => 435.60 ),
+		'katha'      => array( 'label' => 'কাঠা (ঢাকা)', 'sqft' => 720 ),
+		'chotak'     => array( 'label' => 'ছটাক (ঢাকা)', 'sqft' => 36 ),
+		'bigha'      => array( 'label' => 'বিঘা (ঢাকা)', 'sqft' => 14400 ),
+		'acre'       => array( 'label' => 'একর', 'sqft' => 43560 ),
+		'sqft'       => array( 'label' => 'বর্গফুট', 'sqft' => 1 ),
+		'sqm'        => array( 'label' => 'বর্গমিটার', 'sqft' => 10.7639104 ),
+	);
+	return apply_filters( 'sojib68_land_units', $units );
+}
+
+function sojib68_land_calc_enqueue() {
+	if ( ! is_front_page() ) {
+		return;
+	}
+	$css = get_theme_file_path( 'assets/css/land-calc.css' );
+	$js  = get_theme_file_path( 'assets/js/land-calc.js' );
+	wp_enqueue_style( 'sojib68-land-calc', get_theme_file_uri( 'assets/css/land-calc.css' ), array(), file_exists( $css ) ? filemtime( $css ) : '1.0.0' );
+	wp_enqueue_script( 'sojib68-land-calc', get_theme_file_uri( 'assets/js/land-calc.js' ), array(), file_exists( $js ) ? filemtime( $js ) : '1.0.0', true );
+}
+add_action( 'wp_enqueue_scripts', 'sojib68_land_calc_enqueue', 20 );
+
+/** The popup and its unit table, rendered once in the footer of the homepage. */
+function sojib68_land_calc_modal() {
+	if ( ! is_front_page() ) {
+		return;
+	}
+	$units = sojib68_land_units();
+	?>
+	<script type="application/json" id="lc-data"><?php echo wp_json_encode( $units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
+
+	<div class="lc-modal" data-lc-modal hidden>
+		<div class="lc-modal__backdrop" data-lc-close></div>
+		<div class="lc-dialog" role="dialog" aria-modal="true" aria-labelledby="lc-title" tabindex="-1">
+			<header class="lc-dialog__head">
+				<div>
+					<p class="lc-dialog__eyebrow"><?php esc_html_e( 'জমি পরিমাপ', 'sojib68' ); ?></p>
+					<h2 id="lc-title"><?php esc_html_e( 'জমির হিসাব', 'sojib68' ); ?></h2>
+				</div>
+				<button type="button" class="lc-dialog__close" data-lc-close aria-label="<?php esc_attr_e( 'বন্ধ করুন', 'sojib68' ); ?>">&times;</button>
+			</header>
+
+			<div class="lc-dialog__body">
+				<p class="lc-hint"><?php esc_html_e( 'জমির পরিমাণ লিখে এককটি বাছুন, সব এককে হিসাব সঙ্গে সঙ্গে দেখা যাবে।', 'sojib68' ); ?></p>
+
+				<div class="lc-form">
+					<div class="lc-field lc-field--num">
+						<label for="lc-value"><?php esc_html_e( 'পরিমাণ', 'sojib68' ); ?></label>
+						<input type="text" id="lc-value" inputmode="decimal" autocomplete="off" placeholder="<?php esc_attr_e( 'যেমন: 5.5', 'sojib68' ); ?>" data-lc-value>
+					</div>
+					<div class="lc-field">
+						<label for="lc-unit"><?php esc_html_e( 'একক', 'sojib68' ); ?></label>
+						<select id="lc-unit" data-lc-unit></select>
+					</div>
+				</div>
+				<p class="lc-msg" data-lc-msg role="alert" hidden></p>
+
+				<ul class="lc-results" data-lc-results aria-live="polite"></ul>
+
+				<p class="lc-note">
+					<?php
+					echo esc_html(
+						sprintf(
+							/* translators: %s: square feet in one shotangsho */
+							__( 'হিসাবের ভিত্তি: ১ শতাংশ = %s বর্গফুট; ঢাকার হিসাবে ১ কাঠা = ৭২০ বর্গফুট (২০ ছটাক), ১ বিঘা = ২০ কাঠা; ১ একর = ১০০ শতাংশ। এটি আনুমানিক হিসাব, সরকারি পরিমাপের বিকল্প নয়।', 'sojib68' ),
+							number_format_i18n( 435.6, 2 )
+						)
+					);
+					?>
+				</p>
+			</div>
+		</div>
+	</div>
+	<?php
+}
+add_action( 'wp_footer', 'sojib68_land_calc_modal', 6 );
