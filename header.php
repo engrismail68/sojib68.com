@@ -56,6 +56,7 @@
 				<?php if ( function_exists( 'sojib68_get_case_stories' ) && sojib68_get_case_stories() ) : // the section only exists once there are real stories ?>
 					<li><a href="<?php echo esc_url( home_url( '/#work' ) ); ?>"><?php esc_html_e( 'কাজের অভিজ্ঞতা', 'sojib68' ); ?></a></li>
 				<?php endif; ?>
+				<li><a href="<?php echo esc_url( get_post_type_archive_link( 'sojib68_property' ) ? get_post_type_archive_link( 'sojib68_property' ) : home_url( '/land-property/' ) ); ?>"><?php esc_html_e( 'জমি ও প্রপার্টি', 'sojib68' ); ?></a></li>
 				<li><a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>"><?php esc_html_e( 'যোগাযোগ', 'sojib68' ); ?></a></li>
 			</ul>
 			<a href="<?php echo esc_url( home_url( '/#contact' ) ); ?>" class="btn btn-outline-light nav-cta" data-inq-open><?php esc_html_e( 'পরামর্শ নিন', 'sojib68' ); ?></a>

@@ -1,0 +1,510 @@
+/*
+ * জমি ও প্রপার্টি: the listing page and one advertisement. The site's own tokens (green, cream, white).
+ * Loaded only on those pages.
+ */
+
+.prop-page {
+	background: var(--color-cream);
+}
+
+.prop-hero {
+	padding: 52px 0 34px;
+	background: var(--color-cream);
+	text-align: center;
+}
+
+.prop-hero h1 {
+	margin: 0 0 0.35em;
+	font-size: clamp(1.9rem, 1.3rem + 2.4vw, 2.8rem);
+	color: var(--color-heading);
+}
+
+.prop-hero__lead {
+	max-width: 620px;
+	margin: 0 auto;
+	color: var(--color-body);
+}
+
+.prop-list {
+	padding: 10px 0 72px;
+	background: var(--color-cream);
+}
+
+/* ---- filter ---- */
+
+.prop-filter {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 26px;
+	padding: 14px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+}
+
+.prop-filter select,
+.prop-filter input[type="search"] {
+	min-width: 0;
+	padding: 9px 12px;
+	border: 1px solid #CFD3C8;
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	font: inherit;
+	font-size: 0.95rem;
+	color: var(--color-heading);
+}
+
+.prop-filter input[type="search"] {
+	flex: 1 1 180px;
+}
+
+.prop-filter__clear {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--color-green);
+}
+
+/* ---- cards ---- */
+
+.prop-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 22px;
+}
+
+.prop-card {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+}
+
+.prop-card.is-sold {
+	opacity: 0.72;
+}
+
+.prop-card__media {
+	position: relative;
+	display: block;
+	aspect-ratio: 4 / 3;
+	background: #E9ECE3;
+	overflow: hidden;
+}
+
+.prop-card__media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.prop-card__noimg {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.9rem;
+	color: #566760;
+}
+
+.prop-badges {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.prop-badge {
+	padding: 3px 11px;
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	color: #fff;
+}
+
+.prop-badge--type {
+	background: var(--color-green);
+}
+
+.prop-badge--status {
+	background: #8a5a14;
+}
+
+.prop-card__body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	padding: 16px 18px 18px;
+}
+
+.prop-card__cat {
+	margin: 0 0 4px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	color: #566760;
+}
+
+.prop-card__title {
+	margin: 0 0 6px;
+	font-size: 1.1rem;
+	line-height: 1.45;
+}
+
+.prop-card__title a {
+	color: var(--color-heading);
+}
+
+.prop-card__title a:hover {
+	color: var(--color-green);
+}
+
+.prop-card__loc {
+	margin: 0 0 8px;
+	font-size: 0.92rem;
+	color: var(--color-body);
+}
+
+.prop-card__meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 4px 12px;
+	margin: auto 0 14px;
+	padding-top: 8px;
+	font-size: 0.92rem;
+	color: var(--color-body);
+}
+
+.prop-card__meta strong {
+	font-size: 1.05rem;
+	color: var(--color-green-deep);
+}
+
+.prop-card__more {
+	align-self: flex-start;
+}
+
+.prop-empty {
+	padding: 46px 24px;
+	border: 1px dashed var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+	text-align: center;
+}
+
+.prop-empty p {
+	margin: 0 0 14px;
+	color: var(--color-body);
+}
+
+.prop-pager ul {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 6px;
+	margin: 30px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.prop-pager a,
+.prop-pager span {
+	display: inline-block;
+	min-width: 38px;
+	padding: 7px 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	text-align: center;
+	color: var(--color-heading);
+}
+
+.prop-pager .current {
+	border-color: var(--color-green);
+	background: var(--color-green);
+	color: #fff;
+}
+
+/* ---- "want to sell?" ---- */
+
+.prop-sellcta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 28px;
+	margin-top: 40px;
+	padding: 26px 28px;
+	border-radius: var(--radius-md);
+	background: var(--color-green-deep);
+	color: #e3efe4;
+}
+
+.prop-sellcta h2 {
+	margin: 0 0 6px;
+	font-size: 1.3rem;
+	color: #fff;
+}
+
+.prop-sellcta p {
+	margin: 0;
+	max-width: 560px;
+	color: #cfe0d2;
+}
+
+/* ---- one advertisement ---- */
+
+.prop-single__top {
+	padding: 26px 0 70px;
+}
+
+.prop-crumbs {
+	margin: 0 0 18px;
+	font-size: 0.88rem;
+	color: #566760;
+}
+
+.prop-crumbs a:hover {
+	color: var(--color-green);
+	text-decoration: underline;
+}
+
+.prop-single__grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+	gap: 32px;
+	align-items: start;
+}
+
+.prop-gallery__stage {
+	position: relative;
+	aspect-ratio: 4 / 3;
+	border-radius: var(--radius-md);
+	background: #E9ECE3;
+	overflow: hidden;
+}
+
+.prop-gallery__stage img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.prop-gallery__stage--empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #566760;
+}
+
+.prop-gallery__thumbs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 10px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.prop-gallery__thumbs button {
+	width: 78px;
+	height: 60px;
+	padding: 0;
+	border: 2px solid transparent;
+	border-radius: 6px;
+	background: none;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.prop-gallery__thumbs button.is-on {
+	border-color: var(--color-green);
+}
+
+.prop-gallery__thumbs img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.prop-h {
+	margin: 28px 0 10px;
+	font-size: 1.25rem;
+	color: var(--color-heading);
+}
+
+.prop-content {
+	font-size: 1.02rem;
+	line-height: 1.85;
+	color: var(--color-body);
+}
+
+.prop-features {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px 22px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.prop-features li {
+	position: relative;
+	padding-left: 24px;
+	color: var(--color-body);
+}
+
+.prop-features li::before {
+	content: "";
+	position: absolute;
+	left: 3px;
+	top: 0.5em;
+	width: 6px;
+	height: 11px;
+	border: solid var(--color-green);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg) translateY(-30%);
+}
+
+.prop-disclaimer {
+	margin: 26px 0 0;
+	padding: 12px 16px;
+	border-left: 3px solid #cdb27a;
+	border-radius: 4px;
+	background: #fbf6e8;
+	font-size: 0.88rem;
+	color: #6a5522;
+}
+
+.prop-single__side {
+	position: sticky;
+	top: 92px;
+	display: grid;
+	gap: 18px;
+}
+
+.prop-box {
+	padding: 22px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	background: var(--color-white);
+}
+
+.prop-box__cat {
+	margin: 0 0 4px;
+	font-size: 0.86rem;
+	font-weight: 600;
+	color: var(--color-green);
+}
+
+.prop-box__title {
+	margin: 0 0 8px;
+	font-size: 1.4rem;
+	line-height: 1.4;
+	color: var(--color-heading);
+}
+
+.prop-box__price {
+	margin: 0 0 14px;
+	font-size: 1.4rem;
+	font-weight: 700;
+	color: var(--color-green-deep);
+}
+
+.prop-facts {
+	margin: 0;
+}
+
+.prop-facts div {
+	display: flex;
+	justify-content: space-between;
+	gap: 14px;
+	padding: 8px 0;
+	border-top: 1px solid var(--color-border);
+	font-size: 0.95rem;
+}
+
+.prop-facts dt {
+	color: #566760;
+}
+
+.prop-facts dd {
+	margin: 0;
+	text-align: right;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.prop-contact h2 {
+	margin: 0 0 6px;
+	font-size: 1.15rem;
+	color: var(--color-heading);
+}
+
+.prop-contact p {
+	margin: 0 0 14px;
+	font-size: 0.95rem;
+	color: var(--color-body);
+}
+
+.prop-contact .btn {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	margin-bottom: 10px;
+}
+
+.prop-contact__num {
+	font-family: var(--font-en);
+	font-size: 0.85rem;
+	font-weight: 500;
+}
+
+.prop-contact .prop-contact__hint {
+	margin: 4px 0 0;
+	font-size: 0.8rem;
+	color: #566760;
+}
+
+.prop-contact__sold {
+	padding: 8px 12px;
+	border-radius: var(--radius-sm);
+	background: #fbf6e8;
+	color: #6a5522 !important;
+}
+
+@media (max-width: 900px) {
+	.prop-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.prop-single__grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.prop-single__side {
+		position: static;
+	}
+}
+
+@media (max-width: 560px) {
+	.prop-grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.prop-features {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.prop-filter select,
+	.prop-filter .btn {
+		flex: 1 1 100%;
+	}
+}

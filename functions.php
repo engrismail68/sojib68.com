@@ -14,6 +14,7 @@ require_once get_theme_file_path( 'inc/checklists.php' );
 require_once get_theme_file_path( 'inc/land-calc.php' );
 require_once get_theme_file_path( 'inc/consult.php' );
 require_once get_theme_file_path( 'inc/inquiry.php' );
+require_once get_theme_file_path( 'inc/properties.php' );
 require_once get_theme_file_path( 'inc/office-db.php' );
 require_once get_theme_file_path( 'inc/office-deeds.php' );
 require_once get_theme_file_path( 'inc/office-deeds-ajax.php' );
