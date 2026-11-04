@@ -40,6 +40,10 @@
 		clearErrors();
 		modal.hidden = false;
 		document.body.classList.add( 'inq-open' );
+		var prefill = opener && opener.getAttribute ? opener.getAttribute( 'data-inq-text' ) : '';
+		if ( prefill && form.elements.message && ! form.elements.message.value.trim() ) {
+			form.elements.message.value = prefill.replace( /\\n/g, '\n' );
+		}
 		var first = form.elements.name;
 		if ( first ) { first.focus(); }
 	}
