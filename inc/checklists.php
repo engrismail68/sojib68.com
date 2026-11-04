@@ -393,6 +393,16 @@ function sojib68_checklists_admin_page() {
 				</details>
 			<?php endforeach; ?>
 
+			<?php if ( function_exists( 'sojib68_consult_topics' ) ) : ?>
+				<details style="max-width:900px;margin:14px 0 0;padding:0;background:#fff;border:1px solid #c3c4c7;border-radius:4px;">
+					<summary style="padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer;"><?php esc_html_e( 'ভূমিবিষয়ক পরামর্শ — WhatsApp ফর্মের বিষয়', 'sojib68' ); ?></summary>
+					<div style="padding:0 18px 16px;">
+						<p class="description"><?php esc_html_e( 'এক লাইনে একটি বিষয় লিখুন (যেমন: জমি কেনার আগে যাচাই)। এগুলো পরামর্শের ফর্মে বাটন হিসেবে আসবে। ফাঁকা রাখলে বাটন আসবে না।', 'sojib68' ); ?></p>
+						<textarea name="consult_topics" rows="6" class="large-text" style="font-family:inherit;"><?php echo esc_textarea( implode( "\n", sojib68_consult_topics() ) ); ?></textarea>
+					</div>
+				</details>
+			<?php endif; ?>
+
 			<details style="max-width:900px;margin:14px 0 0;padding:0;background:#fff;border:1px solid #c3c4c7;border-radius:4px;">
 				<summary style="padding:12px 16px;font-size:15px;font-weight:600;cursor:pointer;"><?php esc_html_e( 'প্রিন্টের ওপরের অংশ (লেটারহেড)', 'sojib68' ); ?></summary>
 				<table class="form-table" role="presentation" style="margin:0 16px 12px;width:auto;">
@@ -517,6 +527,10 @@ function sojib68_checklists_handle_save() {
 		$office[ $field ] = isset( $posted_office[ $field ] ) ? sanitize_text_field( $posted_office[ $field ] ) : '';
 	}
 	update_option( SOJIB68_CHECKLIST_OFFICE_OPTION, $office, false );
+
+	if ( isset( $_POST['consult_topics'] ) && function_exists( 'sojib68_consult_topics_from_text' ) ) {
+		update_option( SOJIB68_CONSULT_TOPICS_OPTION, sojib68_consult_topics_from_text( wp_unslash( $_POST['consult_topics'] ) ), false ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+	}
 
 	wp_safe_redirect( add_query_arg( array( 'page' => 'sojib68-checklists', 'saved' => 1 ), admin_url( 'admin.php' ) ) );
 	exit;

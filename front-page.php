@@ -133,7 +133,11 @@ $how_we_work = array(
 						<h3><?php echo esc_html( $service['title'] ); ?></h3>
 						<p><?php echo esc_html( $service['text'] ); ?></p>
 						<div class="service-card__actions">
-							<?php if ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) : ?>
+							<?php if ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP && defined( 'SOJIB68_CONSULT_SERVICE' ) && SOJIB68_CONSULT_SERVICE === $key ) : ?>
+								<button type="button" class="btn btn-outline btn-sm service-card__cta" data-cs-open>
+									<?php esc_html_e( 'WhatsApp-এ জানান', 'sojib68' ); ?>
+								</button>
+							<?php elseif ( defined( 'SOJIB68_WHATSAPP' ) && SOJIB68_WHATSAPP ) : ?>
 								<?php
 								/* translators: %s: service title */
 								$sojib68_wa_text = sprintf( __( 'আসসালামু আলাইকুম, আমি "%s" সম্পর্কে জানতে চাই।', 'sojib68' ), $service['title'] );
@@ -148,7 +152,7 @@ $how_we_work = array(
 							<?php endif; ?>
 							<?php if ( isset( $sojib68_checklists[ $key ] ) ) : ?>
 								<button type="button" class="btn btn-primary btn-sm service-card__docs" data-ck-open="<?php echo esc_attr( $key ); ?>">
-									<?php esc_html_e( 'কী কী লাগে', 'sojib68' ); ?>
+									<?php echo defined( 'SOJIB68_CONSULT_SERVICE' ) && SOJIB68_CONSULT_SERVICE === $key ? esc_html__( 'কী কী আনবেন', 'sojib68' ) : esc_html__( 'কী কী লাগে', 'sojib68' ); ?>
 								</button>
 							<?php endif; ?>
 							<?php if ( defined( 'SOJIB68_LAND_CALC_SERVICE' ) && SOJIB68_LAND_CALC_SERVICE === $key ) : ?>

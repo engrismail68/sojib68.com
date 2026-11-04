@@ -1,0 +1,65 @@
+/*
+ * "ভূমিবিষয়ক পরামর্শ" WhatsApp form. Reuses the popup styles from land-calc.css (lc-*).
+ * Loaded on the homepage only.
+ */
+
+.cs-label {
+	margin: 0 0 8px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: var(--color-heading);
+}
+
+.cs-topics {
+	margin-bottom: 14px;
+}
+
+.cs-topics[hidden] {
+	display: none;
+}
+
+.cs-topics .lc-shapes {
+	margin-bottom: 0;
+}
+
+.cs-form {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cs-msgfield {
+	margin-top: 12px;
+}
+
+.lc-field textarea {
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #CFD3C8;
+	border-radius: var(--radius-sm);
+	background: var(--color-white);
+	font: inherit;
+	font-size: 1rem;
+	color: var(--color-heading);
+	resize: vertical;
+}
+
+.lc-field textarea:focus {
+	outline: none;
+	border-color: var(--color-green);
+	box-shadow: 0 0 0 3px rgba(25, 128, 48, 0.15);
+}
+
+.lc-dialog__foot .lc-print {
+	margin-top: 0;
+}
+
+@media (max-width: 560px) {
+	.cs-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+@media print {
+	.cs-modal {
+		display: none !important;
+	}
+}
