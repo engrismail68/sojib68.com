@@ -33,6 +33,22 @@ function sojib68_land_units() {
 	return apply_filters( 'sojib68_land_units', $units );
 }
 
+/**
+ * Old local measures, each in শতাংশ — the owner's area values:
+ *  1 আনা = 20 গণ্ডা, 1 গণ্ডা = 4 কড়া, 1 কড়া = 3 ক্রান্তি,
+ *  1 গণ্ডা = 6 শতাংশ, 1 কড়া = 1.5 শতাংশ (so 1 ক্রান্তি = 0.5, 1 আনা = 120 শতাংশ).
+ * 16 আনা is the whole when a share of a property is meant.
+ */
+function sojib68_land_old_units() {
+	$units = array(
+		'anna'   => array( 'label' => 'আনা', 'shatangsho' => 120 ),
+		'ganda'  => array( 'label' => 'গণ্ডা', 'shatangsho' => 6 ),
+		'kora'   => array( 'label' => 'কড়া', 'shatangsho' => 1.5 ),
+		'kranti' => array( 'label' => 'ক্রান্তি', 'shatangsho' => 0.5 ),
+	);
+	return apply_filters( 'sojib68_land_old_units', $units );
+}
+
 function sojib68_land_calc_enqueue() {
 	if ( ! is_front_page() ) {
 		return;
@@ -52,6 +68,7 @@ function sojib68_land_calc_modal() {
 	$units  = sojib68_land_units();
 	$office = function_exists( 'sojib68_checklist_office' ) ? sojib68_checklist_office() : array( 'name' => '', 'person' => '', 'phone' => '', 'channels' => '' );
 	?>
+	<script type="application/json" id="lc-old"><?php echo wp_json_encode( sojib68_land_old_units(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
 	<script type="application/json" id="lc-data"><?php echo wp_json_encode( $units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE ); ?></script>
 
 	<div class="lc-modal" data-lc-modal hidden>
@@ -68,6 +85,7 @@ function sojib68_land_calc_modal() {
 			<div class="lc-tabs" role="tablist">
 				<button type="button" class="lc-tab is-on" role="tab" aria-selected="true" data-lc-tab="convert"><?php esc_html_e( 'একক রূপান্তর', 'sojib68' ); ?></button>
 				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="area"><?php esc_html_e( 'বাহু থেকে ক্ষেত্রফল', 'sojib68' ); ?></button>
+				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="old"><?php esc_html_e( 'পুরোনো মাপ', 'sojib68' ); ?></button>
 			</div>
 
 			<div class="lc-dialog__body">
@@ -113,6 +131,16 @@ function sojib68_land_calc_modal() {
 
 					<ul class="lc-results" data-lc-aresults aria-live="polite"></ul>
 					<p class="lc-note lc-note--quad" data-lc-quadnote hidden><?php esc_html_e( 'কোণাকুণি মাপ হলো জমির ভেতর দিয়ে ক কোণা থেকে গ কোণায় সোজা টানা মাপ (ছবির বিন্দু-বিন্দু দাগ)। শুধু চার দিকের মাপ দিয়ে ক্ষেত্রফল ঠিক হয় না, তাই এটিও লাগে।', 'sojib68' ); ?></p>
+				</div>
+
+				<div data-lc-panel="old" hidden>
+					<p class="lc-hint"><?php esc_html_e( 'আনা, গণ্ডা, কড়া, ক্রান্তির মাপ শতাংশে বদলে নিন। আপনার প্রয়োজনের বাটনটি বাছুন।', 'sojib68' ); ?></p>
+					<div class="lc-shapes" data-lc-omodes></div>
+					<p class="lc-shapehint" data-lc-omodehint></p>
+					<div class="lc-sides lc-sides--old" data-lc-ofields></div>
+					<p class="lc-msg" data-lc-omsg role="alert" hidden></p>
+					<ul class="lc-results" data-lc-oresults aria-live="polite"></ul>
+					<p class="lc-note lc-note--quad" data-lc-otable></p>
 				</div>
 
 				<p class="lc-note">

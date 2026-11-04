@@ -7,8 +7,10 @@
 		return;
 	}
 	var UNITS;
+	var OLD;
 	try {
 		UNITS = JSON.parse( dataEl.textContent );
+		OLD = JSON.parse( document.getElementById( 'lc-old' ).textContent );
 	} catch ( e ) {
 		return;
 	}
@@ -21,7 +23,7 @@
 	var lastOpener = null;
 	var printBtn = modal.querySelector( '[data-lc-print]' );
 	var sheet = modal.querySelector( '[data-lc-sheet]' );
-	var calc = { convert: null, area: null }; // the last good result of each tab
+	var calc = { convert: null, area: null, old: null }; // the last good result of each tab
 	var tab = 'convert';
 	var keys = Object.keys( UNITS );
 
@@ -50,8 +52,23 @@
 	} );
 	select.value = keys[ 0 ];
 
-	function renderList( ul, base, fromKey ) {
+	function renderList( ul, base, fromKey, extra ) {
 		ul.innerHTML = '';
+		if ( extra ) {
+			extra.forEach( function ( row ) {
+				var li = document.createElement( 'li' );
+				li.className = 'lc-result is-from';
+				var n = document.createElement( 'span' );
+				n.className = 'lc-result__name';
+				n.textContent = row[ 0 ];
+				var v = document.createElement( 'strong' );
+				v.className = 'lc-result__val';
+				v.textContent = row[ 1 ];
+				li.appendChild( n );
+				li.appendChild( v );
+				ul.appendChild( li );
+			} );
+		}
 		keys.forEach( function ( k ) {
 			var li = document.createElement( 'li' );
 			li.className = 'lc-result' + ( k === fromKey ? ' is-from' : '' );
@@ -246,6 +263,169 @@
 		updatePrint();
 	}
 
+	// ----- old measures (আনা / গণ্ডা / কড়া / ক্রান্তি) -----
+
+	var OKEYS = Object.keys( OLD ); // anna, ganda, kora, kranti — largest first
+	var SQFT_PER_SHOTANGSHO = UNITS.shotangsho ? UNITS.shotangsho.sqft : 435.6;
+	var OMODES = {
+		fixed: {
+			label: 'আনা-গণ্ডা → শতাংশ',
+			hint: 'যত আনা, গণ্ডা, কড়া, ক্রান্তি আছে লিখুন (যেটা নেই সেটা ফাঁকা রাখুন)। আপনার এলাকার মাপে শতাংশ হবে।',
+			fields: OKEYS.map( function ( k ) { return { key: k, label: OLD[ k ].label, hint: '' }; } )
+		},
+		share: {
+			label: 'মোট জমির অংশ → শতাংশ',
+			hint: 'মোট জমি কত শতাংশ এবং তার কত অংশ (১৬ আনায় পুরো জমি) লিখুন।',
+			fields: [ { key: 'total', label: 'মোট জমি (শতাংশ)', hint: 'পুরো জমির পরিমাণ' } ].concat(
+				OKEYS.map( function ( k ) { return { key: k, label: OLD[ k ].label, hint: 'অংশ' }; } )
+			)
+		},
+		back: {
+			label: 'শতাংশ → আনা-গণ্ডা',
+			hint: 'শতাংশে জমির পরিমাণ লিখুন, আনা-গণ্ডা-কড়া-ক্রান্তিতে কত হয় দেখুন।',
+			fields: [ { key: 'sh', label: 'জমি (শতাংশ)', hint: '' } ]
+		}
+	};
+	var omode = 'fixed';
+	var omodesEl = modal.querySelector( '[data-lc-omodes]' );
+	var omodeHint = modal.querySelector( '[data-lc-omodehint]' );
+	var ofields = modal.querySelector( '[data-lc-ofields]' );
+	var omsg = modal.querySelector( '[data-lc-omsg]' );
+	var oresults = modal.querySelector( '[data-lc-oresults]' );
+	var otable = modal.querySelector( '[data-lc-otable]' );
+
+	otable.textContent = 'আপনার এলাকার মাপ: ' + OKEYS.map( function ( k ) {
+		return '১ ' + OLD[ k ].label + ' = ' + format( OLD[ k ].shatangsho ) + ' শতাংশ';
+	} ).join( '; ' ) + '। ১ আনা = ২০ গণ্ডা, ১ গণ্ডা = ৪ কড়া, ১ কড়া = ৩ ক্রান্তি; ১৬ আনায় পুরো।';
+
+	Object.keys( OMODES ).forEach( function ( k ) {
+		var b = document.createElement( 'button' );
+		b.type = 'button';
+		b.className = 'lc-chip';
+		b.setAttribute( 'data-lc-omode', k );
+		b.textContent = OMODES[ k ].label;
+		omodesEl.appendChild( b );
+	} );
+
+	function buildOld() {
+		var def = OMODES[ omode ];
+		ofields.innerHTML = '';
+		def.fields.forEach( function ( f, i ) {
+			var wrap = document.createElement( 'div' );
+			wrap.className = 'lc-field lc-field--side';
+			var label = document.createElement( 'label' );
+			label.setAttribute( 'for', 'lc-o-' + i );
+			label.textContent = f.label;
+			wrap.appendChild( label );
+			if ( f.hint ) {
+				var hint = document.createElement( 'small' );
+				hint.textContent = f.hint;
+				wrap.appendChild( hint );
+			}
+			var inp = document.createElement( 'input' );
+			inp.type = 'text';
+			inp.id = 'lc-o-' + i;
+			inp.setAttribute( 'inputmode', 'decimal' );
+			inp.setAttribute( 'autocomplete', 'off' );
+			inp.setAttribute( 'data-lc-ofield', f.key );
+			wrap.appendChild( inp );
+			ofields.appendChild( wrap );
+		} );
+		omodeHint.textContent = def.hint;
+		omodesEl.querySelectorAll( '[data-lc-omode]' ).forEach( function ( b ) {
+			var on = b.getAttribute( 'data-lc-omode' ) === omode;
+			b.classList.toggle( 'is-on', on );
+			b.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+		} );
+		renderOld();
+	}
+
+	function renderOld() {
+		oresults.innerHTML = '';
+		calc.old = null;
+		updatePrint();
+		var vals = {};
+		var any = false;
+		var bad = false;
+		var empties = 0;
+		ofields.querySelectorAll( '[data-lc-ofield]' ).forEach( function ( f ) {
+			var v = parseNumber( f.value );
+			if ( v === null ) {
+				empties++;
+				vals[ f.getAttribute( 'data-lc-ofield' ) ] = 0;
+				return;
+			}
+			if ( isNaN( v ) || v < 0 ) { bad = true; return; }
+			any = any || v > 0;
+			vals[ f.getAttribute( 'data-lc-ofield' ) ] = v;
+		} );
+		if ( bad ) {
+			omsg.textContent = 'শুধু সংখ্যা লিখুন, যেমন 2 বা 1.5';
+			omsg.hidden = false;
+			return;
+		}
+		if ( ! any ) {
+			omsg.hidden = true;
+			return;
+		}
+
+		var sh; // the land in শতাংশ
+		var inputs = [];
+		var extra = null;
+		if ( omode === 'fixed' ) {
+			sh = 0;
+			OKEYS.forEach( function ( k ) {
+				sh += vals[ k ] * OLD[ k ].shatangsho;
+				if ( vals[ k ] > 0 ) { inputs.push( [ OLD[ k ].label, format( vals[ k ] ) ] ); }
+			} );
+		} else if ( omode === 'share' ) {
+			if ( ! ( vals.total > 0 ) ) {
+				omsg.textContent = 'আগে মোট জমি (শতাংশ) লিখুন।';
+				omsg.hidden = false;
+				return;
+			}
+			var part = 0;
+			OKEYS.forEach( function ( k ) {
+				part += vals[ k ] * OLD[ k ].shatangsho;
+				if ( vals[ k ] > 0 ) { inputs.push( [ OLD[ k ].label + ' (অংশ)', format( vals[ k ] ) ] ); }
+			} );
+			var whole = 16 * OLD[ OKEYS[ 0 ] ].shatangsho; // 16 আনা
+			if ( part > whole ) {
+				omsg.textContent = 'অংশ ১৬ আনার বেশি হতে পারে না। মাপগুলো আবার দেখুন।';
+				omsg.hidden = false;
+				return;
+			}
+			inputs.unshift( [ 'মোট জমি', format( vals.total ) + ' শতাংশ' ] );
+			sh = vals.total * part / whole;
+		} else {
+			sh = vals.sh;
+			inputs.push( [ 'জমি', format( sh ) + ' শতাংশ' ] );
+			var rest = sh;
+			var parts = [];
+			OKEYS.forEach( function ( k, i ) {
+				var u = OLD[ k ].shatangsho;
+				var n = i === OKEYS.length - 1 ? Math.round( ( rest / u ) * 100 ) / 100 : Math.floor( rest / u + 1e-9 );
+				rest -= n * u;
+				if ( n > 0 ) { parts.push( format( n ) + ' ' + OLD[ k ].label ); }
+			} );
+			extra = [ [ 'আনা-গণ্ডা-কড়া-ক্রান্তিতে', parts.length ? parts.join( ', ' ) : '০' ] ];
+		}
+		omsg.hidden = true;
+		var sqft = sh * SQFT_PER_SHOTANGSHO;
+		renderList( oresults, sqft, 'shotangsho', extra );
+		calc.old = { mode: OMODES[ omode ].label, inputs: inputs, sqft: sqft, extra: extra };
+		updatePrint();
+	}
+
+	omodesEl.addEventListener( 'click', function ( e ) {
+		var b = e.target.closest( '[data-lc-omode]' );
+		if ( b ) {
+			omode = b.getAttribute( 'data-lc-omode' );
+			buildOld();
+		}
+	} );
+	ofields.addEventListener( 'input', renderOld );
+
 	// ----- printed slip -----
 
 	function todayBn() {
@@ -281,7 +461,16 @@
 		rows.innerHTML = '';
 		var base;
 		var fromKey;
-		if ( tab === 'convert' ) {
+		var extraRows = [];
+		if ( tab === 'old' ) {
+			setSheetText( '[data-sheet-title]', 'পুরোনো মাপের হিসাব' );
+			addLi( inputs, 'হিসাবের ধরন', data.mode );
+			data.inputs.forEach( function ( r ) { addLi( inputs, r[ 0 ], r[ 1 ] ); } );
+			diagram.innerHTML = '';
+			base = data.sqft;
+			fromKey = 'shotangsho';
+			extraRows = data.extra || [];
+		} else if ( tab === 'convert' ) {
 			setSheetText( '[data-sheet-title]', 'জমির এককের হিসাব' );
 			addLi( inputs, 'দেওয়া পরিমাণ', format( data.value ) + ' ' + UNITS[ data.unit ].label );
 			diagram.innerHTML = '';
@@ -298,6 +487,17 @@
 			fromKey = 'sqft';
 		}
 		setSheetText( '[data-sheet-date]', todayBn() );
+		extraRows.forEach( function ( r ) {
+			var tr = document.createElement( 'tr' );
+			tr.className = 'is-from';
+			var th = document.createElement( 'th' );
+			th.textContent = r[ 0 ];
+			var td = document.createElement( 'td' );
+			td.textContent = r[ 1 ];
+			tr.appendChild( th );
+			tr.appendChild( td );
+			rows.appendChild( tr );
+		} );
 		keys.forEach( function ( k ) {
 			var tr = document.createElement( 'tr' );
 			if ( k === fromKey ) { tr.className = 'is-from'; }
@@ -354,6 +554,7 @@
 	sidesEl.addEventListener( 'input', renderArea );
 	lunit.addEventListener( 'change', renderArea );
 	buildSides();
+	buildOld();
 
 	document.addEventListener( 'click', function ( e ) {
 		var opener = e.target.closest( '[data-lc-open]' );
