@@ -26,13 +26,6 @@ $sojib68_socials         = function_exists( 'sojib68_get_social_links' ) ? sojib
 			<p class="footer-role"><?php esc_html_e( 'Land & IT Consultant', 'sojib68' ); ?></p>
 			<p class="footer-desc"><?php esc_html_e( 'দলিল, জমি রেজিস্ট্রেশন ও ভূমিসংক্রান্ত বিষয়ে প্রয়োজনীয় পরামর্শ ও সহায়তা।', 'sojib68' ); ?></p>
 
-			<?php if ( ! empty( $sojib68_socials ) ) : ?>
-				<ul class="footer-socials">
-					<?php foreach ( $sojib68_socials as $network => $url ) : ?>
-						<li><a href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener"><?php echo esc_html( ucfirst( $network ) ); ?></a></li>
-					<?php endforeach; ?>
-				</ul>
-			<?php endif; ?>
 		</div>
 
 		<nav class="footer-links" aria-label="<?php esc_attr_e( 'ফুটার মেনু', 'sojib68' ); ?>">
