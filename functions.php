@@ -237,7 +237,7 @@ function sojib68_get_case_stories() {
  */
 function sojib68_get_social_links() {
 	return array(
-		'facebook' => 'https://www.facebook.com/engr979/',
+		'facebook' => 'https://www.facebook.com/ramganjland/',
 	);
 }
 

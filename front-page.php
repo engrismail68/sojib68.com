@@ -259,7 +259,7 @@ $sojib68_socials = function_exists( 'sojib68_get_social_links' ) ? sojib68_get_s
 			<?php endif; ?>
 			<?php foreach ( $sojib68_socials as $network => $url ) : ?>
 				<a class="contact__action" href="<?php echo esc_url( $url ); ?>" target="_blank" rel="noopener" data-lead="<?php echo esc_attr( $network ); ?>">
-					<span class="contact__action-label"><?php echo esc_html( ucfirst( $network ) ); ?></span>
+					<span class="contact__action-label"><?php echo esc_html( 'facebook' === $network ? __( 'Facebook পেজ', 'sojib68' ) : ucfirst( $network ) ); ?></span>
 				</a>
 			<?php endforeach; ?>
 			<?php if ( $sojib68_email ) : ?>
