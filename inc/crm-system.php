@@ -671,6 +671,7 @@ function sojib68_crm_menu_items() {
 		'notifications' => __( 'নোটিফিকেশন', 'sojib68' ),
 		'leads'     => __( 'সব লিড', 'sojib68' ),
 		'works'     => __( 'সব কাজ', 'sojib68' ),
+		'staff-work' => __( 'কার কী দায়িত্ব', 'sojib68' ),
 		'entry-new' => __( 'নতুন লিড যোগ করুন', 'sojib68' ),
 	);
 	// One entry page per work category (নামজারি, দলিল রেজিস্ট্রেশন, দলিল অনুসন্ধান…): enter the work,
@@ -713,6 +714,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'notifications' => 'bell',
 		'leads'     => 'users',
 		'works'     => 'briefcase',
+		'staff-work' => 'users',
 		'entry-new' => 'plus',
 		'namjari-entry' => 'briefcase',
 		'recycle-bin'   => 'trash',
@@ -722,6 +724,7 @@ function sojib68_crm_render_dashboard( $page_key ) {
 		'notifications' => sprintf( /* translators: %s: days */ __( 'যে ফাইল %s দিনের বেশি একই ধাপে পড়ে আছে, সেগুলো এখানে আসে', 'sojib68' ), number_format_i18n( SOJIB68_CRM_IDLE_WARN_DAYS ) ),
 		'leads'     => __( 'ফেসবুক, হোয়াটসঅ্যাপ, ফোন ও সরাসরি — সব লিড এক জায়গায়', 'sojib68' ),
 		'works'     => __( 'নিশ্চিত হওয়া কাজের তালিকা ও বর্তমান অবস্থা', 'sojib68' ),
+		'staff-work' => __( 'কোন স্টাফ কোন লিড বা কাজ কবে থেকে সামলাচ্ছেন — তারিখ অনুযায়ী ক্রমানুসারে', 'sojib68' ),
 		'entry-new' => __( 'সরাসরি/ফোনে যোগাযোগ হওয়া ক্লায়েন্টের তথ্য এখানে যোগ করুন', 'sojib68' ),
 		'namjari-entry' => __( 'নামজারির কাজের তথ্য এন্ট্রি ও তালিকা', 'sojib68' ),
 		'recycle-bin'   => __( 'মুছে ফেলা কাজ — ফেরত আনুন বা স্থায়ীভাবে মুছুন', 'sojib68' ),
@@ -856,6 +859,11 @@ function sojib68_crm_render_section( $page_key ) {
 		case 'works':
 			ob_start();
 			sojib68_crm_render_works_list();
+			return ob_get_clean();
+
+		case 'staff-work':
+			ob_start();
+			sojib68_crm_render_staff_work();
 			return ob_get_clean();
 
 		case 'entry-new':

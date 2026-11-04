@@ -473,7 +473,7 @@ function sojib68_crm_render_leads_table() {
 							<td><?php echo esc_html( $sources[ $row['source'] ] ?? $row['source'] ); ?></td>
 							<td><?php echo esc_html( $row['referred_by'] ? $row['referred_by'] : '—' ); ?></td>
 							<td><?php echo esc_html( $services[ $row['service_type'] ] ?? $row['service_type'] ); ?></td>
-							<td><?php echo esc_html( $row['assigned_to'] && isset( $staff[ $row['assigned_to'] ] ) ? $staff[ $row['assigned_to'] ] : '—' ); ?></td>
+							<td><?php echo sojib68_crm_assignee_cell_html( $row, $staff ); // phpcs:ignore ?></td>
 							<td><?php echo esc_html( $row['next_followup_at'] ? mysql2date( 'd M, h:i A', $row['next_followup_at'] ) : '—' ); ?></td>
 							<td><span class="crm-chip crm-chip--<?php echo esc_attr( $row['status'] ); ?>"><?php echo esc_html( $statuses[ $row['status'] ] ?? $row['status'] ); ?></span></td>
 							<td><a href="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . (int) $row['id'] ) ); ?>" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'eye', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'দেখুন', 'sojib68' ); ?></a></td>
@@ -1043,7 +1043,7 @@ function sojib68_crm_render_category_list( $type, $action ) {
 							<strong><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : '—' ); ?></strong>
 							<?php if ( $w['customer_phone'] ) : ?><small><?php echo esc_html( $w['customer_phone'] ); ?></small><?php endif; ?>
 						</td>
-						<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
+						<td><?php echo sojib68_crm_assignee_cell_html( $w, $staff ); // phpcs:ignore ?></td>
 						<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
 						<?php if ( $finance ) : ?>
 							<td class="is-num crm-amt-in"><?php echo esc_html( $taka( $w['collected'] ) ); ?></td>
@@ -1651,7 +1651,7 @@ function sojib68_crm_render_works_list() {
 							<td><a href="<?php echo esc_url( sojib68_crm_work_edit_url( $w ) ); ?>"><?php echo esc_html( $w['work_code'] ); ?></a></td>
 							<td><?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : $w['customer_phone'] ); ?></td>
 							<td><?php echo esc_html( $types[ $w['work_type'] ] ?? $w['work_type'] ); ?></td>
-							<td><?php echo esc_html( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ? $staff[ $w['assigned_to'] ] : '—' ); ?></td>
+							<td><?php echo sojib68_crm_assignee_cell_html( $w, $staff ); // phpcs:ignore ?></td>
 							<td><span class="crm-chip"><?php echo esc_html( sojib68_crm_work_stage_label( $w ) ); ?></span></td>
 							<td><?php echo esc_html( $delivery[ $w['delivery_status'] ] ?? $w['delivery_status'] ); ?></td>
 							<td><?php echo esc_html( $w['file_location'] ? $w['file_location'] : '—' ); ?></td>
@@ -1664,3 +1664,178 @@ function sojib68_crm_render_works_list() {
 	<?php endif; ?>
 	<?php
 }
+
+
+/**
+ * The "দায়িত্বপ্রাপ্ত" cell: the person's name with the date it was given; when nobody holds it, say so
+ * plainly (with a link to the কার কী দায়িত্ব page for admins) instead of a bare dash.
+ */
+function sojib68_crm_assignee_cell_html( $row, $staff ) {
+	$uid = ! empty( $row['assigned_to'] ) ? (int) $row['assigned_to'] : 0;
+	if ( $uid ) {
+		$name = isset( $staff[ $uid ] ) ? $staff[ $uid ] : '#' . $uid;
+		$html = '<strong>' . esc_html( $name ) . '</strong>';
+		if ( ! empty( $row['assigned_at'] ) ) {
+			$html .= '<br><span class="crm-muted">' . esc_html( mysql2date( 'd M, Y', $row['assigned_at'] ) ) . '</span>';
+		}
+		return $html;
+	}
+	$html = '<span class="crm-unassigned">' . esc_html__( 'দায়িত্ব দেওয়া হয়নি', 'sojib68' ) . '</span>';
+	if ( sojib68_crm_is_admin() ) {
+		$html .= '<br><a class="crm-muted" href="' . esc_url( add_query_arg( 'staff', -1, home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' ) ) ) . '">' . esc_html__( 'দায়িত্ব দিন →', 'sojib68' ) . '</a>';
+	}
+	return $html;
+}
+
+/* ---------------------------------------------------------------------
+ * কার কী দায়িত্ব — who holds which lead / work and since when
+ * ------------------------------------------------------------------ */
+
+function sojib68_crm_render_staff_work() {
+	$is_admin = sojib68_crm_is_admin();
+	$staff    = sojib68_crm_assignable_users();
+	$base_url = home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' );
+
+	$f = array(
+		'staff'         => $is_admin && isset( $_GET['staff'] ) ? (int) $_GET['staff'] : 0,
+		'kind'          => isset( $_GET['kind'] ) && in_array( $_GET['kind'], array( 'lead', 'work' ), true ) ? $_GET['kind'] : '',
+		'state'         => isset( $_GET['state'] ) && 'all' === $_GET['state'] ? 'all' : 'open',
+		'order'         => isset( $_GET['order'] ) && 'old' === $_GET['order'] ? 'old' : 'new',
+		'scope_user_id' => $is_admin ? null : get_current_user_id(),
+	);
+	$rows = sojib68_crm_staff_work_rows( $f );
+
+	$notice = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
+	if ( 'assigned' === $notice ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'দায়িত্ব দেওয়া হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'assign_error' === $notice ) {
+		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'দায়িত্ব দেওয়া যায়নি — আবার চেষ্টা করুন।', 'sojib68' ) . '</div>';
+	}
+
+	// Who holds how much (open leads + open works), each a link that filters the list below.
+	if ( $is_admin ) {
+		$load  = sojib68_crm_staff_load();
+		$cards = array();
+		foreach ( $staff as $uid => $uname ) {
+			$cards[ $uid ] = array( 'name' => $uname, 'load' => isset( $load[ $uid ] ) ? $load[ $uid ] : array( 'leads' => 0, 'works' => 0 ) );
+		}
+		$cards[-1] = array( 'name' => __( 'কেউ নয় (দায়িত্ব দেওয়া হয়নি)', 'sojib68' ), 'load' => isset( $load[0] ) ? $load[0] : array( 'leads' => 0, 'works' => 0 ) );
+		echo '<div class="crm-work-grid">';
+		foreach ( $cards as $uid => $c ) {
+			$href = add_query_arg( array( 'staff' => $uid, 'state' => $f['state'], 'kind' => $f['kind'], 'order' => $f['order'] ), $base_url );
+			echo '<a class="crm-work-card' . ( $f['staff'] === (int) $uid ? ' is-active' : '' ) . '" href="' . esc_url( $href ) . '">';
+			echo '<h3>' . esc_html( $c['name'] ) . '</h3>';
+			echo '<div class="crm-work-card__row"><span>' . esc_html__( 'চলমান লিড', 'sojib68' ) . '</span><strong>' . esc_html( number_format_i18n( $c['load']['leads'] ) ) . '</strong></div>';
+			echo '<div class="crm-work-card__row"><span>' . esc_html__( 'চলমান কাজ', 'sojib68' ) . '</span><strong>' . esc_html( number_format_i18n( $c['load']['works'] ) ) . '</strong></div>';
+			echo '</a>';
+		}
+		echo '</div>';
+	}
+	?>
+	<form method="get" action="<?php echo esc_url( $base_url ); ?>" class="crm-filter-bar" style="margin:16px 0;">
+		<?php if ( $is_admin ) : ?>
+			<select name="staff">
+				<option value="0"><?php esc_html_e( 'সব স্টাফ', 'sojib68' ); ?></option>
+				<option value="-1" <?php selected( $f['staff'], -1 ); ?>><?php esc_html_e( 'কেউ নয় (দায়িত্ব দেওয়া হয়নি)', 'sojib68' ); ?></option>
+				<?php foreach ( $staff as $uid => $uname ) : ?>
+					<option value="<?php echo (int) $uid; ?>" <?php selected( $f['staff'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		<?php endif; ?>
+		<select name="kind">
+			<option value=""><?php esc_html_e( 'লিড ও কাজ দুটোই', 'sojib68' ); ?></option>
+			<option value="lead" <?php selected( $f['kind'], 'lead' ); ?>><?php esc_html_e( 'শুধু লিড', 'sojib68' ); ?></option>
+			<option value="work" <?php selected( $f['kind'], 'work' ); ?>><?php esc_html_e( 'শুধু কাজ', 'sojib68' ); ?></option>
+		</select>
+		<select name="state">
+			<option value="open" <?php selected( $f['state'], 'open' ); ?>><?php esc_html_e( 'যা এখনো চলছে', 'sojib68' ); ?></option>
+			<option value="all" <?php selected( $f['state'], 'all' ); ?>><?php esc_html_e( 'সব (শেষ হওয়াগুলোসহ)', 'sojib68' ); ?></option>
+		</select>
+		<select name="order">
+			<option value="new" <?php selected( $f['order'], 'new' ); ?>><?php esc_html_e( 'নতুন তারিখ আগে', 'sojib68' ); ?></option>
+			<option value="old" <?php selected( $f['order'], 'old' ); ?>><?php esc_html_e( 'পুরোনো তারিখ আগে', 'sojib68' ); ?></option>
+		</select>
+		<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখুন', 'sojib68' ); ?></button>
+	</form>
+
+	<?php if ( ! $rows ) : ?>
+		<p class="crm-empty"><?php esc_html_e( 'এই শর্তে কিছু পাওয়া যায়নি।', 'sojib68' ); ?></p>
+		<?php return; ?>
+	<?php endif; ?>
+
+	<p class="crm-money-note"><?php echo esc_html( sprintf( /* translators: %s: count */ __( 'মোট %s টি, দায়িত্ব দেওয়ার তারিখ অনুযায়ী সাজানো (যাদের দায়িত্ব দেওয়া হয়নি, তাদের আসার তারিখ ধরে)।', 'sojib68' ), number_format_i18n( count( $rows ) ) ) ); ?></p>
+
+	<div class="crm-table-wrap">
+		<table class="crm-table">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th><?php esc_html_e( 'দায়িত্ব দেওয়ার তারিখ', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'আসার তারিখ', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'ধরন', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'কোড', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'নাম', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'মোবাইল', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'সেবা', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'অবস্থা', 'sojib68' ); ?></th>
+					<th><?php esc_html_e( 'দায়িত্বপ্রাপ্ত', 'sojib68' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ( $rows as $i => $r ) : ?>
+					<tr>
+						<td><?php echo esc_html( $i + 1 ); ?></td>
+						<td><?php echo $r['assigned_at'] ? esc_html( mysql2date( 'd M, Y h:i A', $r['assigned_at'] ) ) : '<span class="crm-muted">—</span>'; ?></td>
+						<td><?php echo esc_html( mysql2date( 'd M, Y', $r['created_at'] ) ); ?></td>
+						<td><span class="crm-chip"><?php echo esc_html( 'lead' === $r['kind'] ? __( 'লিড', 'sojib68' ) : __( 'কাজ', 'sojib68' ) ); ?></span></td>
+						<td><a href="<?php echo esc_url( $r['url'] ); ?>"><?php echo esc_html( $r['code'] ); ?></a></td>
+						<td><?php echo esc_html( $r['name'] ? $r['name'] : __( '(নাম নেই)', 'sojib68' ) ); ?></td>
+						<td><?php echo $r['phone'] ? '<a href="tel:' . esc_attr( $r['phone'] ) . '">' . esc_html( $r['phone'] ) . '</a>' : '&mdash;'; ?></td>
+						<td><?php echo esc_html( $r['category'] ); ?></td>
+						<td><span class="crm-chip crm-chip--<?php echo esc_attr( $r['status_key'] ); ?>"><?php echo esc_html( $r['status'] ); ?></span></td>
+						<td>
+							<?php if ( $is_admin ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-assign-form" style="display:flex;gap:6px;align-items:center;">
+									<input type="hidden" name="action" value="sojib68_crm_assign">
+									<?php wp_nonce_field( 'sojib68_crm_assign' ); ?>
+									<input type="hidden" name="kind" value="<?php echo esc_attr( $r['kind'] ); ?>">
+									<input type="hidden" name="id" value="<?php echo (int) $r['id']; ?>">
+									<input type="hidden" name="back" value="<?php echo esc_attr( add_query_arg( array( 'staff' => $f['staff'], 'kind' => $f['kind'], 'state' => $f['state'], 'order' => $f['order'] ), $base_url ) ); ?>">
+									<select name="user">
+										<option value="0"><?php esc_html_e( '(কেউ নয়)', 'sojib68' ); ?></option>
+										<?php foreach ( $staff as $uid => $uname ) : ?>
+											<option value="<?php echo (int) $uid; ?>" <?php selected( $r['assigned_to'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দিন', 'sojib68' ); ?></button>
+								</form>
+							<?php else : ?>
+								<?php echo esc_html( $r['assigned_to'] && isset( $staff[ $r['assigned_to'] ] ) ? $staff[ $r['assigned_to'] ] : '—' ); ?>
+							<?php endif; ?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+	<?php
+}
+
+/** Admin-only: give a lead or a work to a staff member from the কার কী দায়িত্ব page. */
+function sojib68_crm_handle_assign() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'এই কাজের অনুমতি নেই।', 'sojib68' ), 403 );
+	}
+	check_admin_referer( 'sojib68_crm_assign' );
+
+	$kind = isset( $_POST['kind'] ) && 'work' === $_POST['kind'] ? 'work' : 'lead';
+	$ok   = sojib68_crm_assign( $kind, isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, isset( $_POST['user'] ) ? (int) $_POST['user'] : 0 );
+
+	$back = isset( $_POST['back'] ) ? esc_url_raw( wp_unslash( $_POST['back'] ) ) : '';
+	if ( 0 !== strpos( $back, home_url( '/' . SOJIB68_CRM_BASE . '/' ) ) ) {
+		$back = home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' );
+	}
+	wp_safe_redirect( add_query_arg( 'crm_notice', $ok ? 'assigned' : 'assign_error', $back ) );
+	exit;
+}
+add_action( 'admin_post_sojib68_crm_assign', 'sojib68_crm_handle_assign' );

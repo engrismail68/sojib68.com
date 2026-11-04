@@ -294,6 +294,10 @@ function sojib68_crm_lead_save( $data, $id = 0 ) {
 
 	if ( $id > 0 ) {
 		$before = sojib68_crm_lead_get( $id );
+		// the date a staff member was given this lead moves only when the person changes
+		if ( ! $before || (int) $before['assigned_to'] !== $assigned_to ) {
+			$row['assigned_at'] = $assigned_to ? current_time( 'mysql' ) : null;
+		}
 		$wpdb->update( $table, $row, array( 'id' => $id ) );
 
 		if ( $before && $before['status'] !== $row['status'] ) {
@@ -310,6 +314,7 @@ function sojib68_crm_lead_save( $data, $id = 0 ) {
 
 	$row['created_at'] = current_time( 'mysql' );
 	$row['created_by'] = get_current_user_id();
+	$row['assigned_at'] = $assigned_to ? current_time( 'mysql' ) : null;
 	$row['lead_code']  = ''; // filled in right after insert, once we have the id.
 
 	$wpdb->insert( $table, $row );
@@ -521,6 +526,7 @@ function sojib68_crm_work_create_from_lead( $lead_id ) {
 		'referred_by'    => $lead['referred_by'],
 		'source'         => $lead['source'],
 		'assigned_to'    => $lead['assigned_to'] ? (int) $lead['assigned_to'] : null,
+		'assigned_at'    => $lead['assigned_to'] ? current_time( 'mysql' ) : null,
 		'status'         => 'running',
 		'stage_changed_at' => current_time( 'mysql' ),
 		'created_at'     => current_time( 'mysql' ),
@@ -1363,6 +1369,9 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		if ( ! $before || $before['stage'] !== $row['stage'] || $before['status'] !== $row['status'] ) {
 			$row['stage_changed_at'] = current_time( 'mysql' );
 		}
+		if ( ! $before || (int) $before['assigned_to'] !== (int) $row['assigned_to'] ) {
+			$row['assigned_at'] = $row['assigned_to'] ? current_time( 'mysql' ) : null;
+		}
 		if ( false === $wpdb->update( $table, $row, array( 'id' => (int) $id ) ) ) {
 			return new WP_Error( 'crm_work_db', __( 'ডাটাবেসে সংরক্ষণ করা যায়নি।', 'sojib68' ) . ' ' . $wpdb->last_error );
 		}
@@ -1371,6 +1380,7 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	}
 
 	$row['stage_changed_at'] = current_time( 'mysql' );
+	$row['assigned_at'] = $row['assigned_to'] ? current_time( 'mysql' ) : null;
 	$row['work_code']  = '';
 	$row['work_type']  = sojib68_crm_sanitize_from_list( $work_type, sojib68_crm_service_types(), 'other_land_service' );
 	$row['created_at'] = current_time( 'mysql' );
@@ -1385,4 +1395,154 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 	$wpdb->update( $table, array( 'work_code' => sojib68_crm_next_work_code( $new_id ) ), array( 'id' => $new_id ) );
 
 	return $new_id;
+}
+
+
+/* ---------------------------------------------------------------------
+ * কার কী দায়িত্ব — who has been given which lead / work, and since when
+ * ------------------------------------------------------------------ */
+
+/**
+ * Gives a lead or a work to a staff member (0 = nobody) and records the date.
+ *
+ * @param string $kind 'lead' | 'work'
+ * @return bool
+ */
+function sojib68_crm_assign( $kind, $id, $user_id ) {
+	global $wpdb;
+	$id       = (int) $id;
+	$user_id  = (int) $user_id;
+	$staff    = sojib68_crm_assignable_users();
+	$new      = $user_id && isset( $staff[ $user_id ] ) ? $user_id : 0;
+	$now      = current_time( 'mysql' );
+	$changes  = array( 'assigned_to' => $new ? $new : null, 'assigned_at' => $new ? $now : null, 'updated_at' => $now );
+
+	if ( 'lead' === $kind ) {
+		$lead = sojib68_crm_lead_get( $id );
+		if ( ! $lead ) {
+			return false;
+		}
+		if ( (int) $lead['assigned_to'] === $new ) {
+			return true;
+		}
+		$wpdb->update( sojib68_crm_table(), $changes, array( 'id' => $id ) );
+		sojib68_crm_lead_log( $id, 'assigned', sprintf( /* translators: %s: staff name */ __( 'দায়িত্বপ্রাপ্ত করা হয়েছে: %s', 'sojib68' ), $new ? $staff[ $new ] : __( '(কেউ নয়)', 'sojib68' ) ) );
+		return true;
+	}
+
+	if ( 'work' === $kind ) {
+		$work = sojib68_crm_work_get( $id );
+		if ( ! $work ) {
+			return false;
+		}
+		if ( (int) $work['assigned_to'] === $new ) {
+			return true;
+		}
+		$wpdb->update( sojib68_crm_works_table(), $changes, array( 'id' => $id ) );
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Every open lead and work with who holds it and since when, oldest assignment first or newest first.
+ *
+ * $f: staff (user id; -1 = nobody; 0 = everyone), kind ('' | 'lead' | 'work'), state ('open' | 'all'),
+ * order ('new' | 'old'), scope_user_id (staff may only see their own).
+ *
+ * Each row: kind, id, code, name, phone, category (label), status (label), status_key, assigned_to,
+ * assigned_at (when it was given to that person; null when nobody holds it), created_at (when it came in), url.
+ * Sorted by assigned_at, or created_at for what nobody holds.
+ */
+function sojib68_crm_staff_work_rows( $f = array() ) {
+	global $wpdb;
+	$staff_f = isset( $f['staff'] ) ? (int) $f['staff'] : 0;
+	$kind    = isset( $f['kind'] ) ? $f['kind'] : '';
+	$state   = isset( $f['state'] ) && 'all' === $f['state'] ? 'all' : 'open';
+	$scope   = isset( $f['scope_user_id'] ) ? $f['scope_user_id'] : null;
+
+	$rows = array();
+
+	$match = function ( $assigned_to ) use ( $staff_f, $scope ) {
+		$a = $assigned_to ? (int) $assigned_to : 0;
+		if ( null !== $scope ) {
+			return $a === (int) $scope;
+		}
+		if ( -1 === $staff_f ) {
+			return 0 === $a;
+		}
+		return 0 === $staff_f || $a === $staff_f;
+	};
+
+	if ( 'work' !== $kind ) {
+		$statuses = sojib68_crm_lead_statuses();
+		$services = sojib68_crm_service_types();
+		$sql      = 'SELECT * FROM ' . sojib68_crm_table() . ( 'open' === $state ? " WHERE status NOT IN ('cancelled')" : '' ) . ' ORDER BY id DESC LIMIT 3000';
+		foreach ( (array) $wpdb->get_results( $sql, ARRAY_A ) as $l ) {
+			if ( ! $match( $l['assigned_to'] ) ) {
+				continue;
+			}
+			$rows[] = array(
+				'kind'            => 'lead',
+				'id'              => (int) $l['id'],
+				'code'            => $l['lead_code'],
+				'name'            => $l['name'],
+				'phone'           => $l['phone'],
+				'category'        => isset( $services[ $l['service_type'] ] ) ? $services[ $l['service_type'] ] : $l['service_type'],
+				'status'          => isset( $statuses[ $l['status'] ] ) ? $statuses[ $l['status'] ] : $l['status'],
+				'status_key'      => $l['status'],
+				'assigned_to'     => $l['assigned_to'] ? (int) $l['assigned_to'] : 0,
+				'assigned_at'     => ! empty( $l['assigned_at'] ) ? $l['assigned_at'] : null,
+				'created_at'      => $l['created_at'],
+				'url'             => home_url( '/' . SOJIB68_CRM_BASE . '/entry-new?id=' . (int) $l['id'] ),
+			);
+		}
+	}
+
+	if ( 'lead' !== $kind ) {
+		$statuses = sojib68_crm_work_statuses();
+		$services = sojib68_crm_service_types();
+		$sql      = 'SELECT * FROM ' . sojib68_crm_works_table() . " WHERE deleted_at IS NULL" . ( 'open' === $state ? " AND status NOT IN ('delivered','cancelled')" : '' ) . ' ORDER BY id DESC LIMIT 3000';
+		foreach ( (array) $wpdb->get_results( $sql, ARRAY_A ) as $w ) {
+			if ( ! $match( $w['assigned_to'] ) ) {
+				continue;
+			}
+			$rows[] = array(
+				'kind'            => 'work',
+				'id'              => (int) $w['id'],
+				'code'            => $w['work_code'],
+				'name'            => $w['customer_name'],
+				'phone'           => $w['customer_phone'],
+				'category'        => isset( $services[ $w['work_type'] ] ) ? $services[ $w['work_type'] ] : $w['work_type'],
+				'status'          => isset( $statuses[ $w['status'] ] ) ? $statuses[ $w['status'] ] : $w['status'],
+				'status_key'      => $w['status'],
+				'assigned_to'     => $w['assigned_to'] ? (int) $w['assigned_to'] : 0,
+				'assigned_at'     => ! empty( $w['assigned_at'] ) ? $w['assigned_at'] : null,
+				'created_at'      => $w['created_at'],
+				'url'             => sojib68_crm_work_edit_url( $w ),
+			);
+		}
+	}
+
+	$dir = isset( $f['order'] ) && 'old' === $f['order'] ? 1 : -1;
+	usort( $rows, function ( $a, $b ) use ( $dir ) {
+		$cmp = strcmp( $a['assigned_at'] ? $a['assigned_at'] : $a['created_at'], $b['assigned_at'] ? $b['assigned_at'] : $b['created_at'] );
+		return $cmp ? $dir * $cmp : $dir * ( $a['id'] <=> $b['id'] );
+	} );
+
+	return $rows;
+}
+
+/** Open leads and works held by each staff member (0 = nobody): array( user_id => array( 'leads' => n, 'works' => n ) ). */
+function sojib68_crm_staff_load() {
+	$load = array();
+	foreach ( sojib68_crm_staff_work_rows( array( 'state' => 'open' ) ) as $r ) {
+		$key = $r['assigned_to'];
+		if ( ! isset( $load[ $key ] ) ) {
+			$load[ $key ] = array( 'leads' => 0, 'works' => 0 );
+		}
+		$load[ $key ][ 'lead' === $r['kind'] ? 'leads' : 'works' ]++;
+	}
+	return $load;
 }

@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '3.0.0' ); // 3.0.0: + works.deed_id and cash_ledger.source_ref (দলিল এন্ট্রি ↔ CRM sync)
+define( 'SOJIB68_CRM_DB_VERSION', '3.1.0' ); // 3.1.0: + assigned_at on leads and works (when a staff member was given it); 3.0.0: + works.deed_id and cash_ledger.source_ref (দলিল এন্ট্রি ↔ CRM sync)
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -58,6 +58,7 @@ function sojib68_crm_install() {
 		details TEXT NULL,
 		notes TEXT NULL,
 		assigned_to BIGINT(20) UNSIGNED NULL,
+		assigned_at DATETIME NULL,
 		status VARCHAR(30) NOT NULL DEFAULT 'new',
 		next_followup_at DATETIME NULL,
 		created_by BIGINT(20) UNSIGNED NULL,
@@ -113,6 +114,7 @@ function sojib68_crm_install() {
 		received_date DATE NULL,
 		referred_by VARCHAR(190) NOT NULL DEFAULT '',
 		assigned_to BIGINT(20) UNSIGNED NULL,
+		assigned_at DATETIME NULL,
 		status VARCHAR(20) NOT NULL DEFAULT 'running',
 		agreed_poysha BIGINT(20) UNSIGNED NULL,
 		source VARCHAR(30) NOT NULL DEFAULT '',
@@ -178,6 +180,14 @@ function sojib68_crm_install() {
 	// every application stage after that is running. Re-derive stored statuses once.
 	$wpdb->query( "UPDATE {$works_table} SET status = 'pending' WHERE work_type = 'namjari' AND stage = 'not_applied' AND status IN ('running','pending')" );
 	$wpdb->query( "UPDATE {$works_table} SET status = 'running' WHERE work_type = 'namjari' AND stage IN ('applied','land_office_sent','ac_land_surveyor','ac_land_id') AND status IN ('running','pending')" );
+
+	// When a staff member was given a lead / work: for what was assigned before this column existed,
+	// use the last "assigned" note in the lead's history, else the last time it was touched.
+	$leads_t = sojib68_crm_table();
+	$act_t   = sojib68_crm_activity_table();
+	$wpdb->query( "UPDATE {$leads_t} SET assigned_at = (SELECT MAX(a.created_at) FROM {$act_t} a WHERE a.lead_id = {$leads_t}.id AND a.type = 'assigned') WHERE assigned_to IS NOT NULL AND assigned_at IS NULL" );
+	$wpdb->query( "UPDATE {$leads_t} SET assigned_at = COALESCE(updated_at, created_at) WHERE assigned_to IS NOT NULL AND assigned_at IS NULL" );
+	$wpdb->query( "UPDATE {$works_table} SET assigned_at = COALESCE(updated_at, created_at) WHERE assigned_to IS NOT NULL AND assigned_at IS NULL" );
 
 	update_option( 'sojib68_crm_db_version', SOJIB68_CRM_DB_VERSION );
 }
