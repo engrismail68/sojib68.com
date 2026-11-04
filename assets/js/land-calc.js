@@ -406,12 +406,22 @@
 		} else {
 			sh = vals.sh;
 			inputs.push( [ 'জমি', format( sh ) + ' শতাংশ' ] );
-			// each unit on its own: the whole amount expressed in that one unit
-			extra = [ [ format( sh ) + ' শতাংশ জমি সমান', '', 'head' ] ];
-			OKEYS.forEach( function ( k ) {
-				extra.push( [ OLD[ k ].label, format( sh / OLD[ k ].shatangsho ), false ] );
+			// split into whole আনা / গণ্ডা / কড়া / ক্রান্তি / তিল, largest first; units that are 0 are left out
+			var rest = sh;
+			var parts = [];
+			OKEYS.forEach( function ( k, i ) {
+				var u = OLD[ k ].shatangsho;
+				var n = i === OKEYS.length - 1 ? Math.round( ( rest / u ) * 100 ) / 100 : Math.floor( rest / u + 1e-9 );
+				rest -= n * u;
+				if ( n > 0 ) { parts.push( format( n ) + ' ' + OLD[ k ].label ); }
 			} );
-			extra.push( [ 'আরও যেসব এককে সমান', '', 'head' ] );
+			var smallest = OLD[ OKEYS[ OKEYS.length - 1 ] ];
+			extra = [
+				[ format( sh ) + ' শতাংশ জমি সমান', '', 'head' ],
+				[ 'আনা-গণ্ডা-কড়া-ক্রান্তি-তিলে', parts.length ? parts.join( ', ' ) : '0' ],
+				[ 'সবটা ' + smallest.label + '-এ', format( sh / smallest.shatangsho ) + ' ' + smallest.label, false ],
+				[ 'আরও যেসব এককে সমান', '', 'head' ]
+			];
 		}
 		omsg.hidden = true;
 		var sqft = sh * SQFT_PER_SHOTANGSHO;
