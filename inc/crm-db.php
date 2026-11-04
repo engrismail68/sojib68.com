@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SOJIB68_CRM_DB_VERSION', '2.9.0' );
+define( 'SOJIB68_CRM_DB_VERSION', '3.0.0' ); // 3.0.0: + works.deed_id and cash_ledger.source_ref (দলিল এন্ট্রি ↔ CRM sync)
 
 function sojib68_crm_table() {
 	global $wpdb;
@@ -106,6 +106,7 @@ function sojib68_crm_install() {
 		id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 		work_code VARCHAR(20) NOT NULL DEFAULT '',
 		lead_id BIGINT(20) UNSIGNED NULL,
+		deed_id BIGINT(20) UNSIGNED NULL,
 		customer_name VARCHAR(190) NOT NULL DEFAULT '',
 		customer_phone VARCHAR(30) NOT NULL DEFAULT '',
 		work_type VARCHAR(30) NOT NULL DEFAULT 'other_land_service',
@@ -143,6 +144,7 @@ function sojib68_crm_install() {
 		PRIMARY KEY  (id),
 		UNIQUE KEY work_code (work_code),
 		KEY lead_id (lead_id),
+		KEY deed_id (deed_id),
 		KEY work_type (work_type),
 		KEY status (status),
 		KEY assigned_to (assigned_to),
@@ -160,6 +162,7 @@ function sojib68_crm_install() {
 		note VARCHAR(255) NOT NULL DEFAULT '',
 		txn_date DATE NOT NULL,
 		work_id BIGINT(20) UNSIGNED NULL,
+		source_ref VARCHAR(40) NOT NULL DEFAULT '',
 		created_by BIGINT(20) UNSIGNED NULL,
 		created_at DATETIME NOT NULL,
 		PRIMARY KEY  (id),

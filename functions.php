@@ -26,6 +26,7 @@ require_once get_theme_file_path( 'inc/crm-leads.php' );
 require_once get_theme_file_path( 'inc/crm-ajax.php' );
 require_once get_theme_file_path( 'inc/crm-ui.php' );
 require_once get_theme_file_path( 'inc/crm-system.php' );
+require_once get_theme_file_path( 'inc/crm-deed-sync.php' );
 
 /**
  * Business contact details.

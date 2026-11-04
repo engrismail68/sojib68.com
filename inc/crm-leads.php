@@ -1366,6 +1366,7 @@ function sojib68_crm_work_save( $data, $id = 0, $work_type = 'other_land_service
 		if ( false === $wpdb->update( $table, $row, array( 'id' => (int) $id ) ) ) {
 			return new WP_Error( 'crm_work_db', __( 'ডাটাবেসে সংরক্ষণ করা যায়নি।', 'sojib68' ) . ' ' . $wpdb->last_error );
 		}
+		do_action( 'sojib68_crm_work_saved', (int) $id ); // a work linked to a দলিল passes its status back to the office record
 		return (int) $id;
 	}
 

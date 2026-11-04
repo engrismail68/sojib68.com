@@ -723,6 +723,9 @@ function sojib68_crm_render_category_entry( $type ) {
 	$v = function ( $key, $default = '' ) use ( $work ) {
 		return $work ? esc_attr( (string) $work[ $key ] ) : esc_attr( $default );
 	};
+	// A work that comes from an office দলিল: its client and money are edited there, not here.
+	$from_deed = $work && ! empty( $work['deed_id'] );
+	$ro        = $from_deed ? ' readonly' : '';
 
 	// Result of the last save: green on success, red with the reason (and the typed input refilled) on failure.
 	$prefill = array();
@@ -749,6 +752,24 @@ function sojib68_crm_render_category_entry( $type ) {
 		}
 	}
 
+	if ( 'deed_registration' === $type ) {
+		$backfilled = isset( $_GET['backfilled'] ) ? (int) $_GET['backfilled'] : -1;
+		echo '<div class="crm-notice crm-notice--ok">';
+		echo esc_html__( 'অফিসে নতুন দলিল এন্ট্রি করলে সেটা নিজে থেকে এখানে কাজ হিসেবে চলে আসে। মোট টাকা, আদায় ও খরচ অফিসের দলিল ফর্ম থেকেই আসে; এখান থেকে শুধু অবস্থা বদলানো যায়।', 'sojib68' );
+		echo ' <a href="' . esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) . '">' . esc_html__( 'নতুন দলিল এন্ট্রি (অফিস ফর্ম) →', 'sojib68' ) . '</a>';
+		echo '</div>';
+		if ( $backfilled >= 0 ) {
+			echo '<div class="crm-notice crm-notice--ok">' . esc_html( sprintf( /* translators: %d: count */ __( 'অফিসের %d টি পুরোনো দলিল এখানে আনা হয়েছে।', 'sojib68' ), $backfilled ) ) . '</div>';
+		}
+		if ( sojib68_crm_is_admin() && function_exists( 'sojib68_crm_backfill_deeds' ) ) {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="crm-inline-form" style="margin:0 0 14px;" onsubmit="return confirm(\'অফিসের যে দলিলগুলো এখনো এখানে নেই (পুরাতন হিসাব ছাড়া), সেগুলো কাজ হিসেবে আনা হবে। এতে এই ক্যাটাগরির আয়-ব্যয় বদলাবে। চালিয়ে যাবেন?\');">';
+			echo '<input type="hidden" name="action" value="sojib68_crm_backfill_deeds">';
+			wp_nonce_field( 'sojib68_crm_backfill_deeds' );
+			echo '<button type="submit" class="btn btn-outline btn-sm">' . esc_html__( 'অফিসের পুরোনো দলিলগুলোও এখানে আনুন (একবার)', 'sojib68' ) . '</button>';
+			echo '</form>';
+		}
+	}
+
 	// Form on the left, the "not started yet" queue on the right (stacks on narrow screens).
 	$queue = 'namjari' === $type;
 	if ( $queue ) {
@@ -765,11 +786,11 @@ function sojib68_crm_render_category_entry( $type ) {
 
 		<div class="crm-field">
 			<label><?php esc_html_e( 'গ্রাহকের নাম', 'sojib68' ); ?></label>
-			<input type="text" name="customer_name" value="<?php echo $v( 'customer_name' ); ?>">
+			<input type="text" name="customer_name" value="<?php echo $v( 'customer_name' ); ?>"<?php echo $ro; // phpcs:ignore ?>>
 		</div>
 		<div class="crm-field">
 			<label><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?></label>
-			<input type="text" name="customer_phone" value="<?php echo $v( 'customer_phone' ); ?>">
+			<input type="text" name="customer_phone" value="<?php echo $v( 'customer_phone' ); ?>"<?php echo $ro; // phpcs:ignore ?>>
 		</div>
 		<div class="crm-field">
 			<label><?php esc_html_e( 'কাজ আসার তারিখ', 'sojib68' ); ?></label>
@@ -791,7 +812,7 @@ function sojib68_crm_render_category_entry( $type ) {
 		<?php if ( sojib68_crm_can_view_finance() ) : ?>
 			<div class="crm-field">
 				<label><?php esc_html_e( 'গ্রাহকের সাথে চুক্তির মোট টাকা (৳)', 'sojib68' ); ?></label>
-				<input type="text" inputmode="decimal" autocomplete="off" data-money name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>">
+				<input type="text" inputmode="decimal" autocomplete="off" data-money name="agreed_amount" value="<?php echo $work && null !== $work['agreed_poysha'] ? esc_attr( sojib68_crm_poysha_to_taka_display( $work['agreed_poysha'] ) ) : ''; ?>" placeholder="<?php esc_attr_e( 'ঠিক না হলে ফাঁকা রাখুন', 'sojib68' ); ?>"<?php echo $ro; // phpcs:ignore ?>>
 			</div>
 		<?php endif; ?>
 		<?php if ( $stage_cfg ) : ?>
@@ -1492,6 +1513,9 @@ function sojib68_crm_render_work_accounts( $work, $type ) {
 	?>
 	<div class="crm-works-box crm-work-accounts">
 		<h3><?php esc_html_e( 'এই কাজের হিসাব', 'sojib68' ); ?> — <?php echo esc_html( $work['work_code'] ); ?></h3>
+		<?php if ( ! empty( $work['deed_id'] ) ) : ?>
+			<div class="crm-notice crm-notice--ok"><?php esc_html_e( 'এই কাজ অফিসের দলিল এন্ট্রি থেকে এসেছে: মোট টাকা, আদায় ও খরচ অফিসের দলিল ফর্ম থেকে নিজে থেকে হালনাগাদ হয়।', 'sojib68' ); ?> <a href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new?id=' . (int) $work['deed_id'] ) ); ?>"><?php esc_html_e( 'অফিসে দলিলটি খুলুন →', 'sojib68' ); ?></a></div>
+		<?php endif; ?>
 
 		<div class="crm-acc-summary">
 			<div><span><?php esc_html_e( 'চুক্তির মোট', 'sojib68' ); ?></span><strong><?php echo null === $acc['agreed'] ? esc_html__( 'ঠিক হয়নি', 'sojib68' ) : esc_html( $money( $acc['agreed'] ) ); ?></strong></div>
@@ -1548,7 +1572,13 @@ function sojib68_crm_render_work_accounts( $work, $type ) {
 								<td><?php echo esc_html( $money( $e['amount_poysha'] ) ); ?></td>
 								<td class="crm-table__notes"><?php echo esc_html( $e['note'] ); ?></td>
 								<td><?php echo esc_html( $categories[ $e['category'] ] ?? $e['category'] ); ?></td>
-								<td><button type="button" class="btn btn-outline btn-sm btn-danger-outline crm-delete-cash" data-cash-id="<?php echo (int) $e['id']; ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button></td>
+								<td>
+									<?php if ( 0 === strpos( (string) ( $e['source_ref'] ?? '' ), 'deed:' ) ) : ?>
+										<span class="crm-muted" title="<?php esc_attr_e( 'অফিসের দলিল ফর্ম থেকে এসেছে, সেখানে বদলাতে হবে', 'sojib68' ); ?>"><?php esc_html_e( 'অফিস ফর্ম', 'sojib68' ); ?></span>
+									<?php else : ?>
+										<button type="button" class="btn btn-outline btn-sm btn-danger-outline crm-delete-cash" data-cash-id="<?php echo (int) $e['id']; ?>"><?php echo sojib68_crm_icon( 'trash', 14 ); // phpcs:ignore ?></button>
+									<?php endif; ?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>

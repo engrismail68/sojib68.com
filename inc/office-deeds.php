@@ -375,6 +375,8 @@ function sojib68_deed_save( array $data, $deed_id, $user_id ) {
 	// auto-increment would mix years together.
 	sojib68_deeds_resequence();
 
+	do_action( 'sojib68_deed_changed', (int) $deed_id ); // e.g. keeps the CRM's দলিল রেজিস্ট্রেশন work in step
+
 	return $deed_id;
 }
 
@@ -648,6 +650,7 @@ function sojib68_deed_soft_delete( $deed_id, $user_id ) {
 
 	sojib68_deed_audit_log( $deed_id, $user_id, 'delete', __( 'রিসাইকেল বিনে পাঠানো হয়েছে', 'sojib68' ) );
 	sojib68_deeds_resequence();
+	do_action( 'sojib68_deed_trashed', $deed_id );
 
 	return true;
 }
@@ -670,6 +673,7 @@ function sojib68_deed_restore( $deed_id, $user_id ) {
 
 	sojib68_deed_audit_log( $deed_id, $user_id, 'restore', __( 'রিসাইকেল বিন থেকে ফিরিয়ে আনা হয়েছে', 'sojib68' ) );
 	sojib68_deeds_resequence();
+	do_action( 'sojib68_deed_changed', $deed_id );
 
 	return true;
 }
@@ -679,6 +683,7 @@ function sojib68_deed_purge( $deed_id ) {
 	global $wpdb;
 
 	$deed_id = (int) $deed_id;
+	do_action( 'sojib68_deed_purged', $deed_id );
 	foreach ( sojib68_deed_child_tables() as $child ) {
 		$wpdb->delete( sojib68_deeds_table( $child ), array( 'deed_id' => $deed_id ) );
 	}
@@ -1269,6 +1274,7 @@ function sojib68_deed_add_payment( $deed_id, $amount_input, $date, $method, $not
 
 	$payment_id = (int) $wpdb->insert_id;
 	sojib68_deed_audit_log( $deed_id, $user_id, 'payment_add', sojib68_poysha_to_display( $amount ) );
+	do_action( 'sojib68_deed_changed', $deed_id );
 
 	return $payment_id;
 }
@@ -1288,6 +1294,7 @@ function sojib68_deed_delete_payment( $payment_id, $user_id ) {
 	}
 
 	sojib68_deed_audit_log( (int) $row->deed_id, $user_id, 'payment_delete', sojib68_poysha_to_display( $row->amount_poysha ) );
+	do_action( 'sojib68_deed_changed', (int) $row->deed_id );
 	return true;
 }
 

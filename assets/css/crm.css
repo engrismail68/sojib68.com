@@ -1242,3 +1242,8 @@
 	.crm-content { padding: 18px 14px 32px; }
 	.crm-pagehead { padding: 18px; }
 }
+
+.crm-muted {
+	color: var(--crm-muted);
+	font-size: 0.82rem;
+}
