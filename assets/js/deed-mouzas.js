@@ -4,10 +4,10 @@
 	var M = window.sojib68DwM, dlg = document.getElementById( 'dw-mouza-dlg' );
 	if ( ! M || ! dlg ) { return; }
 	var form = document.getElementById( 'dw-mouza-form' ), delBtn = document.getElementById( 'dw-mouza-del' );
-	var FIELDS = [ 'name', 'no', 'union', 'upazila', 'district', 'jl_no', 'village', 'land_office', 'sub_office', 'land_class', 'intro', 'id' ];
+	var FIELDS = [ 'name', 'no', 'union', 'upazila', 'district', 'jl_no', 'village', 'land_office', 'sub_office', 'intro', 'id' ];
 
 	function open( id ) {
-		var m = id && M.mouzas[ id ] ? M.mouzas[ id ] : { upazila: 'রামগঞ্জ', district: 'লক্ষ্মীপুর', sub_office: 'রামগঞ্জ সাব রেজিস্ট্রি অফিস।', land_office: 'সহকারী কমিশনার ভূমি অফিস, রামগঞ্জ।', land_class: 'নাল' };
+		var m = id && M.mouzas[ id ] ? M.mouzas[ id ] : { upazila: 'রামগঞ্জ', district: 'লক্ষ্মীপুর', sub_office: 'রামগঞ্জ সাব রেজিস্ট্রি অফিস।', land_office: 'সহকারী কমিশনার ভূমি অফিস, রামগঞ্জ।' };
 		FIELDS.forEach( function ( k ) { form.elements[ k ].value = m[ k ] || ''; } );
 		document.getElementById( 'dw-mouza-title' ).textContent = id ? 'মৌজার তথ্য বদলান' : 'নতুন মৌজা';
 		delBtn.hidden = ! id;

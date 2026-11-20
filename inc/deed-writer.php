@@ -511,7 +511,7 @@ function sojib68_dw_download( $id ) {
  * ------------------------------------------------------------------ */
 
 function sojib68_dw_mouza_fields() {
-	return array( 'name', 'no', 'union', 'upazila', 'district', 'jl_no', 'village', 'land_office', 'sub_office', 'land_class', 'intro' );
+	return array( 'name', 'no', 'union', 'upazila', 'district', 'jl_no', 'village', 'land_office', 'sub_office', 'intro' );
 }
 
 function sojib68_dw_get_mouzas() {
@@ -751,7 +751,6 @@ function sojib68_dw_render( $base = null ) {
 				<label class="dw-f"><span>গ্রাম</span><input name="village"></label>
 				<label class="dw-f dw-wide"><span>ভূমি অফিসের নাম</span><input name="land_office"></label>
 				<label class="dw-f dw-wide"><span>রেজিস্ট্রি অফিসের নাম</span><input name="sub_office"></label>
-				<label class="dw-f"><span>সাধারণ শ্রেণি</span><input name="land_class" placeholder="যেমন নাল"></label>
 				<label class="dw-f dw-full"><span>মালিকানার বিবরণের শুরুর অংশ (এই মৌজার সব দলিলে একই থাকে)</span><textarea name="intro" rows="5" placeholder="যেমন: জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … পরগনা … তৌজিভুক্ত … সি.এস … আর.এস …"></textarea></label>
 			</div>
 			<input type="hidden" name="id">

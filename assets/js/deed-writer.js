@@ -118,7 +118,7 @@
 	if ( ! S.f.o ) { S.f.o = {}; }
 	/* ---- mouza library: fixed details of a mouza fill in automatically ---- */
 	var MZ = BOOT.mouzas || [];
-	var MAP = [ [ 'mouza_name', 'name' ], [ 'mouza_no', 'no' ], [ 'union', 'union' ], [ 'upazila', 'upazila' ], [ 'district', 'district' ], [ 'jl_no', 'jl_no' ], [ 'village', 'village' ], [ 'land_office', 'land_office' ], [ 'sub_office', 'sub_office' ], [ 'land_class', 'land_class' ], [ 'ownership', 'intro' ] ];
+	var MAP = [ [ 'mouza_name', 'name' ], [ 'mouza_no', 'no' ], [ 'union', 'union' ], [ 'upazila', 'upazila' ], [ 'district', 'district' ], [ 'jl_no', 'jl_no' ], [ 'village', 'village' ], [ 'land_office', 'land_office' ], [ 'sub_office', 'sub_office' ], [ 'ownership', 'intro' ] ];
 
 	function findMouza() {
 		var f = S.f, i, hit = null, name = ( f.mouza_name || '' ).trim(), no = en( f.mouza_no || '' ).trim();
@@ -140,10 +140,7 @@
 			if ( overwrite || ! S.f[ p[ 0 ] ] || ! String( S.f[ p[ 0 ] ] ).trim() ) { if ( S.f[ p[ 0 ] ] !== v ) { S.f[ p[ 0 ] ] = v; changed = true; } }
 		} );
 		if ( S.f.ownership_src != null && S.f.ownership !== srcPlain( S.f.ownership_src ) ) { S.f.ownership_src = S.f.ownership; }
-		// the mouza's usual শ্রেণী goes into the first land line
-		if ( m.land_class && S.f.lands && S.f.lands[ 0 ] && ( overwrite || ! S.f.lands[ 0 ].cls ) && S.f.lands[ 0 ].cls !== m.land_class ) { S.f.lands[ 0 ].cls = m.land_class; changed = true; }
 		if ( m.id && S.f.mouza_id !== m.id ) { S.f.mouza_id = m.id; changed = true; }
-		if ( m.land_class && S.f.khatians && S.f.khatians[ 0 ] && S.f.khatians[ 0 ].dags[ 0 ] && ! S.f.khatians[ 0 ].dags[ 0 ].cls ) { S.f.khatians[ 0 ].dags[ 0 ].cls = m.land_class; }
 		return changed;
 	}
 
@@ -851,7 +848,7 @@
 	function saveMouza() {
 		var f = S.f, st = document.getElementById( 'dw-mouza-st' );
 		if ( ! f.mouza_name ) { st.textContent = 'আগে মৌজার নাম লিখুন'; return; }
-		var m = { id: f.mouza_id || '', name: f.mouza_name, no: f.mouza_no, union: f.union, upazila: f.upazila, district: f.district, jl_no: f.jl_no, village: f.village, land_office: f.land_office, sub_office: f.sub_office, land_class: f.land_class, intro: f.ownership };
+		var m = { id: f.mouza_id || '', name: f.mouza_name, no: f.mouza_no, union: f.union, upazila: f.upazila, district: f.district, jl_no: f.jl_no, village: f.village, land_office: f.land_office, sub_office: f.sub_office, intro: f.ownership };
 		post( 'sojib68_dw_mouza_save', { mouza: JSON.stringify( m ) } ).then( function ( res ) {
 			if ( res && res.success ) { f.mouza_id = res.data.id; st.textContent = '✓ মৌজা তালিকায় সেভ হয়েছে (পেজ রিফ্রেশ করলে বাঁ পাশে দেখাবে)'; schedule(); }
 			else { st.textContent = '⚠ ' + ( ( res && res.data && res.data.message ) || 'সেভ হয়নি' ); }
