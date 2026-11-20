@@ -197,3 +197,21 @@ td .dw-reset { display: block; margin: 2px auto 4px; }
 .df-tl { text-align: center; font-weight: 700; vertical-align: middle !important; }
 .pv-tot td { font-weight: 700; background: #f4f3ec; }
 .df-sum .df-x { width: 34px; }
+
+/* compact, full-width land table */
+.df-sum { table-layout: fixed; width: 100%; }
+.df-sum th { padding: 6px 4px; }
+.df-sum td { padding: 4px 5px; vertical-align: top; }
+.df-sum td.df-mid { vertical-align: middle; }
+.df-sum td input { border: 1px solid #e4e2d8 !important; background: #fff !important; padding: 6px 8px; margin: 0 0 3px; }
+.df-wd { position: relative; }
+.df-wd textarea { border: 1px solid #e4e2d8 !important; background: #f6faf6 !important; padding: 5px 26px 5px 8px; min-height: 34px; height: 34px; resize: vertical; line-height: 1.35; font-size: 14px; }
+.df-wd .dw-reset { position: absolute; right: 6px; top: 7px; margin: 0; padding: 0; font-size: 15px; text-decoration: none; }
+.df-sum .df-mini { margin: 1px 2px 0; font-size: 11.5px; }
+.df-sum .df-x { width: 30px; padding: 4px 0; text-align: center; vertical-align: middle; }
+.df-total td { background: #f6faf6; }
+.df-total .df-wd textarea { background: #fff !important; font-weight: 600; }
+.df-tl { text-align: center; font-weight: 700; font-size: 15px; }
+.df-sum .df-x { border: 0; background: transparent; }
+.df-sum tr:first-child th:last-child { border: 0; background: transparent; }
+.df-total td.df-x { background: transparent; }

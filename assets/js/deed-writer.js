@@ -259,13 +259,15 @@
 	}
 	var PEOPLE_HEAD = '<tr><th></th>' + [ 'নাম', 'পিতার নাম', 'মাতার নাম', 'গ্রাম/রোড', 'ডাকঘর', 'উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr>';
 
+	/** words box with the ↺ button inside it */
+	function wbox( key, scope ) { return '<div class="df-wd">' + ainp( key, scope, 1 ) + reset( key, scope ) + '</div>'; }
 	function landRows() {
 		var many = ( S.f.lands || [] ).length > 1;
 		return ( S.f.lands || [] ).map( function ( l, i ) {
 			var b = 'f.lands.' + i + '.', ho = 'f.lands.' + i + '.o';
-			return '<tr><td><small class="df-mini">জমির পরিমাণ (শতাংশ, শুধু সংখ্যা)</small>' + inp( b + 'area', { ph: 'যেমন 5 বা 5.25' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'area_text', ho, 2 ) + reset( 'area_text', ho ) + '</td>' +
-				'<td><small class="df-mini">শ্রেণী</small>' + inp( b + 'cls', { ph: 'যেমন নাল, ভিটি, পুকুর', list: 'dw-classes' } ) + '</td>' +
-				'<td><small class="df-mini">মূল্য (টাকা, শুধু সংখ্যা)</small>' + inp( b + 'price', { ph: 'যেমন 500000' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'price_text', ho, 2 ) + reset( 'price_text', ho ) + '</td>' +
+			return '<tr><td>' + inp( b + 'area', { ph: 'শতাংশ (শুধু সংখ্যা), যেমন 5 বা 5.25' } ) + wbox( 'area_text', ho ) + '</td>' +
+				'<td class="df-mid">' + inp( b + 'cls', { ph: 'শ্রেণী, যেমন নাল, ভিটি, পুকুর', list: 'dw-classes' } ) + '</td>' +
+				'<td>' + inp( b + 'price', { ph: 'টাকা (শুধু সংখ্যা), যেমন 500000' } ) + wbox( 'price_text', ho ) + '</td>' +
 				'<td class="df-x">' + ( many ? '<button type="button" class="dw-x" data-del-land="' + i + '" title="এই সারি মুছুন">×</button>' : '' ) + '</td></tr>';
 		} ).join( '' );
 	}
@@ -286,8 +288,8 @@
 			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
 			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
 			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
-			'<table class="df-t df-sum"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)', '' ].map( th ).join( '' ) + '</tr>' + landRows() +
-			'<tr class="df-total"><td><small class="df-mini">মোট জমি (নিজে নিজে যোগ হয়, চাইলে বদলান)</small>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td><td class="df-tl">মোট</td><td><small class="df-mini">মোট মূল্য (নিজে নিজে যোগ হয়, চাইলে বদলান)</small>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td><td class="df-x"></td></tr></table>' +
+			'<table class="df-t df-sum"><colgroup><col style="width:38%"><col style="width:24%"><col style="width:34%"><col style="width:4%"></colgroup><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)', '' ].map( th ).join( '' ) + '</tr>' + landRows() +
+			'<tr class="df-total"><td>' + wbox( 'area_text', 'f.o' ) + '<small class="df-mini">মোট জমি (নিজে নিজে যোগ হয়)</small></td><td class="df-mid df-tl">মোট</td><td>' + wbox( 'price_text', 'f.o' ) + '<small class="df-mini">মোট মূল্য (নিজে নিজে যোগ হয়)</small></td><td class="df-x"></td></tr></table>' +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-land="1">+ আরেক শ্রেণীর জমি (ভিটি, পুকুর, বাড়ী …)</button>' +
 			'<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' );
 
