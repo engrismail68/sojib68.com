@@ -284,14 +284,13 @@
 
 		// 1–2
 		h += dsec( 's-1', '১–২', 'রেজিস্ট্রি অফিস ও দলিলের সার সংক্ষেপ',
-			mouzaPicker() + drow( '১। রেজিস্ট্রী অফিসের নাম', inp( 'f.sub_office' ) ) +
+			mouzaPicker() + '<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' + drow( '১। রেজিস্ট্রী অফিসের নাম', inp( 'f.sub_office' ) ) +
 			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
 			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
 			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
 			'<table class="df-t df-sum"><colgroup><col style="width:38%"><col style="width:24%"><col style="width:34%"><col style="width:4%"></colgroup><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)', '' ].map( th ).join( '' ) + '</tr>' + landRows() +
 			'<tr class="df-total"><td>' + wbox( 'area_text', 'f.o' ) + '<small class="df-mini">মোট জমি (নিজে নিজে যোগ হয়)</small></td><td class="df-mid df-tl">মোট</td><td>' + wbox( 'price_text', 'f.o' ) + '<small class="df-mini">মোট মূল্য (নিজে নিজে যোগ হয়)</small></td><td class="df-x"></td></tr></table>' +
-			'<button type="button" class="btn btn-outline btn-sm" data-add-land="1">+ আরেক শ্রেণীর জমি (ভিটি, পুকুর, বাড়ী …)</button>' +
-			'<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' );
+			'<button type="button" class="btn btn-outline btn-sm" data-add-land="1">+ আরেক শ্রেণীর জমি (ভিটি, পুকুর, বাড়ী …)</button>' );
 
 		// 3, 4
 		h += dsec( 's-3', '৩', 'দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা (ক্রেতা)', searchBox( 'donees' ) + S.donees.map( function ( p, i ) { return partyCard( 'donees', i ); } ).join( '' ) + '<button type="button" class="btn btn-outline btn-sm" data-add-party="donees">+ আরেকজন গ্রহীতা</button>' );
