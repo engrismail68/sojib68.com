@@ -316,6 +316,22 @@ function sojib68_dw_expand_rows( $xml, $name, $items ) {
 	}, $xml );
 }
 
+/**
+ * Singular / plural wording used in item 7 (আমি/আমরা, আপনি/আপনারা …). Keys starting with d_ follow the
+ * number of donors, g_ the number of donees. The form can override any of them per deed.
+ */
+function sojib68_dw_vb_defaults() {
+	return array(
+		'd_ami'      => array( 'আমি', 'আমরা' ),
+		'd_amar'     => array( 'আমার', 'আমাদের' ),
+		'd_datar'    => array( 'দাতার', 'দাতাগণের' ),
+		'g_apni'     => array( 'আপনি', 'আপনারা' ),
+		'g_grohitar' => array( 'গ্রহিতার', 'গ্রহিতার' ),
+		'g_grohita'  => array( 'গ্রহিতা', 'গ্রহিতাগণ' ),
+		'g_apnar'    => array( 'আপনার', 'আপনাদের' ),
+	);
+}
+
 /** Build the .docx for a saved draft's data array; '' on failure. */
 function sojib68_dw_build_docx( $data ) {
 	$dir  = __DIR__ . '/deed-template/';
@@ -353,6 +369,16 @@ function sojib68_dw_build_docx( $data ) {
 	$body   = sojib68_dw_expand_loop( $body, 'donor', $donors, $party_filler( count( $donors ), 'donor' ) );
 	$reps   = ! empty( $data['rep'] ) && is_array( $data['rep'] ) ? array_values( $data['rep'] ) : array();
 	$body   = sojib68_dw_expand_loop( $body, 'rep', array_slice( $reps, 0, 1 ), $party_filler( 1, 'rep' ) );
+
+	// Singular/plural words for item 7: use what the form saved, else the defaults by number of donors/donees.
+	$vb = isset( $out['vb'] ) && is_array( $out['vb'] ) ? $out['vb'] : array();
+	foreach ( sojib68_dw_vb_defaults() as $k => $pair ) {
+		if ( empty( $vb[ $k ] ) ) {
+			$plural    = ( 0 === strpos( $k, 'd_' ) ? count( $donors ) : count( $donees ) ) > 1 ? 1 : 0;
+			$vb[ $k ]  = $pair[ $plural ];
+		}
+	}
+	$out['vb'] = $vb;
 
 	$rows = function ( $key ) use ( $out ) {
 		return ! empty( $out[ $key ] ) && is_array( $out[ $key ] ) ? array_values( $out[ $key ] ) : array( array() );

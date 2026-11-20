@@ -173,6 +173,13 @@
 	if ( ! S.f.bounds || ! S.f.bounds.length ) { S.f.bounds = [ { title: '', north: S.f.north || '', south: S.f.south || '', east: S.f.east || '', west: S.f.west || '' } ]; }
 	[ 'north', 'south', 'east', 'west', 'n_ft', 's_ft', 'e_ft', 'w_ft' ].forEach( function ( k ) { delete S.f[ k ]; } );
 	if ( S.f.sketch_lines == null ) { S.f.sketch_lines = 10; }
+	// Singular / plural words used in item 7 (আমি/আমরা, আপনি/আপনারা …): [একবচন, বহুবচন]. d_* follow the donors, g_* the donees.
+	var VB_DEFAULTS = {
+		d_ami: [ 'আমি', 'আমরা' ], d_amar: [ 'আমার', 'আমাদের' ], d_datar: [ 'দাতার', 'দাতাগণের' ],
+		g_apni: [ 'আপনি', 'আপনারা' ], g_grohitar: [ 'গ্রহিতার', 'গ্রহিতার' ], g_grohita: [ 'গ্রহিতা', 'গ্রহিতাগণ' ], g_apnar: [ 'আপনার', 'আপনাদের' ]
+	};
+	if ( ! S.f.vb ) { S.f.vb = JSON.parse( JSON.stringify( DEF.vb || VB_DEFAULTS ) ); }
+	Object.keys( VB_DEFAULTS ).forEach( function ( k ) { if ( ! S.f.vb[ k ] ) { S.f.vb[ k ] = VB_DEFAULTS[ k ].slice(); } } );
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -230,6 +237,11 @@
 		out.w1 = f.w1; out.w2 = f.w2;
 		[ 'name', 'father', 'mother', 'village', 'post', 'upazila', 'district' ].forEach( function ( k ) { out[ 'id_' + k ] = f.id[ k ] || ''; out[ 'wr_' + k ] = f.wr[ k ] || ''; } );
 		out.wr_sanad = f.wr.sanad || '';
+		out.vb = {};
+		Object.keys( VB_DEFAULTS ).forEach( function ( k ) {
+			var plural = ( k.indexOf( 'd_' ) === 0 ? S.donors.length : S.donees.length ) > 1 ? 1 : 0;
+			out.vb[ k ] = ( f.vb && f.vb[ k ] && f.vb[ k ][ plural ] ) || VB_DEFAULTS[ k ][ plural ];
+		} );
 		out.sketch_lines = parseInt( f.sketch_lines, 10 ); if ( ! isFinite( out.sketch_lines ) ) { out.sketch_lines = 10; }
 		out.land_class = ( f.lands || [] ).map( function ( l ) { return l.cls || ''; } ).filter( Boolean ).join( ', ' );
 		out.land_rows = ( f.lands || [] ).map( function ( l ) {
@@ -357,6 +369,15 @@
 				[ [ 'উত্তরে', 'north' ], [ 'দক্ষিণে', 'south' ], [ 'পূর্বে', 'east' ], [ 'পশ্চিমে', 'west' ] ].map( function ( d ) { return '<tr><th>' + d[ 0 ] + '</th><td>' + inp( p + d[ 1 ] ) + '</td></tr>'; } ).join( '' ) + '</table></div>';
 		} ).join( '' );
 	}
+	function vbBlock() {
+		var dn = S.donors.length, gn = S.donees.length;
+		var rows = [ [ 'd_ami', 'আমি / আমরা', 'দাতা' ], [ 'd_amar', 'আমার / আমাদের', 'দাতা' ], [ 'd_datar', 'দাতার / দাতাগণের', 'দাতা' ], [ 'g_apni', 'আপনি / আপনারা', 'গ্রহীতা' ], [ 'g_grohitar', 'গ্রহিতার', 'গ্রহীতা' ], [ 'g_grohita', 'গ্রহিতা / গ্রহিতাগণ', 'গ্রহীতা' ], [ 'g_apnar', 'আপনার / আপনাদের', 'গ্রহীতা' ] ];
+		return '<details class="df-vb"><summary>৭ নম্বরের নিচের দুই অনুচ্ছেদে এক বচন/বহুবচন (আমি-আমরা, আপনি-আপনারা): এই দলিলে <b>দাতা ' + ( dn > 1 ? 'বহুবচন' : 'একবচন' ) + '</b>, <b>গ্রহীতা ' + ( gn > 1 ? 'বহুবচন' : 'একবচন' ) + '</b> (শব্দ দেখুন/বদলান)</summary>' +
+			'<p class="df-note">দাতা বা গ্রহীতা একাধিক হলে নিজে নিজে বহুবচনের শব্দ বসে। নিচের শব্দগুলো আপনার মতো ঠিক করে নিন; বদলালে পরের দলিলেও এভাবেই থাকবে।</p>' +
+			'<table class="df-t df-vbt"><tr>' + th( 'কার সংখ্যা অনুযায়ী' ) + th( 'শব্দ' ) + th( 'একবচন' ) + th( 'বহুবচন' ) + '</tr>' +
+			rows.map( function ( r ) { return '<tr><td>' + r[ 2 ] + '</td><td>' + r[ 1 ] + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.0' ) + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.1' ) + '</td></tr>'; } ).join( '' ) + '</table></details>';
+	}
+
 	function landRows() {
 		var many = ( S.f.lands || [] ).length > 1;
 		return ( S.f.lands || [] ).map( function ( l, i ) {
@@ -396,7 +417,7 @@
 		h += dsec( 's-5', '৫–৭', 'আমমোক্তার, আমমোক্তারনামা ও মালিকানার বিবরণ',
 			'<p class="df-cap">৫। আমমোক্তার/প্রতিনিধি/অভিভাবকের মাধ্যমে দলিল সম্পাদিত হইয়া থাকিলে তাহাদের নাম, ঠিকানা ও বিবরণ</p>' + repBlock() +
 			'<p class="df-cap">৬। আমমোক্তারনামার বিবরণ</p>' + poaBlock() +
-			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p><div class="df-box">' + inp( 'f.ownership', { area: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) + '</div>' );
+			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p><div class="df-box">' + inp( 'f.ownership', { area: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) + '</div>' + vbBlock() );
 
 		// 10
 		h += dsec( 's-10', '১০', 'সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)', drow( 'ইংরেজি তারিখ বেছে নিন', inp( 'f.exec_greg', { type: 'date' } ) ) + dauto( 'বাংলা ও ইংরেজি তারিখ', 'exec_date', 'f.o', 1 ) );
@@ -563,7 +584,7 @@
 	function payload() {
 		compute();
 		var f = S.f;
-		var defaults = { sub_office: f.sub_office, district: f.district, upazila: f.upazila, land_office: f.land_office, id: f.id, wr: f.wr, w1: { upazila: f.w1.upazila, district: f.w1.district }, w2: { upazila: f.w2.upazila, district: f.w2.district } };
+		var defaults = { vb: f.vb, sub_office: f.sub_office, district: f.district, upazila: f.upazila, land_office: f.land_office, id: f.id, wr: f.wr, w1: { upazila: f.w1.upazila, district: f.w1.district }, w2: { upazila: f.w2.upazila, district: f.w2.district } };
 		var title = ( ( S.donors[ 0 ] && S.donors[ 0 ].name ) || '' ) + ( S.donees[ 0 ] && S.donees[ 0 ].name ? ' → ' + S.donees[ 0 ].name : '' );
 		title = ( title ? title + ' — ' : '' ) + ( f.deed_type || '' ) + ( f.mouza_name ? ' (' + f.mouza_name + ')' : '' );
 		var rep = repParty();
