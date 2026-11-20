@@ -494,7 +494,7 @@ function sojib68_dw_render( $base = null ) {
 				<li class="<?php echo ! $sel_mouza && ! $edit_id && ! $is_new ? 'is-on' : ''; ?>"><a href="<?php echo esc_url( $base ); ?>">সব দলিল</a></li>
 				<?php foreach ( $mouzas as $id => $m ) : ?>
 					<li class="<?php echo $sel_mouza === $id ? 'is-on' : ''; ?>">
-						<a class="dw-mz-name" href="<?php echo esc_url( add_query_arg( 'mouza', $id, $base ) ); ?>"><?php echo esc_html( ( $m['no'] ? $m['no'] . 'নং ' : '' ) . $m['name'] ); ?> <small>(<?php echo (int) ( $counts[ $id ] ?? 0 ); ?>)</small></a>
+						<a class="dw-mz-name" href="<?php echo esc_url( add_query_arg( 'mouza', $id, $base ) ); ?>"><?php echo esc_html( ( $m['no'] ? preg_replace( '/\s*নং\s*$/u', '', $m['no'] ) . 'নং ' : '' ) . $m['name'] ); ?> <small>(<?php echo (int) ( $counts[ $id ] ?? 0 ); ?>)</small></a>
 						<a class="dw-mz-new" href="<?php echo esc_url( add_query_arg( array( 'new' => '1', 'mouza' => $id ), $base ) ); ?>" title="এই মৌজায় নতুন দলিল">+ দলিল</a>
 						<button type="button" class="dw-mz-edit" data-mouza-edit="<?php echo esc_attr( $id ); ?>" title="মৌজার তথ্য বদলান">✎</button>
 					</li>

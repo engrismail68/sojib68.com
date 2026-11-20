@@ -143,7 +143,7 @@
 	function compute() {
 		var f = S.f, o = f.o || {};
 		var auto = {};
-		auto.mouza_short = ( f.mouza_no ? bn( f.mouza_no ) + 'নং ' : '' ) + ( f.mouza_name || '' );
+		auto.mouza_short = ( f.mouza_no ? bn( String( f.mouza_no ).replace( /\s*নং\s*$/, '' ) ) + 'নং ' : '' ) + ( f.mouza_name || '' );
 		auto.mouza_head = 'মৌজাঃ ' + ( f.mouza_name || '' );
 		auto.area_text = areaText( f.area );
 		auto.price_text = priceText( f.price );
@@ -256,8 +256,10 @@
 			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
 			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
 			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
-			'<table class="df-t"><tr>' + [ 'জমির পরিমাণ (শতাংশ, সংখ্যা)', 'মূল্য (টাকা, সংখ্যা)', 'দলিলের ফর্দ সংখ্যা' ].map( th ).join( '' ) + '</tr><tr><td>' + inp( 'f.area', { ph: '5 বা 5.25' } ) + '</td><td>' + inp( 'f.price', { ph: '500000' } ) + '</td><td>' + inp( 'f.pages', { ph: '7' } ) + '</td></tr></table>' +
-			'<table class="df-t"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)' ].map( th ).join( '' ) + '</tr><tr><td>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td><td>' + inp( 'f.land_class' ) + '</td><td>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td></tr></table>' +
+			'<table class="df-t df-sum"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)' ].map( th ).join( '' ) + '</tr><tr>' +
+			'<td><small class="df-mini">পরিমাণ লিখুন (শতাংশ, শুধু সংখ্যা)</small>' + inp( 'f.area', { ph: 'যেমন 5 বা 5.25' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td>' +
+			'<td>' + inp( 'f.land_class', { ph: 'যেমন নাল' } ) + '</td>' +
+			'<td><small class="df-mini">মূল্য লিখুন (টাকা, শুধু সংখ্যা)</small>' + inp( 'f.price', { ph: 'যেমন 500000' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td></tr></table>' +
 			'<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' );
 
 		// 3, 4
@@ -294,7 +296,7 @@
 		// 18–20
 		h += dsec( 's-18', '১৮–২০', 'স্বাক্ষী, সনাক্তকারী ও দলিল লেখক',
 			'<table class="df-t df-people">' + PEOPLE_HEAD + peopleRow( '১৮। (ক) স্বাক্ষী', 'w1' ) + peopleRow( '১৮। (খ) স্বাক্ষী', 'w2' ) + peopleRow( '১৯। সনাক্তকারী', 'id' ) + peopleRow( '২০। দলিল লেখক', 'wr' ) + '</table>' +
-			drow( 'দলিল লেখকের সনদ নং', inp( 'f.wr.sanad' ) ) + '<p class="df-note">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p>' );
+			drow( 'দলিল লেখকের সনদ নং', inp( 'f.wr.sanad' ) ) + drow( '২০। দলিলটি কয় ফর্দে লিখিত', inp( 'f.pages', { ph: 'যেমন 7' } ) ) + '<p class="df-note">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p>' );
 
 		// 21–22
 		h += dsec( 's-21', '২১–২২', 'দলিল দাতার হলফনামা ও সাব-রেজিষ্ট্রারের স্বাক্ষর',
@@ -313,7 +315,7 @@
 		if ( ! MZ.length ) { return '<p class="df-note">মৌজা তালিকায় মৌজা যোগ করলে এখানে বেছে নেওয়া যাবে, আর তার তথ্য নিজে নিজে ভরবে।</p>'; }
 		var cur = ( findMouza() || {} ).id || '';
 		return '<div class="df-row df-mpick"><span class="df-l">মৌজা বেছে নিন</span><span class="df-c">:</span><span class="df-v"><select id="dw-mouza-pick"><option value="">— মৌজা বেছে নিন —</option>' +
-			MZ.map( function ( m ) { return '<option value="' + esc( m.id ) + '"' + ( m.id === cur ? ' selected' : '' ) + '>' + esc( ( m.no ? m.no + 'নং ' : '' ) + m.name ) + '</option>'; } ).join( '' ) + '</select><small>ইউনিয়ন, জে.এল. নং, গ্রাম, ভূমি অফিস ও মালিকানার শুরুর অংশ নিজে নিজে ভরবে</small></span></div>';
+			MZ.map( function ( m ) { return '<option value="' + esc( m.id ) + '"' + ( m.id === cur ? ' selected' : '' ) + '>' + esc( ( m.no ? String( m.no ).replace( /\s*নং\s*$/, '' ) + 'নং ' : '' ) + m.name ) + '</option>'; } ).join( '' ) + '</select><small>ইউনিয়ন, জে.এল. নং, গ্রাম, ভূমি অফিস ও মালিকানার শুরুর অংশ নিজে নিজে ভরবে</small></span></div>';
 	}
 
 	function searchBox( group ) {
