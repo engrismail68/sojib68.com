@@ -146,10 +146,11 @@
 		}
 		out.donee_rows = shareRows( S.donees );
 		out.donor_rows = shareRows( S.donors );
-		out.affidavit_head = S.donors.map( function ( p ) {
+		auto.affidavit_head = S.donors.map( function ( p ) {
 			return 'হলফকারীগনের নাম, পিতার নাম, ঠিকানা ও বয়সঃ নাম ঃ ' + ( p.name || '' ) + ' পিতার নামঃ ' + ( p.father || '' ) + ' মাতার নাম ঃ ' + ( p.mother || '' ) +
 				' জন্ম তারিখ ঃ ' + ( p.dob || '' ) + ' ইং ' + ( p.perm || '' );
 		} ).join( '\n' );
+		out.affidavit_head = o.affidavit_head != null && o.affidavit_head !== '' ? o.affidavit_head : auto.affidavit_head;
 		S.out = out;
 		return out;
 	}
@@ -260,6 +261,9 @@
 			personBlock( '১৯। সনাক্তকারী', 'id' ) + personBlock( '২০। দলিল লেখক', 'wr', field( 'সনদ নং', 'f.wr.sanad' ) ) +
 			'<p class="dw-hint">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p></section>';
 
+		h += '<section class="dw-sec"><h3>২১ নম্বর: দলিল দাতার হলফনামা</h3><p class="dw-hint">হলফনামার স্থায়ী ঘোষণাগুলো (ক–চ ও “আমি/আমরা আরও ঘোষনা করিতেছি”) আপনার ছাঁচ থেকে নিজে নিজে আসে। শুধু হলফকারীর পরিচয়ের লাইনটি দাতার তথ্য থেকে ভরা হয়; চাইলে এখানে বদলান।</p><div class="dw-grid">' +
+			autoField( 'হলফকারীগনের নাম, পিতার নাম, ঠিকানা ও বয়স', 'affidavit_head', 'f.o', 4 ) + '</div></section>';
+		h += '<section class="dw-sec"><h3>২২ নম্বর: সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ</h3><p class="dw-hint">এটি রেজিস্ট্রি অফিসে সাব-রেজিস্ট্রার নিজে পূরণ করেন, তাই Word ফাইলে শিরোনামটি ফাঁকা জায়গাসহ থাকে। এখানে কিছু লেখার নেই।</p></section>';
 		h += '<section class="dw-sec dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
 			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। ফাইলটি Word-এ খুলে একবার দেখে নিন; SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
 		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
