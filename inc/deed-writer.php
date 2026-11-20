@@ -141,7 +141,7 @@ function sojib68_dw_remember_parties( $data ) {
 				continue;
 			}
 			$keep = array();
-			foreach ( array( 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present', 'nid_display' ) as $f ) {
+			foreach ( array( 'gender', 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present', 'nid_display' ) as $f ) {
 				$keep[ $f ] = isset( $p[ $f ] ) ? (string) $p[ $f ] : '';
 			}
 			$wpdb->query( $wpdb->prepare(
@@ -324,10 +324,10 @@ function sojib68_dw_vb_defaults() {
 	return array(
 		'd_ami'      => array( 'আমি', 'আমরা' ),
 		'd_amar'     => array( 'আমার', 'আমাদের' ),
-		'd_datar'    => array( 'দাতার', 'দাতাগণের' ),
+		'd_datar'    => array( 'দাতার', 'দাতাগণের', 'দাত্রীর', 'দাত্রীগণের' ),
 		'g_apni'     => array( 'আপনি', 'আপনারা' ),
-		'g_grohitar' => array( 'গ্রহিতার', 'গ্রহিতার' ),
-		'g_grohita'  => array( 'গ্রহিতা', 'গ্রহিতাগণ' ),
+		'g_grohitar' => array( 'গ্রহিতার', 'গ্রহিতার', 'গ্রহিত্রীর', 'গ্রহিত্রীর' ),
+		'g_grohita'  => array( 'গ্রহিতা', 'গ্রহিতাগণ', 'গ্রহিত্রী', 'গ্রহিত্রীগণ' ),
 		'g_apnar'    => array( 'আপনার', 'আপনাদের' ),
 	);
 }
@@ -374,8 +374,13 @@ function sojib68_dw_build_docx( $data ) {
 	$vb = isset( $out['vb'] ) && is_array( $out['vb'] ) ? $out['vb'] : array();
 	foreach ( sojib68_dw_vb_defaults() as $k => $pair ) {
 		if ( empty( $vb[ $k ] ) ) {
-			$plural    = ( 0 === strpos( $k, 'd_' ) ? count( $donors ) : count( $donees ) ) > 1 ? 1 : 0;
-			$vb[ $k ]  = $pair[ $plural ];
+			$list      = 0 === strpos( $k, 'd_' ) ? $donors : $donees;
+			$plural    = count( $list ) > 1 ? 1 : 0;
+			$female    = count( $pair ) > 2 && count( $list ) > 0;
+			foreach ( $list as $p ) {
+				$female = $female && ( 'মহিলা' === ( $p['gender'] ?? '' ) || ( '' === ( $p['gender'] ?? '' ) && '' !== trim( (string) ( $p['spouse'] ?? '' ) ) ) );
+			}
+			$vb[ $k ]  = $pair[ $female ? $plural + 2 : $plural ];
 		}
 	}
 	$out['vb'] = $vb;

@@ -100,7 +100,7 @@
 
 	/* ------------------------------------------------------------ state */
 	var DEF = BOOT.defaults || {};
-	function emptyParty() { return { nid: '', name: '', spouse: '', father: '', mother: '', dob: '', religion: DEF.religion || 'ইসলাম', profession: '', nationality: DEF.nationality || 'বাংলাদেশী', perm: '', present: '', share: '', o: {} }; }
+	function emptyParty() { return { nid: '', name: '', gender: '', spouse: '', father: '', mother: '', dob: '', religion: DEF.religion || 'ইসলাম', profession: '', nationality: DEF.nationality || 'বাংলাদেশী', perm: '', present: '', share: '', o: {} }; }
 	function person( k ) { var d = ( DEF[ k ] || {} ); return { name: d.name || '', father: d.father || '', mother: d.mother || '', village: d.village || '', post: d.post || '', upazila: d.upazila || 'রামগঞ্জ', district: d.district || 'লক্ষ্মীপুর', sanad: d.sanad || '' }; }
 
 	var saved = BOOT.data && BOOT.data.f ? BOOT.data : null;
@@ -175,11 +175,11 @@
 	if ( S.f.sketch_lines == null ) { S.f.sketch_lines = 10; }
 	// Singular / plural words used in item 7 (আমি/আমরা, আপনি/আপনারা …): [একবচন, বহুবচন]. d_* follow the donors, g_* the donees.
 	var VB_DEFAULTS = {
-		d_ami: [ 'আমি', 'আমরা' ], d_amar: [ 'আমার', 'আমাদের' ], d_datar: [ 'দাতার', 'দাতাগণের' ],
-		g_apni: [ 'আপনি', 'আপনারা' ], g_grohitar: [ 'গ্রহিতার', 'গ্রহিতার' ], g_grohita: [ 'গ্রহিতা', 'গ্রহিতাগণ' ], g_apnar: [ 'আপনার', 'আপনাদের' ]
+		d_ami: [ 'আমি', 'আমরা' ], d_amar: [ 'আমার', 'আমাদের' ], d_datar: [ 'দাতার', 'দাতাগণের', 'দাত্রীর', 'দাত্রীগণের' ],
+		g_apni: [ 'আপনি', 'আপনারা' ], g_grohitar: [ 'গ্রহিতার', 'গ্রহিতার', 'গ্রহিত্রীর', 'গ্রহিত্রীর' ], g_grohita: [ 'গ্রহিতা', 'গ্রহিতাগণ', 'গ্রহিত্রী', 'গ্রহিত্রীগণ' ], g_apnar: [ 'আপনার', 'আপনাদের' ]
 	};
 	if ( ! S.f.vb ) { S.f.vb = JSON.parse( JSON.stringify( DEF.vb || VB_DEFAULTS ) ); }
-	Object.keys( VB_DEFAULTS ).forEach( function ( k ) { if ( ! S.f.vb[ k ] ) { S.f.vb[ k ] = VB_DEFAULTS[ k ].slice(); } } );
+	Object.keys( VB_DEFAULTS ).forEach( function ( k ) { if ( ! S.f.vb[ k ] ) { S.f.vb[ k ] = VB_DEFAULTS[ k ].slice(); } else { for ( var vi = S.f.vb[ k ].length; vi < VB_DEFAULTS[ k ].length; vi++ ) { S.f.vb[ k ][ vi ] = VB_DEFAULTS[ k ][ vi ]; } } } );
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -238,9 +238,12 @@
 		[ 'name', 'father', 'mother', 'village', 'post', 'upazila', 'district' ].forEach( function ( k ) { out[ 'id_' + k ] = f.id[ k ] || ''; out[ 'wr_' + k ] = f.wr[ k ] || ''; } );
 		out.wr_sanad = f.wr.sanad || '';
 		out.vb = {};
+		var allFemale = function ( list ) { return list.length > 0 && list.every( function ( p ) { return p.gender === 'মহিলা' || ( ! p.gender && ( p.spouse || '' ).trim() ); } ); };
 		Object.keys( VB_DEFAULTS ).forEach( function ( k ) {
-			var plural = ( k.indexOf( 'd_' ) === 0 ? S.donors.length : S.donees.length ) > 1 ? 1 : 0;
-			out.vb[ k ] = ( f.vb && f.vb[ k ] && f.vb[ k ][ plural ] ) || VB_DEFAULTS[ k ][ plural ];
+			var list = k.indexOf( 'd_' ) === 0 ? S.donors : S.donees, plural = list.length > 1 ? 1 : 0;
+			var idx = ( VB_DEFAULTS[ k ].length > 2 && allFemale( list ) ) ? plural + 2 : plural;
+			var cur = f.vb && f.vb[ k ] ? f.vb[ k ] : [];
+			out.vb[ k ] = cur[ idx ] || VB_DEFAULTS[ k ][ idx ] || cur[ plural ] || VB_DEFAULTS[ k ][ plural ];
 		} );
 		out.sketch_lines = parseInt( f.sketch_lines, 10 ); if ( ! isFinite( out.sketch_lines ) ) { out.sketch_lines = 10; }
 		out.land_class = ( f.lands || [] ).map( function ( l ) { return l.cls || ''; } ).filter( Boolean ).join( ', ' );
@@ -309,11 +312,12 @@
 	function dsec( id, num, title, body ) { return '<section class="df-sec" id="' + id + '"><h3 class="df-h"><b>' + num + '।</b> ' + title + '</h3>' + body + '</section>'; }
 
 	function partyCard( group, i ) {
-		var base = group + '.' + i + '.', n = S[ group ].length, nm = n > 1 ? bn( i + 1 ) + '। ' : '';
+		var base = group + '.' + i + '.', p = S[ group ][ i ], n = S[ group ].length, nm = n > 1 ? bn( i + 1 ) + '। ' : '';
 		return '<div class="df-party" data-group="' + group + '" data-i="' + i + '">' +
 			'<div class="df-party-h"><b>' + nm + ( group === 'donees' ? 'গ্রহীতা' : 'দাতা' ) + '</b>' + ( n > 1 ? '<button type="button" class="dw-x" data-del-party="' + group + ':' + i + '">মুছুন ×</button>' : '' ) + '</div>' +
 			drow( 'পরিচিতি নং (NID)', inp( base + 'nid', { nid: true, ph: 'যেমন 823 541 7337' } ), '<small class="dw-nid-st"></small>' ) +
 			drow( 'নাম', inp( base + 'name' ) ) +
+			drow( 'লিঙ্গ <em>(মহিলা হলে দলিলে গ্রহিত্রী/দাত্রী আসবে)</em>', '<select data-p="' + base + 'gender"><option value=""' + ( ! p.gender ? ' selected' : '' ) + '>— বেছে নিন —</option><option' + ( p.gender === 'পুরুষ' ? ' selected' : '' ) + '>পুরুষ</option><option' + ( p.gender === 'মহিলা' ? ' selected' : '' ) + '>মহিলা</option></select>' ) +
 			drow( 'স্বামীর নাম <em>(বিবাহিতা মহিলা হলে)</em>', inp( base + 'spouse' ) ) +
 			drow( 'পিতার নাম', inp( base + 'father' ) ) + drow( 'মাতার নাম', inp( base + 'mother' ) ) +
 			drow( 'জন্ম তারিখ', inp( base + 'dob', { ph: 'যেমন ১০/০৩/১৯৮৭' } ) ) +
@@ -374,8 +378,8 @@
 		var rows = [ [ 'd_ami', 'আমি / আমরা', 'দাতা' ], [ 'd_amar', 'আমার / আমাদের', 'দাতা' ], [ 'd_datar', 'দাতার / দাতাগণের', 'দাতা' ], [ 'g_apni', 'আপনি / আপনারা', 'গ্রহীতা' ], [ 'g_grohitar', 'গ্রহিতার', 'গ্রহীতা' ], [ 'g_grohita', 'গ্রহিতা / গ্রহিতাগণ', 'গ্রহীতা' ], [ 'g_apnar', 'আপনার / আপনাদের', 'গ্রহীতা' ] ];
 		return '<details class="df-vb"><summary>৭ নম্বরের নিচের দুই অনুচ্ছেদে এক বচন/বহুবচন (আমি-আমরা, আপনি-আপনারা): এই দলিলে <b>দাতা ' + ( dn > 1 ? 'বহুবচন' : 'একবচন' ) + '</b>, <b>গ্রহীতা ' + ( gn > 1 ? 'বহুবচন' : 'একবচন' ) + '</b> (শব্দ দেখুন/বদলান)</summary>' +
 			'<p class="df-note">দাতা বা গ্রহীতা একাধিক হলে নিজে নিজে বহুবচনের শব্দ বসে। নিচের শব্দগুলো আপনার মতো ঠিক করে নিন; বদলালে পরের দলিলেও এভাবেই থাকবে।</p>' +
-			'<table class="df-t df-vbt"><tr>' + th( 'কার সংখ্যা অনুযায়ী' ) + th( 'শব্দ' ) + th( 'একবচন' ) + th( 'বহুবচন' ) + '</tr>' +
-			rows.map( function ( r ) { return '<tr><td>' + r[ 2 ] + '</td><td>' + r[ 1 ] + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.0' ) + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.1' ) + '</td></tr>'; } ).join( '' ) + '</table></details>';
+			'<table class="df-t df-vbt"><tr>' + th( 'কার সংখ্যা অনুযায়ী' ) + th( 'শব্দ' ) + th( 'একবচন' ) + th( 'বহুবচন' ) + th( 'মহিলা (এক)' ) + th( 'মহিলা (বহু)' ) + '</tr>' +
+			rows.map( function ( r ) { var fem = VB_DEFAULTS[ r[ 0 ] ].length > 2; return '<tr><td>' + r[ 2 ] + '</td><td>' + r[ 1 ] + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.0' ) + '</td><td>' + inp( 'f.vb.' + r[ 0 ] + '.1' ) + '</td><td>' + ( fem ? inp( 'f.vb.' + r[ 0 ] + '.2' ) : '' ) + '</td><td>' + ( fem ? inp( 'f.vb.' + r[ 0 ] + '.3' ) : '' ) + '</td></tr>'; } ).join( '' ) + '</table></details>';
 	}
 
 	function landRows() {
@@ -701,7 +705,7 @@
 		Object.keys( extra ).forEach( function ( k ) { fd.append( k, extra[ k ] ); } );
 		return fetch( BOOT.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' } ).then( function ( r ) { return r.json(); } );
 	}
-	var FILL = [ 'name', 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present' ];
+	var FILL = [ 'name', 'gender', 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present' ];
 
 	function nidChanged( el, path ) {
 		clearTimeout( nidTimers[ path ] );
