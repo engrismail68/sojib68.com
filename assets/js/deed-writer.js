@@ -94,7 +94,7 @@
 		id: BOOT.id || 0,
 		f: saved ? saved.f : {
 			sub_office: DEF.sub_office || 'রামগঞ্জ সাব রেজিস্ট্রি অফিস।', deed_type: 'সাফ কবলা', district: DEF.district || 'লক্ষ্মীপুর', upazila: DEF.upazila || 'রামগঞ্জ',
-			union: '', mouza_no: '', mouza_name: '', land_class: 'নাল', area: '', price: '', pages: '', proxy_text: 'প্রযোজ্য নহে।', poa_text: 'প্রযোজ্য নহে।', ownership: '',
+			union: '', mouza_no: '', mouza_name: '', land_class: 'নাল', area: '', price: '', pages: '', ownership: '',
 			exec_greg: new Date().toISOString().slice( 0, 10 ), village: '', land_office: DEF.land_office || 'সহকারী কমিশনার ভূমি অফিস, রামগঞ্জ।', jl_no: '',
 			schedule: [ { khatian: '', rs_dag: '', cs_dag: '', class: 'নাল', total: '', transferred: '' } ],
 			north: '', south: '', east: '', west: '', n_ft: '', s_ft: '', e_ft: '', w_ft: '',
@@ -137,6 +137,12 @@
 	// Several land lines (ভিটি, পুকুর, বাড়ী …), each with its own area and price; older drafts have a single area/price.
 	if ( ! S.f.lands || ! S.f.lands.length ) { S.f.lands = [ { cls: S.f.land_class || 'নাল', area: S.f.area || '', price: S.f.price || '', o: {} } ]; }
 	S.f.lands.forEach( function ( l ) { if ( ! l.o ) { l.o = {}; } } );
+	// ৫ আমমোক্তার/প্রতিনিধি/অভিভাবক and ৬ আমমোক্তারনামা: pick who (donor / donee / someone else) instead of typing the text.
+	if ( ! S.f.rep ) { S.f.rep = { mode: 'none', idx: 0, role: 'অভিভাবক', name: '', father: '', mother: '', addr: '' }; }
+	if ( ! S.f.poa ) { S.f.poa = { mode: 'none', no: '', date: '', office: '' }; }
+	if ( S.f.proxy_text && S.f.proxy_text.trim() && S.f.proxy_text.trim() !== 'প্রযোজ্য নহে।' && S.f.rep.mode === 'none' && ! S.f.o.proxy_text ) { S.f.o.proxy_text = S.f.proxy_text; }
+	if ( S.f.poa_text && S.f.poa_text.trim() && S.f.poa_text.trim() !== 'প্রযোজ্য নহে।' && S.f.poa.mode === 'none' && ! S.f.o.poa_text ) { S.f.o.poa_text = S.f.poa_text; }
+	delete S.f.proxy_text; delete S.f.poa_text;
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -165,6 +171,12 @@
 		f.price = anyPrice ? String( totPrice ) : '';
 		auto.exec_date = banglaDate( f.exec_greg );
 		auto.schedule_head = 'জেলা ঃ ' + ( f.district || '' ) + ' মৌজাঃ ' + ( f.mouza_name || '' ) + ' উপজেলা ঃ ' + ( f.upazila || '' ) + ', জে. এল নং ঃ ' + ( f.jl_no || '' ) + ', ইউনিয়নঃ ' + ( f.union || '' ) + ' গ্রাম ঃ ' + ( f.village || '' ) + ', ভূমি অফিসের নাম ঃ ' + ( f.land_office || '' );
+		var rp = f.rep || {}, who = null;
+		if ( rp.mode === 'donor' || rp.mode === 'donee' ) { who = ( S[ rp.mode === 'donor' ? 'donors' : 'donees' ][ +rp.idx || 0 ] ) || null; if ( who ) { who = { name: who.name, father: who.father, mother: who.mother, addr: who.perm }; } }
+		else if ( rp.mode === 'other' ) { who = { name: rp.name, father: rp.father, mother: rp.mother, addr: rp.addr }; }
+		auto.proxy_text = who ? ( who.name || '………' ) + ( who.father ? ', পিতা: ' + who.father : '' ) + ( who.mother ? ', মাতা: ' + who.mother : '' ) + ( who.addr ? ', ঠিকানা: ' + who.addr : '' ) + ' (' + ( rp.role || 'অভিভাবক' ) + ')।' : 'প্রযোজ্য নহে।';
+		var pa = f.poa || {};
+		auto.poa_text = pa.mode === 'yes' ? [ pa.no ? 'দলিল নং ' + pa.no : '', pa.date ? 'তারিখ: ' + pa.date : '', pa.office ? 'রেজিস্ট্রি অফিস: ' + pa.office : '' ].filter( Boolean ).join( ', ' ) + '।' : 'প্রযোজ্য নহে।';
 		auto.total_text = 'মোট জমির পরিমান ঃ ' + ( o.area_text || auto.area_text );
 		var ft = function ( v ) { return v ? bn( v ) + ' ফুট' : '                '; };
 		auto.boundaries = 'উত্তরে: ' + ( f.north || '' ) + ', দক্ষিণে: ' + ( f.south || '' ) + ', পূর্বে: ' + ( f.east || '' ) + ', পশ্চিমে: ' + ( f.west || '' ) +
@@ -172,10 +184,10 @@
 		S.auto = auto;
 
 		var out = {};
-		[ 'mouza_short', 'mouza_head', 'area_text', 'price_text', 'payment_text', 'sqft_text', 'exec_date', 'schedule_head', 'total_text', 'boundaries' ].forEach( function ( k ) {
+		[ 'mouza_short', 'mouza_head', 'area_text', 'price_text', 'payment_text', 'sqft_text', 'exec_date', 'schedule_head', 'total_text', 'boundaries', 'proxy_text', 'poa_text' ].forEach( function ( k ) {
 			out[ k ] = o[ k ] != null && o[ k ] !== '' ? o[ k ] : auto[ k ];
 		} );
-		[ 'sub_office', 'deed_type', 'union', 'upazila', 'district', 'proxy_text', 'poa_text', 'ownership', 'pages' ].forEach( function ( k ) { out[ k ] = f[ k ] || ''; } );
+		[ 'sub_office', 'deed_type', 'union', 'upazila', 'district', 'ownership', 'pages' ].forEach( function ( k ) { out[ k ] = f[ k ] || ''; } );
 		out.w1 = f.w1; out.w2 = f.w2;
 		[ 'name', 'father', 'mother', 'village', 'post', 'upazila', 'district' ].forEach( function ( k ) { out[ 'id_' + k ] = f.id[ k ] || ''; out[ 'wr_' + k ] = f.wr[ k ] || ''; } );
 		out.wr_sanad = f.wr.sanad || '';
@@ -259,6 +271,29 @@
 	}
 	var PEOPLE_HEAD = '<tr><th></th>' + [ 'নাম', 'পিতার নাম', 'মাতার নাম', 'গ্রাম/রোড', 'ডাকঘর', 'উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr>';
 
+	function radios( name, path, opts ) {
+		var cur = getp( path );
+		return '<div class="df-radios">' + opts.map( function ( o ) { return '<label><input type="radio" name="' + name + '" data-rep="' + esc( path ) + '" value="' + esc( o[ 0 ] ) + '"' + ( cur === o[ 0 ] ? ' checked' : '' ) + '> ' + o[ 1 ] + '</label>'; } ).join( '' ) + '</div>';
+	}
+	function personSelect( group ) {
+		var list = S[ group ], cur = +S.f.rep.idx || 0;
+		return '<select data-p="f.rep.idx">' + list.map( function ( p, i ) { return '<option value="' + i + '"' + ( i === cur ? ' selected' : '' ) + '>' + esc( p.name || ( ( group === 'donors' ? 'দাতা ' : 'গ্রহীতা ' ) + ( i + 1 ) ) ) + '</option>'; } ).join( '' ) + '</select>';
+	}
+	function repBlock() {
+		var m = S.f.rep.mode, h = radios( 'rep-mode', 'f.rep.mode', [ [ 'none', 'প্রযোজ্য নহে' ], [ 'donor', 'দাতা নিজেই (দাতার তথ্য থেকে)' ], [ 'donee', 'গ্রহীতা (গ্রহীতার তথ্য থেকে)' ], [ 'other', 'অন্য কেউ' ] ] );
+		if ( m !== 'none' ) {
+			h += drow( 'পরিচয়', '<select data-p="f.rep.role">' + [ 'অভিভাবক', 'প্রতিনিধি', 'আমমোক্তার' ].map( function ( r ) { return '<option' + ( S.f.rep.role === r ? ' selected' : '' ) + '>' + r + '</option>'; } ).join( '' ) + '</select>' );
+			if ( m === 'donor' || m === 'donee' ) { h += drow( 'কে', personSelect( m === 'donor' ? 'donors' : 'donees' ) ); }
+			if ( m === 'other' ) { h += drow( 'নাম', inp( 'f.rep.name' ) ) + drow( 'পিতার নাম', inp( 'f.rep.father' ) ) + drow( 'মাতার নাম', inp( 'f.rep.mother' ) ) + drow( 'ঠিকানা', inp( 'f.rep.addr', { area: true, rows: 2 } ) ); }
+		}
+		return h + dauto( 'দলিলে যা লেখা হবে', 'proxy_text', 'f.o', 2 );
+	}
+	function poaBlock() {
+		var h = radios( 'poa-mode', 'f.poa.mode', [ [ 'none', 'প্রযোজ্য নহে' ], [ 'yes', 'আমমোক্তারনামা আছে' ] ] );
+		if ( S.f.poa.mode === 'yes' ) { h += drow( 'আমমোক্তারনামা দলিল নং', inp( 'f.poa.no' ) ) + drow( 'তারিখ', inp( 'f.poa.date', { ph: 'যেমন ১০/০৩/২০২৫' } ) ) + drow( 'রেজিস্ট্রি অফিস', inp( 'f.poa.office' ) ); }
+		return h + dauto( 'দলিলে যা লেখা হবে', 'poa_text', 'f.o', 2 );
+	}
+
 	/** words box with the ↺ button inside it */
 	function wbox( key, scope ) { return '<div class="df-wd">' + ainp( key, scope, 1 ) + reset( key, scope ) + '</div>'; }
 	function landRows() {
@@ -298,7 +333,8 @@
 
 		// 5–7
 		h += dsec( 's-5', '৫–৭', 'আমমোক্তার, আমমোক্তারনামা ও মালিকানার বিবরণ',
-			drow( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', inp( 'f.proxy_text' ) ) + drow( '৬। আমমোক্তারনামার বিবরণ', inp( 'f.poa_text' ) ) +
+			'<p class="df-cap">৫। আমমোক্তার/প্রতিনিধি/অভিভাবকের মাধ্যমে দলিল সম্পাদিত হইয়া থাকিলে তাহাদের নাম, ঠিকানা ও বিবরণ</p>' + repBlock() +
+			'<p class="df-cap">৬। আমমোক্তারনামার বিবরণ</p>' + poaBlock() +
 			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p><div class="df-box">' + inp( 'f.ownership', { area: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) + '</div>' );
 
 		// 10
@@ -505,6 +541,7 @@
 	} );
 
 	app.addEventListener( 'change', function ( e ) {
+		if ( e.target.matches && e.target.matches( 'input[data-rep]' ) ) { setp( e.target.getAttribute( 'data-rep' ), e.target.value ); if ( e.target.getAttribute( 'data-rep' ) === 'f.rep.mode' ) { S.f.rep.idx = 0; } render(); schedule(); return; }
 		if ( e.target.id !== 'dw-mouza-pick' || ! e.target.value ) { return; }
 		var m = MZ.filter( function ( x ) { return x.id === e.target.value; } )[ 0 ];
 		if ( m ) { applyMouza( m, true ); render(); schedule(); }
