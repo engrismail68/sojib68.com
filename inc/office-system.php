@@ -172,6 +172,11 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		if ( isset( $segments[1] ) && 'deed-docx' === $segments[1] ) {
+			sojib68_dw_download( isset( $segments[2] ) ? (int) $segments[2] : 0 );
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'print' === $segments[1] ) {
 			sojib68_office_render_print( isset( $segments[2] ) ? (int) $segments[2] : 0 );
 			exit;
@@ -350,6 +355,7 @@ function sojib68_office_menu_items() {
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
+		'deed-write' => __( 'দলিল লিখুন', 'sojib68' ),
 		'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ),
 	);
 
@@ -380,6 +386,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 		'entry-new'    => __( 'দাতা ও গ্রহীতার নাম অবশ্যই লিখুন — বাকি যতটুকু জানেন ততটুকুই', 'sojib68' ),
 		'all-deeds'    => __( 'নাম, মোবাইল, দলিল নং বা সাল দিয়ে দ্রুত খুঁজুন', 'sojib68' ),
 		'dues'         => __( 'কার কাছ থেকে কত টাকা পাওনা — ফোন করুন, টাকা আদায় লিখুন', 'sojib68' ),
+		'deed-write'   => __( 'দলিলের তথ্য ভরুন, নিজে নিজে সেভ হবে — তারপর বিজয় ফন্টে Word ডাউনলোড করুন', 'sojib68' ),
 		'recycle-bin'  => __( 'মুছে ফেলা দলিল ৭ দিন পর্যন্ত এখানে থাকে, চাইলে ফিরিয়ে আনুন', 'sojib68' ),
 		'export'       => __( 'সব দলিল ও হিসাবের ডাউনলোডযোগ্য কপি রাখুন — শুধু প্রশাসকের জন্য', 'sojib68' ),
 		'profit'       => __( 'মোট প্রফিট কোন কোন দলিল থেকে এসেছে — ভুল থাকলে "এডিট" করে ঠিক করুন', 'sojib68' ),
@@ -507,6 +514,11 @@ function sojib68_office_render_section( $page_key ) {
 		case 'profit':
 			ob_start();
 			sojib68_office_render_profit_preview();
+			return ob_get_clean();
+
+		case 'deed-write':
+			ob_start();
+			sojib68_dw_render();
 			return ob_get_clean();
 
 		case 'recycle-bin':

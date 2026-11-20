@@ -1,0 +1,45 @@
+/* দলিল লিখুন (office) */
+.dw-app { max-width: 1040px; }
+.dw-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; background: var(--o-bg, #f4f3ec); padding: 8px 0; }
+.dw-status { flex: 1; font-size: 14px; color: var(--o-muted, #6b7a75); }
+.dw-status.is-ok { color: #14532d; }
+.dw-status.is-saving { color: #b45309; }
+.dw-status.is-err { color: #b91c1c; font-weight: 600; }
+.dw-warn { background: #fff7e6; border: 1px solid #f3d9a4; border-radius: 10px; padding: 8px 12px; margin: 8px 0; font-size: 14px; }
+
+.dw-sec { background: #fff; border: 1px solid var(--o-line, #e4e2d8); border-radius: 14px; padding: 16px 18px; margin: 14px 0; box-shadow: var(--o-shadow, none); }
+.dw-sec h3 { margin: 0 0 12px; font-size: 17px; color: var(--o-ink, #032737); }
+.dw-sub h4 { margin: 14px 0 6px; font-size: 15px; }
+.dw-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
+.dw-f { display: flex; flex-direction: column; gap: 4px; font-size: 14px; min-width: 0; }
+.dw-f.dw-wide { grid-column: span 2; }
+.dw-f.dw-full { grid-column: 1 / -1; }
+.dw-f > span { color: var(--o-body, #2c3d44); font-weight: 500; }
+.dw-f > span em { font-style: normal; font-weight: 400; color: var(--o-muted, #6b7a75); font-size: 12.5px; }
+.dw-f input, .dw-f textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--o-line, #d9d6c8); border-radius: 8px; font: inherit; background: #fff; box-sizing: border-box; }
+.dw-f textarea { resize: vertical; }
+.dw-f input:focus, .dw-f textarea:focus { outline: 2px solid rgba(25, 128, 48, .35); border-color: #198030; }
+.dw-f small { color: var(--o-muted, #6b7a75); font-size: 12.5px; }
+.dw-autof textarea { background: #f6faf6; }
+.dw-autof textarea.is-manual { background: #fffbea; border-color: #e5c15d; }
+.dw-reset, .dw-link { border: 0; background: transparent; color: #14532d; cursor: pointer; font: inherit; font-size: 13px; text-decoration: underline; padding: 0 4px; }
+.dw-nid-st { color: #14532d; }
+
+.dw-party, .dw-sched { border: 1px solid var(--o-line, #e4e2d8); border-radius: 12px; padding: 12px; margin: 10px 0; background: #fcfbf7; }
+.dw-party-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dw-x { border: 0; background: transparent; color: #b91c1c; cursor: pointer; font: inherit; font-size: 13px; }
+
+.dw-search { position: relative; margin-bottom: 8px; }
+.dw-search input { width: 100%; padding: 8px 10px; border: 1px dashed #198030; border-radius: 8px; font: inherit; background: #f6faf6; box-sizing: border-box; }
+.dw-results { position: absolute; left: 0; right: 0; top: 100%; z-index: 6; background: #fff; border: 1px solid var(--o-line, #d9d6c8); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .12); max-height: 260px; overflow: auto; }
+.dw-res { display: block; width: 100%; text-align: left; padding: 8px 10px; border: 0; border-bottom: 1px solid #eee; background: #fff; cursor: pointer; font: inherit; }
+.dw-res:hover { background: #f0f7f1; }
+.dw-res small { color: var(--o-muted, #6b7a75); }
+.dw-res-empty { padding: 10px; color: var(--o-muted, #6b7a75); }
+
+.dw-hint { font-size: 13px; color: var(--o-muted, #6b7a75); margin: 10px 0 0; }
+.dw-end { text-align: center; }
+.dw-list .dw-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 900px) { .dw-grid { grid-template-columns: 1fr 1fr; } .dw-f.dw-wide { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .dw-grid { grid-template-columns: 1fr; } }

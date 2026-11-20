@@ -107,6 +107,11 @@ if ( ! function_exists( 'sojib68_docx_build' ) ) {
 		$document = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 			. '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' . $body . $sect . '</w:body></w:document>';
 
+		return sojib68_docx_package( $document );
+	}
+
+	/** Zip a finished word/document.xml together with the package skeleton. */
+	function sojib68_docx_package( $document ) {
 		$tmp = tempnam( sys_get_temp_dir(), 'dx' );
 		$zip = new ZipArchive();
 		if ( true !== $zip->open( $tmp, ZipArchive::OVERWRITE ) ) {
