@@ -472,6 +472,7 @@
 		var base;
 		var fromKey;
 		var extraRows = [];
+		sheet.classList.toggle( 'lc-sheet--map', tab === 'map' );
 		if ( tab === 'old' ) {
 			setSheetText( '[data-sheet-title]', 'পুরোনো মাপের হিসাব' );
 			addLi( inputs, 'হিসাবের ধরন', data.mode );

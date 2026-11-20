@@ -22,6 +22,7 @@
 	var dags = [ { name: 'দাগ 1', pts: [], closed: false } ], cur = 0;
 	var scalePts = [], ppf = null;                       // ppf = image pixels per foot
 	var dists = [], pendingDist = null;                   // free distance measurements
+	var calib = null, verify = null, knownArea = '', fileName = '';
 	var mode = 'scale', drag = null, pdfDoc = null, cw = 0, ch = 0, dpr = 1, mouse = null, space = false, full = false, holder = null;
 	var FT_PER_M = 3.28084;
 
@@ -179,10 +180,43 @@
 		statusEl.textContent = t;
 		actionsEl.hidden = ! ppf;
 	}
+	/* honest accuracy estimate: 1 px placement error per corner and per calibration end (≈ 95% range, ±2σ) */
+	function errorStats( done, total ) {
+		var SIG = 1, rs = calib ? Math.SQRT2 * SIG / calib.px : 0.05, varPx = 0, areaPx = 0;
+		done.forEach( function ( d ) {
+			var n = d.pts.length, i; areaPx += areaOf( d.pts ) * ppf * ppf;
+			for ( i = 0; i < n; i++ ) { var a = d.pts[ ( i + n - 1 ) % n ], b = d.pts[ ( i + 1 ) % n ]; varPx += 0.25 * SIG * SIG * ( Math.pow( a.x - b.x, 2 ) + Math.pow( a.y - b.y, 2 ) ); }
+		} );
+		var rel = Math.sqrt( Math.pow( 2 * rs, 2 ) + ( areaPx ? varPx / ( areaPx * areaPx ) : 0 ) ), pct = Math.max( 0.1, Math.round( 2 * rel * 1000 ) / 10 );
+		var g = pct <= 1 ? [ 'খুব ভালো', 'ok' ] : pct <= 2.5 ? [ 'ভালো', 'ok' ] : pct <= 5 ? [ 'মোটামুটি', 'mid' ] : [ 'ঝুঁকিপূর্ণ', 'bad' ];
+		return { pct: pct, grade: g[ 0 ], cls: g[ 1 ], lo: total * ( 1 - pct / 100 ), hi: total * ( 1 + pct / 100 ), pxFt: ppf, calPct: Math.round( 2 * 2 * rs * 1000 ) / 10 };
+	}
+	function diffPct( measured, known ) { return known > 0 ? Math.round( ( measured - known ) / known * 1000 ) / 10 : null; }
+	function verifyHtml() {
+		if ( ! dists.length ) { return ''; }
+		var m = feet( dist( dists[ 0 ][ 0 ], dists[ 0 ][ 1 ] ) );
+		return '<div class="lm-verify"><b>স্কেল যাচাই:</b> মাপা দূরত্ব ' + ftIn( m ) + ' (' + n1( m ) + ' ফুট)। এটির আসল মাপ জানা থাকলে লিখুন: <input type="text" inputmode="decimal" data-lm-vin value="' + ( verify ? verify.entered : '' ) + '" placeholder="ফুট"> ফুট <span data-lm-vout></span></div>';
+	}
+	function verifyOut() {
+		var out = panel.querySelector( '[data-lm-vout]' ); if ( ! out || ! dists.length ) { return; }
+		var m = feet( dist( dists[ 0 ][ 0 ], dists[ 0 ][ 1 ] ) ), v = LC.parseNumber( verify ? verify.entered : '' );
+		if ( v === null || isNaN( v ) || v <= 0 ) { out.textContent = ''; verify = verify && verify.entered ? verify : null; return; }
+		var dp = diffPct( m, v ); verify = { entered: String( verify.entered ), measured: m, actual: v, pct: dp };
+		out.textContent = '→ ব্যবধান ' + ( dp > 0 ? '+' : '' ) + dp + '%' + ( Math.abs( dp ) <= 1 ? ' ✓ স্কেল নির্ভুল' : Math.abs( dp ) <= 3 ? ' (মোটামুটি)' : ' ⚠ স্কেল আবার ঠিক করুন' );
+		out.className = Math.abs( dp ) <= 1 ? 'is-ok' : Math.abs( dp ) <= 3 ? 'is-mid' : 'is-bad';
+	}
+	function knownOut() {
+		var out = panel.querySelector( '[data-lm-kout]' ); if ( ! out ) { return; }
+		var v = LC.parseNumber( knownArea ), tot = window.__lmTotal || 0;
+		if ( v === null || isNaN( v ) || v <= 0 ) { out.textContent = ''; return; }
+		var dp = diffPct( shat( tot ), v ); out.textContent = '→ মাপা ' + shat( tot ) + ' শতাংশ, ব্যবধান ' + ( dp > 0 ? '+' : '' ) + dp + '%' + ( Math.abs( dp ) <= 1 ? ' ✓ প্রায় মিলে গেছে' : Math.abs( dp ) <= 3 ? ' (সামান্য ব্যবধান)' : ' ⚠ বেশি ব্যবধান — স্কেল ও বিন্দু আবার দেখুন' );
+		out.className = Math.abs( dp ) <= 1 ? 'is-ok' : Math.abs( dp ) <= 3 ? 'is-mid' : 'is-bad';
+	}
 	function update() {
 		results.innerHTML = ''; summaryEl.innerHTML = ''; LC.setMapCalc( null ); say( '' );
 		steps(); lockUi(); chips(); statusBar();
 		var done = dags.filter( function ( d ) { return d.closed && d.pts.length >= 3; } );
+		if ( ppf && dists.length && ! done.length ) { summaryEl.innerHTML = verifyHtml(); verifyOut(); }
 		if ( ! ppf || ! done.length ) { return; }
 		for ( var i = 0; i < done.length; i++ ) { if ( selfCross( done[ i ].pts ) ) { say( '"' + done[ i ].name + '"-এর রেখাগুলো একে অপরকে কেটেছে — বিন্দুগুলো ক্রম অনুযায়ী (ঘুরে ঘুরে) বসান বা টেনে ঠিক করুন।', true ); return; } }
 		var total = 0, extra = [], inputs = [ [ 'পদ্ধতি', 'নকশার ছবিতে স্কেল ঠিক করে বিন্দু বসিয়ে মাপা' ], [ 'দাগের সংখ্যা', String( done.length ) ] ], html = '';
@@ -198,13 +232,22 @@
 			var a = areaOf( d.pts ); total += a; html += cardHtml( d.name, a, d.pts );
 			extra.push( [ d.name, shat( a ) + ' শতাংশ · ' + n1( a ) + ' বর্গফুট', false ] );
 			extra.push( [ d.name + ' — পরিসীমা', ftIn( perimOf( d.pts, true ) ), false ] );
-			if ( done.length === 1 ) { d.pts.slice( 0, 12 ).forEach( function ( p, k ) { var l = feet( dist( p, d.pts[ ( k + 1 ) % d.pts.length ] ) ); extra.push( [ 'বাহু ' + ( k + 1 ), ftIn( l ) + '  (' + n1( l ) + ' ফুট)', false ] ); } ); }
+			if ( done.length === 1 ) { d.pts.slice( 0, 40 ).forEach( function ( p, k ) { var l = feet( dist( p, d.pts[ ( k + 1 ) % d.pts.length ] ) ); extra.push( [ 'বাহু ' + ( k + 1 ), ftIn( l ) + '  (' + n1( l ) + ' ফুট)', false ] ); } ); }
 		} );
 		if ( done.length > 1 ) { html = '<div class="lm-card lm-card--total"><div class="lm-card__t">মোট ' + done.length + 'টি দাগ</div><div class="lm-big">' + shat( total ) + ' <small>শতাংশ</small></div><div class="lm-sub">' + n1( total ) + ' বর্গফুট</div></div>' + html; }
-		summaryEl.innerHTML = html;
+		var er = errorStats( done, total ); window.__lmTotal = total;
+		var errHtml = '<div class="lm-err lm-err--' + er.cls + '"><b>নির্ভুলতার অনুমান: ' + er.grade + '</b> — আনুমানিক ভুলের সীমা ±' + er.pct + '% (প্রায় ' + shat( er.lo ) + ' থেকে ' + shat( er.hi ) + ' শতাংশের মধ্যে)।' +
+			( er.cls === 'bad' || er.cls === 'mid' ? ' <em>ভুল কমাতে: নকশায় আরও বড় জানা দূরত্ব দিয়ে স্কেল ঠিক করুন, বেশি জুম করে ম্যাগনিফায়ার দেখে কোণায় বিন্দু বসান।</em>' : '' ) + '</div>' +
+			'<div class="lm-verify"><b>মিলিয়ে দেখুন:</b> দলিল/খতিয়ানে লেখা পরিমাণ (শতাংশ): <input type="text" inputmode="decimal" data-lm-kin value="' + String( knownArea ).replace( /"/g, '' ) + '" placeholder="যেমন 7.5"> <span data-lm-kout></span></div>' + verifyHtml();
+		summaryEl.innerHTML = errHtml + html; knownOut(); verifyOut();
 		extra.push( [ 'সব এককে ' + ( done.length > 1 ? 'মোট ' : '' ) + 'ক্ষেত্রফল', '', 'head' ] );
 		LC.renderList( results, total, 'sqft', [ [ 'সব এককে ' + ( done.length > 1 ? 'মোট ' : '' ) + 'ক্ষেত্রফল', '', 'head' ] ] );
-		LC.setMapCalc( { sqft: total, img: snapshot(), inputs: inputs, extra: extra.filter( function ( r ) { return r[ 2 ] !== 'head'; } ).slice( 0, 16 ) } );
+		if ( fileName ) { inputs.push( [ 'নকশার ফাইল', fileName + ' (' + iw + '×' + ih + ' পিক্সেল)' ] ); }
+		if ( calib ) { inputs.push( [ 'স্কেল ঠিক করা হয়েছে', 'নকশার ' + Math.round( calib.px ) + ' পিক্সেল = ' + calib.shown + ' (১ ফুট ≈ ' + n1( ppf ) + ' পিক্সেল)' ] ); }
+		inputs.push( [ 'নির্ভুলতার অনুমান', er.grade + ' — ভুলের সীমা ±' + er.pct + '% (' + shat( er.lo ) + ' – ' + shat( er.hi ) + ' শতাংশ)' ] );
+		var kv = LC.parseNumber( knownArea ); if ( kv && ! isNaN( kv ) && kv > 0 ) { var kd = diffPct( shat( total ), kv ); inputs.push( [ 'কাগজে লেখা পরিমাণের সঙ্গে মিল', kv + ' শতাংশ লেখা; মাপা ' + shat( total ) + '; ব্যবধান ' + ( kd > 0 ? '+' : '' ) + kd + '%' ] ); }
+		if ( verify && verify.pct !== null ) { inputs.push( [ 'স্কেল যাচাই', 'মাপা ' + n1( verify.measured ) + ' ফুট, আসল ' + n1( verify.actual ) + ' ফুট; ব্যবধান ' + ( verify.pct > 0 ? '+' : '' ) + verify.pct + '%' ] ); }
+		LC.setMapCalc( { sqft: total, img: snapshot(), inputs: inputs, extra: extra.filter( function ( r ) { return r[ 2 ] !== 'head'; } ).slice( 0, 40 ), grade: er } );
 	}
 
 	/* ---------------------------------------------------------------- loading */
@@ -228,7 +271,7 @@
 			.then( function ( doc ) { pdfDoc = doc; pageEl.max = doc.numPages; pageEl.value = 1; pagesEl.textContent = '/ ' + doc.numPages; pdfBar.hidden = false; return renderPdfPage( 1 ); } )
 			.then( function () { say( '' ); } ).catch( function () { say( 'PDF পড়া যায়নি। নকশার একটি ছবি (স্ক্রিনশট/JPG) তুলে সেটি দিন।', true ); } );
 	}
-	fileEl.addEventListener( 'change', function () { var f = fileEl.files && fileEl.files[ 0 ]; if ( ! f ) { return; } pdfBar.hidden = true; pdfDoc = null; say( '' ); if ( /pdf$/i.test( f.type ) || /\.pdf$/i.test( f.name ) ) { loadPdf( f ); } else { loadImage( f ); } } );
+	fileEl.addEventListener( 'change', function () { var f = fileEl.files && fileEl.files[ 0 ]; if ( ! f ) { return; } fileName = f.name; calib = null; verify = null; knownArea = ''; pdfBar.hidden = true; pdfDoc = null; say( '' ); if ( /pdf$/i.test( f.type ) || /\.pdf$/i.test( f.name ) ) { loadPdf( f ); } else { loadImage( f ); } } );
 	pageEl.addEventListener( 'change', function () { var n = Math.max( 1, Math.min( pdfDoc ? pdfDoc.numPages : 1, parseInt( pageEl.value, 10 ) || 1 ) ); pageEl.value = n; if ( pdfDoc ) { renderPdfPage( n ); } } );
 
 	/* ---------------------------------------------------------------- modes, full screen, buttons */
@@ -266,10 +309,22 @@
 			var d = LC.parseNumber( distEl.value );
 			if ( scalePts.length < 2 ) { say( 'আগে নকশায় দুটি বিন্দুতে ক্লিক করুন।', true ); return; }
 			if ( d === null || isNaN( d ) || d <= 0 ) { say( 'দূরত্ব সংখ্যায় লিখুন, যেমন 66', true ); return; }
-			var old = ppf; ppf = dist( scalePts[ 0 ], scalePts[ 1 ] ) / ( d * ( dunitEl.value === 'm' ? FT_PER_M : 1 ) );
+			var old = ppf; calib = { px: dist( scalePts[ 0 ], scalePts[ 1 ] ), ft: d * ( dunitEl.value === 'm' ? FT_PER_M : 1 ), shown: LC.format( d ) + ( dunitEl.value === 'm' ? ' মিটার' : ' ফুট' ) }; ppf = calib.px / calib.ft; verify = null;
 			scaleBox.hidden = true; scalePts = []; say( '' ); setMode( 'draw' ); draw(); update(); if ( old ) { say( 'স্কেল বদলানো হয়েছে — আগের সব মাপ নতুন স্কেলে হিসাব হয়েছে।' ); }
 		}
 	} );
+	summaryEl.addEventListener( 'input', function ( e ) {
+		if ( e.target.matches( '[data-lm-kin]' ) ) { knownArea = e.target.value; knownOut(); refreshCalc( '[data-lm-kin]' ); }
+		else if ( e.target.matches( '[data-lm-vin]' ) ) { verify = { entered: e.target.value }; verifyOut(); refreshCalc( '[data-lm-vin]' ); }
+	} );
+	/* the report data follows what was typed; the page is re-drawn after a short pause and the cursor put back */
+	function refreshCalc( sel ) {
+		clearTimeout( refreshCalc.t );
+		refreshCalc.t = setTimeout( function () {
+			var cur0 = panel.querySelector( sel ), v = cur0 ? cur0.value : ''; update();
+			var n = panel.querySelector( sel ); if ( n ) { n.focus(); n.setSelectionRange( v.length, v.length ); }
+		}, 600 );
+	}
 	if ( labelsEl ) { labelsEl.addEventListener( 'change', function () { draw(); } ); }
 	dagsEl.addEventListener( 'dblclick', function ( e ) { var chip = e.target.closest( '[data-lm-dag]' ); if ( ! chip ) { return; } var i = +chip.getAttribute( 'data-lm-dag' ), n = window.prompt( 'দাগের নাম বা নম্বর (যেমন: ৩৭৫ নং দাগ):', dags[ i ].name ); if ( n && n.trim() ) { dags[ i ].name = n.trim().slice( 0, 40 ); draw(); update(); } } );
 
@@ -286,7 +341,7 @@
 	function clickAction( p ) {
 		if ( mode === 'scale' ) { if ( scalePts.length >= 2 ) { scalePts = []; } scalePts.push( toImage( p.x, p.y ) ); scaleBox.hidden = scalePts.length < 2; if ( scalePts.length === 2 ) { distEl.focus(); } draw(); return; }
 		if ( ! ppf ) { setMode( 'scale' ); return; }
-		if ( mode === 'dist' ) { var sp = snapPoint( p.x, p.y ); if ( ! pendingDist ) { pendingDist = sp; } else { dists = [ [ pendingDist, sp ] ]; say( 'দূরত্ব: ' + ftIn( feet( dist( pendingDist, sp ) ) ) + ' (' + n1( feet( dist( pendingDist, sp ) ) ) + ' ফুট ≈ ' + n1( feet( dist( pendingDist, sp ) ) / FT_PER_M ) + ' মিটার)' ); pendingDist = null; } draw(); return; }
+		if ( mode === 'dist' ) { var sp = snapPoint( p.x, p.y ); if ( ! pendingDist ) { pendingDist = sp; } else { dists = [ [ pendingDist, sp ] ]; verify = null; update(); say( 'দূরত্ব: ' + ftIn( feet( dist( pendingDist, sp ) ) ) + ' (' + n1( feet( dist( pendingDist, sp ) ) ) + ' ফুট ≈ ' + n1( feet( dist( pendingDist, sp ) ) / FT_PER_M ) + ' মিটার)' ); pendingDist = null; } draw(); return; }
 		var d = P(), h = hitVertex( p.x, p.y );
 		if ( h === 0 && ! d.closed && d.pts.length >= 3 ) { closeDag(); return; }
 		if ( d.closed ) { return; }
