@@ -255,11 +255,13 @@
 		var h = '';
 		h += '<div class="dw-top"><a class="btn btn-outline btn-sm" href="' + esc( BOOT.listUrl ) + '">← সব দলিল</a>' +
 			'<span class="dw-status" id="dw-status">নতুন — লিখতে শুরু করুন, নিজে নিজে সেভ হবে</span>' +
+			'<button type="button" class="btn btn-outline btn-sm" id="dw-pv-full">পুরো পাতায় দেখুন</button>' +
 			'<button type="button" class="btn btn-outline btn-sm dw-pv-show" id="dw-pv-show">প্রিভিউ দেখুন</button>' +
-			'<a class="btn btn-primary btn-sm" id="dw-download" href="#">Word ডাউনলোড</a></div>' +
+			'<a class="btn btn-primary btn-sm" id="dw-download" href="#">Word ডাউনলোড</a>' +
+			'<nav class="dw-jump" aria-label="দলিলের অংশ"><a href="#s-1">১–২</a><a href="#s-3">৩ গ্রহীতা</a><a href="#s-4">৪ দাতা</a><a href="#s-5">৫–৭ মালিকানা</a><a href="#s-10">১০ তারিখ</a><a href="#s-11">১১ তফসিল</a><a href="#s-12">১২ চৌহদ্দি</a><a href="#s-18">১৮–২০ সাক্ষী</a><a href="#s-21">২১–২২</a></nav></div>' +
 			'<div class="dw-warn" id="dw-warn" hidden></div>';
 
-		h += '<section class="dw-sec"><h3>১–২ নম্বর: মূল তথ্য</h3><div class="dw-grid">' +
+		h += '<section class="dw-sec dw-rows" id="s-1"><h3><b>১–২।</b> রেজিস্ট্রি অফিস ও দলিলের সার সংক্ষেপ</h3><div class="dw-grid">' +
 			mouzaPicker() +
 			field( 'রেজিস্ট্রি অফিসের নাম', 'f.sub_office', { wide: true } ) + field( 'দলিলের প্রকৃতি', 'f.deed_type', { list: 'dw-types' } ) +
 			field( 'জেলা', 'f.district' ) + field( 'উপজেলা/থানা', 'f.upazila' ) + field( 'ইউনিয়ন/ওয়ার্ড', 'f.union', { ph: 'যেমন ৯ নং ভোলাকোট' } ) +
@@ -269,36 +271,36 @@
 			autoField( 'পরিমাণ (অংকে ও কথায়)', 'area_text' ) + autoField( 'মূল্য (অংকে ও কথায়)', 'price_text' ) + autoField( 'মূল্য পরিশোধের বিবরণ', 'payment_text' ) + autoField( 'হাত নকশা ও পরিমাপ', 'sqft_text' ) +
 			'</div></section>';
 
-		h += '<section class="dw-sec"><h3>৩ নম্বর: গ্রহীতা (ক্রেতা)</h3>' + searchBox( 'donees' ) + S.donees.map( function ( p, i ) { return partyCard( 'donees', i ); } ).join( '' ) +
+		h += '<section class="dw-sec dw-rows" id="s-3"><h3><b>৩।</b> দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা (ক্রেতা)</h3>' + searchBox( 'donees' ) + S.donees.map( function ( p, i ) { return partyCard( 'donees', i ); } ).join( '' ) +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-party="donees">+ আরেকজন গ্রহীতা</button></section>';
-		h += '<section class="dw-sec"><h3>৪ নম্বর: দাতা (বিক্রেতা)</h3>' + searchBox( 'donors' ) + S.donors.map( function ( p, i ) { return partyCard( 'donors', i ); } ).join( '' ) +
+		h += '<section class="dw-sec dw-rows" id="s-4"><h3><b>৪।</b> দলিল দাতা/দাতাগণের নাম ও ঠিকানা (বিক্রেতা)</h3>' + searchBox( 'donors' ) + S.donors.map( function ( p, i ) { return partyCard( 'donors', i ); } ).join( '' ) +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-party="donors">+ আরেকজন দাতা</button></section>';
 
-		h += '<section class="dw-sec"><h3>৫–৭ নম্বর: প্রতিনিধি ও মালিকানার বিবরণ</h3><div class="dw-grid">' +
+		h += '<section class="dw-sec dw-rows" id="s-5"><h3><b>৫–৭।</b> প্রতিনিধি, আমমোক্তারনামা ও মালিকানার বিবরণ</h3><div class="dw-grid">' +
 			field( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', 'f.proxy_text', { full: true } ) + field( '৬। আমমোক্তারনামার বিবরণ', 'f.poa_text', { full: true } ) +
 			field( '৭। মালিকানার ধারাবাহিক বিবরণ', 'f.ownership', { area: true, full: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) +
 			'</div></section>';
 
-		h += '<section class="dw-sec"><h3>১০ নম্বর: সম্পাদনের তারিখ</h3><div class="dw-grid">' + field( 'ইংরেজি তারিখ', 'f.exec_greg', { type: 'date' } ) + autoField( 'বাংলা ও ইংরেজি তারিখ', 'exec_date' ) + '</div></section>';
+		h += '<section class="dw-sec dw-rows" id="s-10"><h3><b>১০।</b> সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)</h3><div class="dw-grid">' + field( 'ইংরেজি তারিখ', 'f.exec_greg', { type: 'date' } ) + autoField( 'বাংলা ও ইংরেজি তারিখ', 'exec_date' ) + '</div></section>';
 
-		h += '<section class="dw-sec"><h3>১১ নম্বর: সম্পত্তির তফসিল</h3><div class="dw-grid">' + field( 'গ্রাম', 'f.village' ) + field( 'জে.এল. নং', 'f.jl_no', { ph: 'যেমন সি.এস ১৪১ আর.এস ৯৯ নং' } ) + field( 'ভূমি অফিসের নাম', 'f.land_office', { wide: true } ) +
+		h += '<section class="dw-sec dw-rows" id="s-11"><h3><b>১১।</b> সম্পত্তির তফসিল</h3><div class="dw-grid">' + field( 'গ্রাম', 'f.village' ) + field( 'জে.এল. নং', 'f.jl_no', { ph: 'যেমন সি.এস ১৪১ আর.এস ৯৯ নং' } ) + field( 'ভূমি অফিসের নাম', 'f.land_office', { wide: true } ) +
 			autoField( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) + '</div>' +
 			S.f.schedule.map( function ( r, i ) { return sched( i ); } ).join( '' ) + '<button type="button" class="btn btn-outline btn-sm" data-add-sched="1">+ আরেকটি দাগ</button>' +
 			'<div class="dw-grid">' + autoField( 'মোট জমির পরিমাণ (তফসিলের নিচে)', 'total_text' ) + '</div></section>';
 
-		h += '<section class="dw-sec"><h3>১২ নম্বর: চৌহদ্দি</h3><div class="dw-grid">' +
+		h += '<section class="dw-sec" id="s-12"><h3><b>১২।</b> সম্পত্তির চৌহদ্দির বিবরণ</h3><div class="dw-grid">' +
 			field( 'উত্তরে', 'f.north' ) + field( 'উত্তরে মাপ (ফুট)', 'f.n_ft', { ph: 'যেমন 38' } ) + field( 'দক্ষিণে', 'f.south' ) + field( 'দক্ষিণে মাপ (ফুট)', 'f.s_ft' ) +
 			field( 'পূর্বে', 'f.east' ) + field( 'পূর্বে মাপ (ফুট)', 'f.e_ft' ) + field( 'পশ্চিমে', 'f.west' ) + field( 'পশ্চিমে মাপ (ফুট)', 'f.w_ft' ) +
 			autoField( 'চৌহদ্দির পুরো লেখা', 'boundaries', 'f.o', 3 ) + '</div></section>';
 
-		h += '<section class="dw-sec"><h3>১৮–২০ নম্বর: সাক্ষী, সনাক্তকারী, দলিল লেখক</h3>' +
+		h += '<section class="dw-sec" id="s-18"><h3><b>১৮–২০।</b> স্বাক্ষী, সনাক্তকারী ও দলিল লেখক</h3>' +
 			personBlock( '(ক) সাক্ষী', 'w1' ) + personBlock( '(খ) সাক্ষী', 'w2' ) +
 			personBlock( '১৯। সনাক্তকারী', 'id' ) + personBlock( '২০। দলিল লেখক', 'wr', field( 'সনদ নং', 'f.wr.sanad' ) ) +
 			'<p class="dw-hint">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p></section>';
 
-		h += '<section class="dw-sec"><h3>২১ নম্বর: দলিল দাতার হলফনামা</h3><p class="dw-hint">হলফনামার স্থায়ী ঘোষণাগুলো (ক–চ ও “আমি/আমরা আরও ঘোষনা করিতেছি”) আপনার ছাঁচ থেকে নিজে নিজে আসে। শুধু হলফকারীর পরিচয়ের লাইনটি দাতার তথ্য থেকে ভরা হয়; চাইলে এখানে বদলান।</p><div class="dw-grid">' +
+		h += '<section class="dw-sec dw-rows" id="s-21"><h3><b>২১।</b> দলিল দাতার হলফনামা</h3><p class="dw-hint">হলফনামার স্থায়ী ঘোষণাগুলো (ক–চ ও “আমি/আমরা আরও ঘোষনা করিতেছি”) আপনার ছাঁচ থেকে নিজে নিজে আসে। শুধু হলফকারীর পরিচয়ের লাইনটি দাতার তথ্য থেকে ভরা হয়; চাইলে এখানে বদলান।</p><div class="dw-grid">' +
 			autoField( 'হলফকারীগনের নাম, পিতার নাম, ঠিকানা ও বয়স', 'affidavit_head', 'f.o', 4 ) + '</div></section>';
-		h += '<section class="dw-sec"><h3>২২ নম্বর: সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ</h3><p class="dw-hint">এটি রেজিস্ট্রি অফিসে সাব-রেজিস্ট্রার নিজে পূরণ করেন, তাই Word ফাইলে শিরোনামটি ফাঁকা জায়গাসহ থাকে। এখানে কিছু লেখার নেই।</p></section>';
+		h += '<section class="dw-sec" id="s-22"><h3><b>২২।</b> সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ</h3><p class="dw-hint">এটি রেজিস্ট্রি অফিসে সাব-রেজিস্ট্রার নিজে পূরণ করেন, তাই Word ফাইলে শিরোনামটি ফাঁকা জায়গাসহ থাকে। এখানে কিছু লেখার নেই।</p></section>';
 		h += '<section class="dw-sec dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
 			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। ফাইলটি Word-এ খুলে একবার দেখে নিন; SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
 		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
@@ -349,7 +351,7 @@
 	function previewHidden() { try { return window.localStorage.getItem( 'sojib68DwPreviewHidden' ) === '1'; } catch ( e ) { return false; } }
 	function nl( v ) { return esc( v ).replace( /\n/g, '<br>' ); }
 	function pv( v ) { return v && String( v ).trim() ? nl( v ) : '<span class="dw-blank">………………</span>'; }
-	function row( label, v ) { return '<div class="pv-row"><span class="pv-l">' + label + '</span><span class="pv-v">' + pv( v ) + '</span></div>'; }
+	function row( label, v ) { return '<div class="pv-row"><span class="pv-l">' + label + '</span><span class="pv-c">:</span><span class="pv-v">' + pv( v ) + '</span></div>'; }
 	function fixedNote( t ) { return '<p class="pv-fixed">' + t + '</p>'; }
 	function pvParty( p, i, n ) {
 		var h = '<div class="pv-party"><strong>' + ( n > 1 ? bn( i + 1 ) + '। ' : '' ) + 'নাম</strong> : ' + pv( p.name );
@@ -361,11 +363,8 @@
 	function pvPerson( tag, p ) {
 		return '<div class="pv-person"><b>' + tag + '</b> ' + pv( p.name ) + '<br>পিতা: ' + pv( p.father ) + ' · মাতা: ' + pv( p.mother ) + '<br>গ্রাম/রোড: ' + pv( p.village ) + ' · ডাকঘর: ' + pv( p.post ) + ' · উপজেলা: ' + pv( p.upazila ) + ' · জেলা: ' + pv( p.district ) + '</div>';
 	}
-	function renderPreview() {
-		var box = document.getElementById( 'dw-preview' );
-		if ( ! box ) { return; }
+	function paperHtml() {
 		var o = S.out || compute(), f = S.f, h = '';
-		h += '<div class="pv-bar"><strong>প্রিভিউ</strong> <small>যা লিখছেন সঙ্গে সঙ্গে দেখাচ্ছে</small> <button type="button" class="dw-link" id="dw-pv-hide">লুকান</button></div>';
 		h += '<div class="pv-paper">';
 		h += '<p class="pv-h">১। রেজিস্ট্রী অফিসের নাম : <span>' + pv( o.sub_office ) + '</span></p>';
 		h += '<p class="pv-h">২। দলিলের সার সংক্ষেপ</p>';
@@ -387,8 +386,29 @@
 		h += '<p class="pv-h">২০। দলিল লেখক (ফর্দ: ' + pv( o.pages ) + ')</p>' + pvPerson( '', f.wr ) + row( 'সনদ নং', f.wr.sanad );
 		h += '<p class="pv-h">২১। দলিল দাতার হলফনামা</p><p class="pv-body">' + pv( o.affidavit_head ) + '</p>' + fixedNote( '[হলফনামার ঘোষণা (ক–চ) ছাঁচ থেকে আসবে]' );
 		h += '<p class="pv-h">২২। সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ : ………</p>';
-		h += '</div><p class="pv-note">এটি দ্রুত দেখার জন্য প্রিভিউ। বড় স্থায়ী অনুচ্ছেদগুলো সংক্ষেপে দেখানো; চূড়ান্ত ফাইল Word ডাউনলোডে (বিজয় ফন্টে) পাবেন।</p>';
-		box.innerHTML = h;
+		h += '</div>';
+		return h;
+	}
+	var PV_NOTE = '<p class="pv-note">এটি দ্রুত দেখার জন্য প্রিভিউ। বড় স্থায়ী অনুচ্ছেদগুলো সংক্ষেপে দেখানো; চূড়ান্ত ফাইল Word ডাউনলোডে (বিজয় ফন্টে) পাবেন।</p>';
+	function renderPreview() {
+		var box = document.getElementById( 'dw-preview' );
+		if ( box ) {
+			box.innerHTML = '<div class="pv-bar"><strong>প্রিভিউ</strong> <small>যা লিখছেন সঙ্গে সঙ্গে দেখাচ্ছে</small> <button type="button" class="dw-link" id="dw-pv-hide">লুকান</button></div><div class="pv-desk">' + paperHtml() + '</div>' + PV_NOTE;
+		}
+		var big = document.getElementById( 'dw-pv-body' );
+		if ( big ) { big.innerHTML = paperHtml(); }
+	}
+	function openFullPreview() {
+		var dlg = document.getElementById( 'dw-pv-dlg' );
+		if ( ! dlg ) {
+			dlg = document.createElement( 'dialog' );
+			dlg.id = 'dw-pv-dlg'; dlg.className = 'dw-pv-dlg';
+			dlg.innerHTML = '<div class="dw-pv-dlg-bar"><strong>দলিলের প্রিভিউ</strong><button type="button" class="btn btn-outline btn-sm" id="dw-pv-close">বন্ধ করুন</button></div><div class="pv-desk pv-desk--big" id="dw-pv-body"></div>' + PV_NOTE;
+			document.body.appendChild( dlg );
+			dlg.addEventListener( 'click', function ( e ) { if ( e.target.id === 'dw-pv-close' || e.target === dlg ) { dlg.close(); } } );
+		}
+		renderPreview();
+		if ( dlg.showModal ) { dlg.showModal(); } else { dlg.setAttribute( 'open', '' ); }
 	}
 
 	/* ------------------------------------------------------------ autosave */
@@ -478,6 +498,7 @@
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }
 		else if ( t.id === 'dw-pv-hide' || t.id === 'dw-pv-show' ) { var hide = t.id === 'dw-pv-hide'; try { window.localStorage.setItem( 'sojib68DwPreviewHidden', hide ? '1' : '0' ); } catch ( err ) {} app.querySelector( '.dw-edit' ).classList.toggle( 'is-nopreview', hide ); }
+		else if ( t.id === 'dw-pv-full' ) { openFullPreview(); }
 		else if ( t.id === 'dw-save-mouza' ) { saveMouza(); }
 		else if ( t.id === 'dw-download' || t.id === 'dw-download2' ) { e.preventDefault(); download(); }
 	} );
