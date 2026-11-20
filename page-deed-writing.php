@@ -5,7 +5,31 @@
  * no fees, legal requirements or document lists are invented.
  */
 
+// Signed-in office users get the deed-writing tool on this page; everyone else sees the public page below.
+$sojib68_dw_staff = function_exists( 'sojib68_office_is_authorized' ) && sojib68_office_is_authorized();
+if ( $sojib68_dw_staff ) {
+	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+		define( 'DONOTCACHEPAGE', true );
+	}
+	nocache_headers();
+	do_action( 'litespeed_control_set_nocache', 'deed writer (signed-in)' );
+}
+
 get_header();
+
+if ( $sojib68_dw_staff ) :
+	?>
+	<main class="dw-page dw-page--tool">
+		<div class="site-container">
+			<h1><?php esc_html_e( 'দলিল লিখুন', 'sojib68' ); ?></h1>
+			<p class="dw-lead"><?php esc_html_e( 'তথ্য ভরুন, নিজে নিজে সেভ হবে। শেষে বিজয় ফন্টে Word ডাউনলোড করুন।', 'sojib68' ); ?></p>
+			<?php sojib68_dw_render( home_url( '/deed-writing/' ) ); ?>
+		</div>
+	</main>
+	<?php
+	get_footer();
+	return;
+endif;
 
 $wa_base = 'https://wa.me/' . ( defined( 'SOJIB68_WHATSAPP' ) ? SOJIB68_WHATSAPP : '' );
 $wa_text = 'আসসালামু আলাইকুম, আমি দলিল লেখাতে চাই। কোন ধরনের দলিল এবং কী কী তথ্য লাগবে জানতে চাই।';
