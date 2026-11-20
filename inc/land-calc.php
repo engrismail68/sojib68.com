@@ -59,6 +59,8 @@ function sojib68_land_calc_enqueue() {
 	$js  = get_theme_file_path( 'assets/js/land-calc.js' );
 	wp_enqueue_style( 'sojib68-land-calc', get_theme_file_uri( 'assets/css/land-calc.css' ), array(), file_exists( $css ) ? filemtime( $css ) : '1.0.0' );
 	wp_enqueue_script( 'sojib68-land-calc', get_theme_file_uri( 'assets/js/land-calc.js' ), array(), file_exists( $js ) ? filemtime( $js ) : '1.0.0', true );
+	$mjs = get_theme_file_path( 'assets/js/land-map.js' );
+	wp_enqueue_script( 'sojib68-land-map', get_theme_file_uri( 'assets/js/land-map.js' ), array( 'sojib68-land-calc' ), file_exists( $mjs ) ? filemtime( $mjs ) : '1.0.0', true );
 }
 add_action( 'wp_enqueue_scripts', 'sojib68_land_calc_enqueue', 20 );
 
@@ -90,6 +92,7 @@ function sojib68_land_calc_modal() {
 				<button type="button" class="lc-tab is-on" role="tab" aria-selected="true" data-lc-tab="convert"><?php esc_html_e( 'একক রূপান্তর', 'sojib68' ); ?></button>
 				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="area"><?php esc_html_e( 'বাহু থেকে ক্ষেত্রফল', 'sojib68' ); ?></button>
 				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="old"><?php esc_html_e( 'পুরোনো মাপ', 'sojib68' ); ?></button>
+				<button type="button" class="lc-tab" role="tab" aria-selected="false" data-lc-tab="map"><?php esc_html_e( 'নকশা থেকে মাপ', 'sojib68' ); ?></button>
 			</div>
 
 			<div class="lc-dialog__body">
@@ -145,6 +148,41 @@ function sojib68_land_calc_modal() {
 					<p class="lc-msg" data-lc-omsg role="alert" hidden></p>
 					<ul class="lc-results" data-lc-oresults aria-live="polite"></ul>
 					<p class="lc-note lc-note--quad" data-lc-otable></p>
+				</div>
+
+				<div data-lc-panel="map" hidden>
+					<p class="lc-hint"><?php esc_html_e( 'জমির নকশার ছবি (JPG/PNG) বা PDF বাছুন। ১) নকশার একটি জানা দূরত্ব দিয়ে স্কেল ঠিক করুন, ২) জমির সীমানার কোণায় কোণায় বিন্দু বসিয়ে লাইন টানুন, ক্ষেত্রফল নিজে নিজে বের হবে। ফাইল আপনার ফোন/কম্পিউটারেই থাকে, কোথাও আপলোড হয় না।', 'sojib68' ); ?></p>
+					<input type="file" class="lm-file" data-lm-file accept="image/*,application/pdf">
+					<div class="lm-pdfbar" data-lm-pdfbar hidden>
+						<label><?php esc_html_e( 'PDF-এর পাতা', 'sojib68' ); ?> <input type="number" min="1" value="1" data-lm-page></label>
+						<span data-lm-pages></span>
+					</div>
+					<div class="lm-tools" data-lm-tools hidden>
+						<button type="button" class="lm-btn is-on" data-lm-mode="scale"><?php esc_html_e( '১. স্কেল ঠিক করুন', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn" data-lm-mode="draw"><?php esc_html_e( '২. জমি আঁকুন', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn" data-lm-mode="pan"><?php esc_html_e( '✋ নকশা সরান', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="in" aria-label="<?php esc_attr_e( 'বড় করুন', 'sojib68' ); ?>">＋</button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="out" aria-label="<?php esc_attr_e( 'ছোট করুন', 'sojib68' ); ?>">－</button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="fit"><?php esc_html_e( 'পুরো নকশা', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-undo><?php esc_html_e( '↶ শেষ বিন্দু মুছুন', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-close><?php esc_html_e( 'জমি বন্ধ করুন', 'sojib68' ); ?></button>
+						<button type="button" class="lm-btn lm-btn--sm" data-lm-clear><?php esc_html_e( 'সব মুছুন', 'sojib68' ); ?></button>
+					</div>
+					<p class="lm-step" data-lm-step></p>
+					<div class="lm-stage" data-lm-stage hidden><canvas data-lm-canvas></canvas></div>
+					<div class="lm-scalebox" data-lm-scalebox hidden>
+						<label><?php esc_html_e( 'দাগ দেওয়া দুই বিন্দুর আসল দূরত্ব', 'sojib68' ); ?>
+							<input type="text" inputmode="decimal" data-lm-dist placeholder="<?php esc_attr_e( 'যেমন: 66', 'sojib68' ); ?>">
+						</label>
+						<select data-lm-dunit>
+							<option value="ft"><?php esc_html_e( 'ফুট', 'sojib68' ); ?></option>
+							<option value="m"><?php esc_html_e( 'মিটার', 'sojib68' ); ?></option>
+						</select>
+						<button type="button" class="lm-btn is-on" data-lm-setscale><?php esc_html_e( 'স্কেল সেট করুন', 'sojib68' ); ?></button>
+					</div>
+					<p class="lc-msg" data-lm-msg role="alert" hidden></p>
+					<ul class="lc-results" data-lm-results aria-live="polite"></ul>
+					<p class="lc-note lc-note--quad"><?php esc_html_e( 'নকশা থেকে বের করা মাপ আনুমানিক। নকশার স্কেল ও আপনি কতটা সঠিক বিন্দু বসান তার ওপর ফল নির্ভর করে। এটি সরকারি জরিপ বা দলিলের বিকল্প নয়।', 'sojib68' ); ?></p>
 				</div>
 
 				<p class="lc-note">

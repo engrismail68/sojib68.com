@@ -23,7 +23,7 @@
 	var lastOpener = null;
 	var printBtn = modal.querySelector( '[data-lc-print]' );
 	var sheet = modal.querySelector( '[data-lc-sheet]' );
-	var calc = { convert: null, area: null, old: null }; // the last good result of each tab
+	var calc = { convert: null, area: null, old: null, map: null }; // the last good result of each tab
 	var tab = 'convert';
 	var keys = Object.keys( UNITS );
 
@@ -480,6 +480,14 @@
 			base = data.sqft;
 			fromKey = 'shotangsho';
 			extraRows = data.extra || [];
+		} else if ( tab === 'map' ) {
+			setSheetText( '[data-sheet-title]', 'নকশা থেকে জমির মাপ' );
+			data.inputs.forEach( function ( r ) { addLi( inputs, r[ 0 ], r[ 1 ] ); } );
+			diagram.innerHTML = '';
+			if ( data.img ) { var im = document.createElement( 'img' ); im.src = data.img; im.alt = ''; im.style.maxWidth = '100%'; diagram.appendChild( im ); }
+			base = data.sqft;
+			fromKey = 'sqft';
+			extraRows = data.extra || [];
 		} else if ( tab === 'convert' ) {
 			setSheetText( '[data-sheet-title]', 'জমির এককের হিসাব' );
 			addLi( inputs, 'দেওয়া পরিমাণ', format( data.value ) + ' ' + UNITS[ data.unit ].label );
@@ -568,6 +576,11 @@
 		if ( lastOpener && lastOpener.focus ) { lastOpener.focus(); }
 	}
 
+	// small API for the map tab (assets/js/land-map.js)
+	window.sojib68Lc = {
+		renderList: renderList, format: format, parseNumber: parseNumber, UNITS: UNITS,
+		setMapCalc: function ( c ) { calc.map = c; updatePrint(); }
+	};
 	input.addEventListener( 'input', render );
 	select.addEventListener( 'change', render );
 	sidesEl.addEventListener( 'input', renderArea );
