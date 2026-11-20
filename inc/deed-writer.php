@@ -387,6 +387,66 @@ function sojib68_dw_download( $id ) {
  * Office page
  * ------------------------------------------------------------------ */
 
+/* ---------------------------------------------------------------------
+ * Mouza library (left sidebar): one saved profile per mouza, so a new deed for
+ * that mouza starts with its union / JL no. / land office / ownership intro filled.
+ * ------------------------------------------------------------------ */
+
+function sojib68_dw_mouza_fields() {
+	return array( 'name', 'no', 'union', 'upazila', 'district', 'jl_no', 'village', 'land_office', 'sub_office', 'land_class', 'intro' );
+}
+
+function sojib68_dw_get_mouzas() {
+	$list = get_option( 'sojib68_dw_mouzas', array() );
+	return is_array( $list ) ? $list : array();
+}
+
+add_action( 'wp_ajax_sojib68_dw_mouza_save', 'sojib68_dw_ajax_mouza_save' );
+function sojib68_dw_ajax_mouza_save() {
+	sojib68_dw_guard();
+	$in = isset( $_POST['mouza'] ) ? json_decode( wp_unslash( $_POST['mouza'] ), true ) : null;
+	if ( ! is_array( $in ) || '' === trim( (string) ( $in['name'] ?? '' ) ) ) {
+		wp_send_json_error( array( 'message' => 'মৌজার নাম লিখুন।' ), 400 );
+	}
+	$clean = array();
+	foreach ( sojib68_dw_mouza_fields() as $k ) {
+		$clean[ $k ] = isset( $in[ $k ] ) ? mb_substr( sanitize_textarea_field( (string) $in[ $k ] ), 0, 'intro' === $k ? 8000 : 300 ) : '';
+	}
+	$list = sojib68_dw_get_mouzas();
+	$id   = isset( $in['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) $in['id'] ) ) : '';
+	if ( '' === $id || ! isset( $list[ $id ] ) ) {
+		$id = 'm' . base_convert( (string) time(), 10, 36 ) . wp_rand( 10, 99 );
+	}
+	$clean['id']  = $id;
+	$list[ $id ]  = $clean;
+	update_option( 'sojib68_dw_mouzas', $list, false );
+	wp_send_json_success( array( 'id' => $id ) );
+}
+
+add_action( 'wp_ajax_sojib68_dw_mouza_delete', 'sojib68_dw_ajax_mouza_delete' );
+function sojib68_dw_ajax_mouza_delete() {
+	sojib68_dw_guard();
+	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
+	$list = sojib68_dw_get_mouzas();
+	unset( $list[ $id ] );
+	update_option( 'sojib68_dw_mouzas', $list, false );
+	wp_send_json_success();
+}
+
+/** Which mouza does a saved deed belong to? (matches the saved mouza id, else name + number) */
+function sojib68_dw_draft_mouza_id( $data, $mouzas ) {
+	$f = isset( $data['f'] ) && is_array( $data['f'] ) ? $data['f'] : array();
+	if ( ! empty( $f['mouza_id'] ) && isset( $mouzas[ $f['mouza_id'] ] ) ) {
+		return $f['mouza_id'];
+	}
+	foreach ( $mouzas as $id => $m ) {
+		if ( '' !== $m['name'] && trim( (string) ( $f['mouza_name'] ?? '' ) ) === trim( $m['name'] ) && trim( (string) ( $f['mouza_no'] ?? '' ) ) === trim( $m['no'] ) ) {
+			return $id;
+		}
+	}
+	return '';
+}
+
 /**
  * @param string|null $base URL of the page that hosts the tool (office page by default, or the public /deed-writing page for signed-in office users).
  */
@@ -397,23 +457,74 @@ function sojib68_dw_render( $base = null ) {
 		$p = get_theme_file_path( $rel );
 		return file_exists( $p ) ? (int) filemtime( $p ) : 1;
 	};
-	$edit_id = isset( $_GET['draft'] ) ? (int) $_GET['draft'] : 0;
-	$is_new  = isset( $_GET['new'] );
+	$edit_id   = isset( $_GET['draft'] ) ? (int) $_GET['draft'] : 0;
+	$is_new    = isset( $_GET['new'] );
+	$mouzas    = sojib68_dw_get_mouzas();
+	$sel_mouza = isset( $_GET['mouza'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_GET['mouza'] ) ) ) : '';
+	if ( $sel_mouza && ! isset( $mouzas[ $sel_mouza ] ) ) {
+		$sel_mouza = '';
+	}
+	$nonce = wp_create_nonce( 'sojib68_dw' );
+	$ajax  = admin_url( 'admin-ajax.php' );
 
+	// All saved deeds once: used for the list, and for the per-mouza counts in the sidebar.
+	$draft_rows = array();
+	$counts     = array();
 	if ( ! $edit_id && ! $is_new ) {
 		$t    = sojib68_dw_drafts_table();
-		$rows = $wpdb->get_results( "SELECT id, title, created_at, updated_at FROM {$t} ORDER BY updated_at DESC LIMIT 200", ARRAY_A );
+		$rows = (array) $wpdb->get_results( "SELECT id, title, data, created_at, updated_at FROM {$t} ORDER BY updated_at DESC LIMIT 500", ARRAY_A );
+		foreach ( $rows as $r ) {
+			$d   = json_decode( $r['data'], true );
+			$mid = sojib68_dw_draft_mouza_id( is_array( $d ) ? $d : array(), $mouzas );
+			$r['mid']   = $mid;
+			$r['mname'] = is_array( $d ) && isset( $d['f']['mouza_name'] ) ? (string) $d['f']['mouza_name'] : '';
+			unset( $r['data'] );
+			$draft_rows[] = $r;
+			if ( $mid ) {
+				$counts[ $mid ] = ( $counts[ $mid ] ?? 0 ) + 1;
+			}
+		}
+	}
+	?>
+	<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/deed-writer.css' ) ); ?>?v=<?php echo (int) $ver( 'assets/css/deed-writer.css' ); ?>">
+	<div class="dw-layout">
+		<aside class="dw-side">
+			<h3>মৌজা তালিকা</h3>
+			<ul class="dw-mouzas">
+				<li class="<?php echo ! $sel_mouza && ! $edit_id && ! $is_new ? 'is-on' : ''; ?>"><a href="<?php echo esc_url( $base ); ?>">সব দলিল</a></li>
+				<?php foreach ( $mouzas as $id => $m ) : ?>
+					<li class="<?php echo $sel_mouza === $id ? 'is-on' : ''; ?>">
+						<a class="dw-mz-name" href="<?php echo esc_url( add_query_arg( 'mouza', $id, $base ) ); ?>"><?php echo esc_html( ( $m['no'] ? $m['no'] . 'নং ' : '' ) . $m['name'] ); ?> <small>(<?php echo (int) ( $counts[ $id ] ?? 0 ); ?>)</small></a>
+						<a class="dw-mz-new" href="<?php echo esc_url( add_query_arg( array( 'new' => '1', 'mouza' => $id ), $base ) ); ?>" title="এই মৌজায় নতুন দলিল">+ দলিল</a>
+						<button type="button" class="dw-mz-edit" data-mouza-edit="<?php echo esc_attr( $id ); ?>" title="মৌজার তথ্য বদলান">✎</button>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+			<?php if ( ! $mouzas ) : ?>
+				<p class="dw-hint">এখনো কোনো মৌজা সেভ করা নেই। নিচের বোতামে মৌজা যোগ করুন, তারপর সেই মৌজার "+ দলিল" চাপলে ইউনিয়ন, জে.এল. নং, ভূমি অফিস ইত্যাদি নিজে নিজে ভরা থাকবে।</p>
+			<?php endif; ?>
+			<button type="button" class="btn btn-outline btn-sm" id="dw-mouza-add">+ নতুন মৌজা</button>
+		</aside>
+		<div class="dw-main">
+	<?php
+
+	if ( ! $edit_id && ! $is_new ) {
+		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza ) {
+			return ! $sel_mouza || $r['mid'] === $sel_mouza;
+		} ) );
+		$new_url = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
 		?>
-		<p><a class="btn btn-primary" href="<?php echo esc_url( add_query_arg( 'new', '1', $base ) ); ?>">+ নতুন দলিল লিখুন</a></p>
-		<?php if ( ! $rows ) : ?>
-			<p class="office-muted">এখনো কোনো দলিল লেখা হয়নি।</p>
+		<p><a class="btn btn-primary" href="<?php echo esc_url( $new_url ); ?>">+ নতুন দলিল লিখুন<?php echo $sel_mouza ? ' (' . esc_html( $mouzas[ $sel_mouza ]['name'] ) . ' মৌজা)' : ''; ?></a></p>
+		<?php if ( ! $show ) : ?>
+			<p class="office-muted">এখানে এখনো কোনো দলিল নেই।</p>
 		<?php else : ?>
 			<div class="office-card"><table class="office-table dw-list">
-				<thead><tr><th>দলিল</th><th>শেষ সংরক্ষণ</th><th></th></tr></thead>
+				<thead><tr><th>দলিল</th><th>মৌজা</th><th>শেষ সংরক্ষণ</th><th></th></tr></thead>
 				<tbody>
-				<?php foreach ( $rows as $r ) : ?>
+				<?php foreach ( $show as $r ) : ?>
 					<tr>
 						<td><a href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>"><?php echo esc_html( '' !== $r['title'] ? $r['title'] : 'নামহীন দলিল #' . (int) $r['id'] ); ?></a></td>
+						<td><?php echo esc_html( $r['mname'] ); ?></td>
 						<td><?php echo esc_html( $r['updated_at'] ); ?></td>
 						<td class="dw-actions">
 							<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>">খুলুন</a>
@@ -425,9 +536,8 @@ function sojib68_dw_render( $base = null ) {
 				</tbody>
 			</table></div>
 		<?php endif; ?>
-		<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/deed-writer.css' ) ); ?>?v=<?php echo (int) $ver( 'assets/css/deed-writer.css' ); ?>">
 		<script>
-		window.sojib68DwList = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_dw' ) ); ?> };
+		window.sojib68DwList = { ajaxUrl: <?php echo wp_json_encode( $ajax ); ?>, nonce: <?php echo wp_json_encode( $nonce ); ?> };
 		document.addEventListener('click', function (e) {
 			var b = e.target.closest && e.target.closest('.dw-del');
 			if (!b || !window.confirm('এই দলিলের খসড়া মুছে ফেলবেন? (ফেরত আনা যাবে না)')) { return; }
@@ -436,28 +546,58 @@ function sojib68_dw_render( $base = null ) {
 		});
 		</script>
 		<?php
-		return;
+	} else {
+		$draft = $edit_id ? sojib68_dw_get_draft( $edit_id ) : null;
+		if ( $edit_id && ! $draft ) {
+			echo '<p>খসড়া পাওয়া যায়নি। <a href="' . esc_url( $base ) . '">তালিকায় ফিরুন</a></p>';
+		} else {
+			$data = $draft ? json_decode( $draft['data'], true ) : array();
+			$boot = array(
+				'ajaxUrl'   => $ajax,
+				'nonce'     => $nonce,
+				'id'        => $draft ? (int) $draft['id'] : 0,
+				'data'      => is_array( $data ) ? $data : new stdClass(),
+				'defaults'  => get_option( 'sojib68_dw_defaults', array() ),
+				'newMouza'  => ( ! $draft && $sel_mouza ) ? $mouzas[ $sel_mouza ] : null,
+				'listUrl'   => $base,
+				'docxUrl'   => home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' ),
+			);
+			?>
+			<div id="dw-app" class="dw-app" aria-live="polite"></div>
+			<script>window.sojib68Dw = <?php echo wp_json_encode( $boot, JSON_UNESCAPED_UNICODE ); ?>;</script>
+			<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-writer.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-writer.js' ); ?>"></script>
+			<?php
+		}
 	}
-
-	$draft = $edit_id ? sojib68_dw_get_draft( $edit_id ) : null;
-	if ( $edit_id && ! $draft ) {
-		echo '<p>খসড়া পাওয়া যায়নি। <a href="' . esc_url( $base ) . '">তালিকায় ফিরুন</a></p>';
-		return;
-	}
-	$data = $draft ? json_decode( $draft['data'], true ) : array();
-	$boot = array(
-		'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-		'nonce'    => wp_create_nonce( 'sojib68_dw' ),
-		'id'       => $draft ? (int) $draft['id'] : 0,
-		'data'     => is_array( $data ) ? $data : new stdClass(),
-		'defaults' => get_option( 'sojib68_dw_defaults', array() ),
-		'listUrl'  => $base,
-		'docxUrl'  => home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' ),
-	);
 	?>
-	<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/deed-writer.css' ) ); ?>?v=<?php echo (int) $ver( 'assets/css/deed-writer.css' ); ?>">
-	<div id="dw-app" class="dw-app" aria-live="polite"></div>
-	<script>window.sojib68Dw = <?php echo wp_json_encode( $boot, JSON_UNESCAPED_UNICODE ); ?>;</script>
-	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-writer.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-writer.js' ); ?>"></script>
+		</div>
+	</div>
+
+	<dialog id="dw-mouza-dlg" class="dw-dlg">
+		<form method="dialog" id="dw-mouza-form">
+			<h3 id="dw-mouza-title">মৌজার তথ্য</h3>
+			<div class="dw-grid dw-dlg-grid">
+				<label class="dw-f"><span>মৌজার নাম *</span><input name="name" required placeholder="যেমন তিয়রী"></label>
+				<label class="dw-f"><span>মৌজা নম্বর</span><input name="no" placeholder="যেমন 99"></label>
+				<label class="dw-f"><span>ইউনিয়ন/ওয়ার্ড</span><input name="union" placeholder="যেমন ৯ নং ভোলাকোট"></label>
+				<label class="dw-f"><span>উপজেলা/থানা</span><input name="upazila"></label>
+				<label class="dw-f"><span>জেলা</span><input name="district"></label>
+				<label class="dw-f"><span>জে.এল. নং</span><input name="jl_no" placeholder="যেমন সি.এস ১৪১ আর.এস ৯৯ নং"></label>
+				<label class="dw-f"><span>গ্রাম</span><input name="village"></label>
+				<label class="dw-f dw-wide"><span>ভূমি অফিসের নাম</span><input name="land_office"></label>
+				<label class="dw-f dw-wide"><span>রেজিস্ট্রি অফিসের নাম</span><input name="sub_office"></label>
+				<label class="dw-f"><span>সাধারণ শ্রেণি</span><input name="land_class" placeholder="যেমন নাল"></label>
+				<label class="dw-f dw-full"><span>মালিকানার বিবরণের শুরুর অংশ (এই মৌজার সব দলিলে একই থাকে)</span><textarea name="intro" rows="5" placeholder="যেমন: জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … পরগনা … তৌজিভুক্ত … সি.এস … আর.এস …"></textarea></label>
+			</div>
+			<input type="hidden" name="id">
+			<div class="dw-dlg-actions">
+				<button type="submit" class="btn btn-primary btn-sm" value="save">সেভ করুন</button>
+				<button type="button" class="btn btn-outline btn-sm" id="dw-mouza-cancel">বাতিল</button>
+				<button type="button" class="btn btn-outline btn-sm dw-x" id="dw-mouza-del" hidden>এই মৌজা মুছুন</button>
+			</div>
+		</form>
+	</dialog>
+	<script>window.sojib68DwM = { ajaxUrl: <?php echo wp_json_encode( $ajax ); ?>, nonce: <?php echo wp_json_encode( $nonce ); ?>, mouzas: <?php echo wp_json_encode( $mouzas, JSON_UNESCAPED_UNICODE ); ?> };</script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-mouzas.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-mouzas.js' ); ?>"></script>
 	<?php
 }

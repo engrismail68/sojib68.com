@@ -49,3 +49,22 @@
 .dw-page--tool .office-table { width: 100%; border-collapse: collapse; }
 .dw-page--tool .office-table th, .dw-page--tool .office-table td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; font-size: 15px; }
 .dw-page--tool .dw-top { background: #faf8f1; }
+
+/* mouza sidebar layout */
+.dw-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 22px; align-items: start; }
+.dw-main { min-width: 0; }
+.dw-side { background: #fff; border: 1px solid #e4e2d8; border-radius: 14px; padding: 14px; position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow: auto; }
+.dw-side h3 { margin: 0 0 10px; font-size: 16px; }
+.dw-mouzas { list-style: none; margin: 0 0 12px; padding: 0; }
+.dw-mouzas li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 7px 8px; border-radius: 8px; }
+.dw-mouzas li.is-on { background: #eaf4ec; }
+.dw-mouzas a { text-decoration: none; color: inherit; }
+.dw-mz-name { flex: 1; min-width: 0; font-weight: 500; }
+.dw-mz-name small { color: #6b7a75; }
+.dw-mz-new { font-size: 12.5px; color: #14532d; border: 1px solid #cfe5d3; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.dw-mz-edit { border: 0; background: transparent; cursor: pointer; color: #6b7a75; font-size: 15px; }
+.dw-dlg { border: 0; border-radius: 14px; padding: 20px; width: min(720px, 94vw); box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+.dw-dlg::backdrop { background: rgba(3, 39, 55, .45); }
+.dw-dlg-grid { margin: 10px 0; }
+.dw-dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 900px) { .dw-layout { grid-template-columns: 1fr; } .dw-side { position: static; max-height: none; } }

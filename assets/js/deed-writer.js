@@ -104,6 +104,15 @@
 		donors: saved ? saved.donors : [ emptyParty() ]
 	};
 	if ( ! S.f.o ) { S.f.o = {}; }
+	// New deed started from a saved mouza: its fixed details are filled in already.
+	if ( ! saved && BOOT.newMouza ) {
+		var nm = BOOT.newMouza;
+		S.f.mouza_id = nm.id || '';
+		[ [ 'mouza_name', 'name' ], [ 'mouza_no', 'no' ], [ 'union', 'union' ], [ 'upazila', 'upazila' ], [ 'district', 'district' ], [ 'jl_no', 'jl_no' ], [ 'village', 'village' ], [ 'land_office', 'land_office' ], [ 'sub_office', 'sub_office' ], [ 'land_class', 'land_class' ], [ 'ownership', 'intro' ] ].forEach( function ( p ) {
+			if ( nm[ p[ 1 ] ] ) { S.f[ p[ 0 ] ] = nm[ p[ 1 ] ]; }
+		} );
+		if ( S.f.schedule && S.f.schedule[ 0 ] && nm.land_class ) { S.f.schedule[ 0 ][ 'class' ] = nm.land_class; }
+	}
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
 	S.donors.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
 
@@ -231,6 +240,7 @@
 			field( 'জেলা', 'f.district' ) + field( 'উপজেলা/থানা', 'f.upazila' ) + field( 'ইউনিয়ন/ওয়ার্ড', 'f.union', { ph: 'যেমন ৯ নং ভোলাকোট' } ) +
 			field( 'মৌজা নম্বর', 'f.mouza_no', { ph: 'যেমন 99' } ) + field( 'মৌজার নাম', 'f.mouza_name', { ph: 'যেমন তিয়রী' } ) + field( 'শ্রেণি', 'f.land_class' ) +
 			field( 'জমির পরিমাণ (শতাংশ)', 'f.area', { ph: 'যেমন 5 বা 5.25' } ) + field( 'মূল্য (টাকা)', 'f.price', { ph: 'যেমন 500000' } ) + field( 'দলিলের ফর্দ সংখ্যা', 'f.pages', { ph: 'যেমন 7' } ) +
+			'<div class="dw-f dw-full"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' +
 			autoField( 'পরিমাণ (অংকে ও কথায়)', 'area_text' ) + autoField( 'মূল্য (অংকে ও কথায়)', 'price_text' ) + autoField( 'মূল্য পরিশোধের বিবরণ', 'payment_text' ) + autoField( 'হাত নকশা ও পরিমাপ', 'sqft_text' ) +
 			'</div></section>';
 
@@ -311,7 +321,7 @@
 		var f = S.f;
 		var defaults = { sub_office: f.sub_office, district: f.district, upazila: f.upazila, land_office: f.land_office, id: f.id, wr: f.wr, w1: { upazila: f.w1.upazila, district: f.w1.district }, w2: { upazila: f.w2.upazila, district: f.w2.district } };
 		var title = ( ( S.donors[ 0 ] && S.donors[ 0 ].name ) || '' ) + ( S.donees[ 0 ] && S.donees[ 0 ].name ? ' → ' + S.donees[ 0 ].name : '' );
-		title = ( title ? title + ' — ' : '' ) + ( f.deed_type || '' );
+		title = ( title ? title + ' — ' : '' ) + ( f.deed_type || '' ) + ( f.mouza_name ? ' (' + f.mouza_name + ')' : '' );
 		return { title: title, data: { f: S.f, donees: S.donees, donors: S.donors, out: S.out, defaults: defaults } };
 	}
 
@@ -377,8 +387,19 @@
 		else if ( ( v = t.getAttribute( 'data-reset' ) ) ) { var rp = v.split( '.' ), rk = rp.pop(), holder = getp( rp.join( '.' ) ); if ( holder ) { delete holder[ rk ]; } refreshAuto(); var tx = app.querySelector( '[data-auto="' + v + '"]' ); if ( tx ) { tx.value = tx.placeholder; tx.classList.remove( 'is-manual' ); } schedule(); }
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }
+		else if ( t.id === 'dw-save-mouza' ) { saveMouza(); }
 		else if ( t.id === 'dw-download' || t.id === 'dw-download2' ) { e.preventDefault(); download(); }
 	} );
+
+	function saveMouza() {
+		var f = S.f, st = document.getElementById( 'dw-mouza-st' );
+		if ( ! f.mouza_name ) { st.textContent = 'আগে মৌজার নাম লিখুন'; return; }
+		var m = { id: f.mouza_id || '', name: f.mouza_name, no: f.mouza_no, union: f.union, upazila: f.upazila, district: f.district, jl_no: f.jl_no, village: f.village, land_office: f.land_office, sub_office: f.sub_office, land_class: f.land_class, intro: f.ownership };
+		post( 'sojib68_dw_mouza_save', { mouza: JSON.stringify( m ) } ).then( function ( res ) {
+			if ( res && res.success ) { f.mouza_id = res.data.id; st.textContent = '✓ মৌজা তালিকায় সেভ হয়েছে (পেজ রিফ্রেশ করলে বাঁ পাশে দেখাবে)'; schedule(); }
+			else { st.textContent = '⚠ ' + ( ( res && res.data && res.data.message ) || 'সেভ হয়নি' ); }
+		} );
+	}
 
 	function download() {
 		statusText( 'সেভ করে ফাইল তৈরি হচ্ছে…', 'is-saving' );
