@@ -396,7 +396,7 @@
 	function mkParse( inner ) { var i = inner.indexOf( '§' ); return i < 0 ? { cur: inner, label: '' } : { cur: inner.slice( 0, i ), label: inner.slice( i + 1 ) }; }
 	function mkIsPh( m ) { return m.label ? m.cur.trim() === m.label.trim() : OWN_PH.indexOf( m.cur.trim() ) >= 0; }
 	function srcToHtml( src ) {
-		return esc( src ).replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); return '<mark class="' + ( mkIsPh( m ) ? 'ph' : 'ok' ) + '"' + ( m.label ? ' data-label="' + m.label + '"' : '' ) + '>' + m.cur + '</mark>'; } ).replace( /\n/g, '<br>' );
+		return esc( src ).replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ), lb = m.label || ( OWN_PH.indexOf( m.cur.trim() ) >= 0 ? m.cur.trim() : '' ); return '<mark class="' + ( mkIsPh( m ) ? 'ph' : 'ok' ) + '"' + ( lb ? ' data-label="' + lb + '"' : '' ) + '>' + m.cur + '</mark>'; } ).replace( /\n/g, '<br>' );
 	}
 	function domToSrc( node ) {
 		var out = '';
@@ -438,8 +438,8 @@
 			'<span class="dw-hint" id="dw-owntpl-st"></span></div>';
 	}
 	/** template text: filled boxes go back to their instruction, unlabelled filled boxes become plain text */
-	function tplFromSrc( src ) {
-		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); if ( m.label ) { return '⟦' + m.label + '§' + m.label + '⟧'; } return OWN_PH.indexOf( m.cur.trim() ) >= 0 ? x : m.cur; } );
+	function tplFromSrc( src, keepValues ) {
+		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); if ( ! m.label ) { return OWN_PH.indexOf( m.cur.trim() ) >= 0 ? '⟦' + m.cur + '§' + m.cur + '⟧' : m.cur; } return keepValues ? x : '⟦' + m.label + '§' + m.label + '⟧'; } );
 	}
 	function ownTplStatus( t ) { var el = document.getElementById( 'dw-owntpl-st' ); if ( el ) { el.textContent = t; } }
 	function ownTplSave( id ) {
@@ -447,7 +447,8 @@
 		var cur = OT.filter( function ( t ) { return t.id === id; } )[ 0 ];
 		var name = cur && id ? cur.name : window.prompt( 'এই মালিকানা সিস্টেমের নাম (যেমন: ওয়ারিশ সূত্রে, ক্রয় সূত্রে, নামজারি সূত্রে):', '' );
 		if ( ! name ) { return; }
-		post( 'sojib68_dw_owntpl_save', { id: id || '', name: name, text: tplFromSrc( S.f.ownership_src || '' ) } ).then( function ( res ) {
+		var keep = window.confirm( 'আপনার ভরা ঘরের লেখাগুলোও এই টেমপ্লেটে রাখবেন?\n\nOK = রাখব (সবুজ ঘর হিসেবে থাকবে, পরে বদলানো যাবে)\nCancel = ঘরগুলো আবার খালি (হলুদ) করে সেভ' );
+		post( 'sojib68_dw_owntpl_save', { id: id || '', name: name, text: tplFromSrc( S.f.ownership_src || '', keep ) } ).then( function ( res ) {
 			if ( res && res.success ) {
 				var t = res.data.tpl, hit = false;
 				OT = OT.map( function ( x ) { if ( x.id === t.id ) { hit = true; return t; } return x; } ); if ( ! hit ) { OT.push( t ); }
