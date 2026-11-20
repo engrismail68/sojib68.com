@@ -258,3 +258,6 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-tpl-box input, .dw-tpl-box select, .dw-tpl-box textarea { padding: 8px 10px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; font-weight: 400; width: 100%; box-sizing: border-box; }
 .dw-tpl-box textarea { line-height: 1.8; }
 .dw-tpl-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.dw-mz-search { width: 100%; box-sizing: border-box; padding: 7px 10px; margin: 0 0 8px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; font-size: 14px; }
+.dw-side h3 small { font-weight: 400; color: #5f6f64; }

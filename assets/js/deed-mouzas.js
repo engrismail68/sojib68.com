@@ -44,3 +44,16 @@
 
 	window.sojib68DwMouza = { post: post, M: M };
 }() );
+
+( function () {
+	var q = document.getElementById( 'dw-mz-search' );
+	if ( ! q ) { return; }
+	q.addEventListener( 'input', function () {
+		var t = q.value.trim().toLowerCase();
+		[].forEach.call( document.querySelectorAll( '.dw-mouzas li' ), function ( li ) {
+			var all = li.querySelector( '.dw-mz-name' );
+			if ( ! all ) { return; }   // "সব দলিল" stays
+			li.style.display = ! t || all.textContent.toLowerCase().indexOf( t ) >= 0 ? '' : 'none';
+		} );
+	} );
+}() );

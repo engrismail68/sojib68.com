@@ -572,6 +572,9 @@ function sojib68_dw_render( $base = null ) {
 	$edit_id   = isset( $_GET['draft'] ) ? (int) $_GET['draft'] : 0;
 	$is_new    = isset( $_GET['new'] );
 	$mouzas    = sojib68_dw_get_mouzas();
+	uasort( $mouzas, static function ( $x, $y ) {
+		return strnatcasecmp( (string) $x['name'] . ' ' . (string) $x['no'], (string) $y['name'] . ' ' . (string) $y['no'] );
+	} );
 	$sel_mouza = isset( $_GET['mouza'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_GET['mouza'] ) ) ) : '';
 	if ( $sel_mouza && ! isset( $mouzas[ $sel_mouza ] ) ) {
 		$sel_mouza = '';
@@ -601,7 +604,10 @@ function sojib68_dw_render( $base = null ) {
 	<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/deed-writer.css' ) ); ?>?v=<?php echo (int) $ver( 'assets/css/deed-writer.css' ); ?>">
 	<div class="dw-layout">
 		<aside class="dw-side">
-			<h3>মৌজা তালিকা</h3>
+			<h3>মৌজা তালিকা <small>(<?php echo (int) count( $mouzas ); ?>)</small></h3>
+				<?php if ( count( $mouzas ) > 4 ) : ?>
+					<input type="search" id="dw-mz-search" class="dw-mz-search" placeholder="মৌজা খুঁজুন…" autocomplete="off">
+				<?php endif; ?>
 			<ul class="dw-mouzas">
 				<li class="<?php echo ! $sel_mouza && ! $edit_id && ! $is_new ? 'is-on' : ''; ?>"><a href="<?php echo esc_url( $base ); ?>">সব দলিল</a></li>
 				<?php foreach ( $mouzas as $id => $m ) : ?>
