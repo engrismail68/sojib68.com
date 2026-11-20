@@ -107,24 +107,22 @@ if ( ! function_exists( 'sojib68_docx_build' ) ) {
 		$document = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
 			. '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' . $body . $sect . '</w:body></w:document>';
 
-		$types = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-			. '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
-			. '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
-			. '<Default Extension="xml" ContentType="application/xml"/>'
-			. '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
-			. '</Types>';
-		$rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-			. '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-			. '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
-			. '</Relationships>';
-
 		$tmp = tempnam( sys_get_temp_dir(), 'dx' );
 		$zip = new ZipArchive();
 		if ( true !== $zip->open( $tmp, ZipArchive::OVERWRITE ) ) {
 			return '';
 		}
-		$zip->addFromString( '[Content_Types].xml', $types );
-		$zip->addFromString( '_rels/.rels', $rels );
+		// Package parts (styles, settings, theme, relationships) come from a known-good skeleton so Word accepts the file.
+		$skeleton = __DIR__ . '/docx-skeleton';
+		$zip->addFromString( '[Content_Types].xml', (string) file_get_contents( $skeleton . '/Content_Types.xml' ) );
+		$files    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $skeleton, FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $files as $file ) {
+			$rel = str_replace( '\\', '/', substr( $file->getPathname(), strlen( $skeleton ) + 1 ) );
+			if ( 'Content_Types.xml' === $rel ) {
+				continue;
+			}
+			$zip->addFromString( $rel, (string) file_get_contents( $file->getPathname() ) );
+		}
 		$zip->addFromString( 'word/document.xml', $document );
 		$zip->close();
 		$bin = (string) file_get_contents( $tmp );
