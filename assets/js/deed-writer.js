@@ -392,14 +392,17 @@
 			'বর্ণিত প্রকারে মালিক ও ভোগদখলকার থাকিয়া নিম্ন দাগ ও চৌহুদ্দিস্থিত ' + m( o.area_text || 'জমির পরিমাণ' ) + ' জমিনের বাং মং বাংলাদেশ সরকার কর্তৃক নির্ধারিত হারে খাজনাধি পরিশোধ ক্রমে ' +
 			( o.vb ? o.vb.d_amar : 'আমার' ) + ' নগদ টাকার বিশেষ প্রয়োজনে ' + ( o.vb ? o.vb.g_apnar : 'আপনাদের' ) + ' নিকট সাফ বিক্রয় করিলাম।';
 	}
+	/* a box is ⟦text⟧ or ⟦text§label⟧ (label = the instruction a saved template shows; unfilled while text === label) */
+	function mkParse( inner ) { var i = inner.indexOf( '§' ); return i < 0 ? { cur: inner, label: '' } : { cur: inner.slice( 0, i ), label: inner.slice( i + 1 ) }; }
+	function mkIsPh( m ) { return m.label ? m.cur.trim() === m.label.trim() : OWN_PH.indexOf( m.cur.trim() ) >= 0; }
 	function srcToHtml( src ) {
-		return esc( src ).replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { return '<mark class="' + ( OWN_PH.indexOf( t.trim() ) >= 0 ? 'ph' : 'ok' ) + '">' + t + '</mark>'; } ).replace( /\n/g, '<br>' );
+		return esc( src ).replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); return '<mark class="' + ( mkIsPh( m ) ? 'ph' : 'ok' ) + '"' + ( m.label ? ' data-label="' + m.label + '"' : '' ) + '>' + m.cur + '</mark>'; } ).replace( /\n/g, '<br>' );
 	}
 	function domToSrc( node ) {
 		var out = '';
 		[].forEach.call( node.childNodes, function ( c ) {
 			if ( c.nodeType === 3 ) { out += c.nodeValue; }
-			else if ( c.nodeName === 'MARK' ) { out += '⟦' + c.textContent + '⟧'; }
+			else if ( c.nodeName === 'MARK' ) { var lb = c.getAttribute( 'data-label' ); out += '⟦' + c.textContent.replace( /[⟦⟧§]/g, '' ) + ( lb ? '§' + lb : '' ) + '⟧'; }
 			else if ( c.nodeName === 'BR' ) { out += '\n'; }
 			else if ( c.nodeType === 1 ) { out += ( out && ! /\n$/.test( out ) ? '\n' : '' ) + domToSrc( c ); }
 		} );
@@ -407,13 +410,13 @@
 	}
 	/** Word text: marks become plain text; a mark still showing its instruction becomes a blank line "…………". */
 	function srcPlain( src ) {
-		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { return OWN_PH.indexOf( t.trim() ) >= 0 ? '…………' : t; } ).replace( /[ \t]+\n/g, '\n' );
+		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); return mkIsPh( m ) ? '…………' : m.cur; } ).replace( /[ \t]+\n/g, '\n' );
 	}
-	function ownCount() { return ( ( S.f.ownership_src || '' ).match( /⟦([^⟧]*)⟧/g ) || [] ).filter( function ( x ) { return OWN_PH.indexOf( x.slice( 1, -1 ).trim() ) >= 0; } ).length; }
+	function ownCount() { return ( ( S.f.ownership_src || '' ).match( /⟦([^⟧]*)⟧/g ) || [] ).filter( function ( x ) { return mkIsPh( mkParse( x.slice( 1, -1 ) ) ); } ).length; }
 	function ownSync( el ) {
 		var src = domToSrc( el );
 		S.f.ownership_src = src; S.f.ownership = srcPlain( src );
-		[].forEach.call( el.querySelectorAll( 'mark' ), function ( mk ) { mk.className = OWN_PH.indexOf( mk.textContent.trim() ) >= 0 ? 'ph' : 'ok'; } );
+		[].forEach.call( el.querySelectorAll( 'mark' ), function ( mk ) { var lb = mk.getAttribute( 'data-label' ); mk.className = mkIsPh( { cur: mk.textContent, label: lb || '' } ) ? 'ph' : 'ok'; } );
 		var c = document.getElementById( 'dw-own-count' ); if ( c ) { var n = ownCount(); c.textContent = n ? '⚠ এখনো ' + bn( n ) + 'টি হলুদ ঘর বদলানো হয়নি (Word-এ "…………" আসবে)' : '✓ সব ঘর ভরা হয়েছে'; c.className = n ? 'is-warn' : 'is-ok'; }
 	}
 	function ownBlock() {
@@ -421,7 +424,52 @@
 		var n = ownCount();
 		return '<div class="df-ownbar"><span class="df-leg"><mark class="ph">হলুদ</mark> = বদলাতে হবে &nbsp; <mark class="ok">সবুজ</mark> = ভরা হয়েছে &nbsp; (হলুদ ঘরে ক্লিক করে সরাসরি লিখুন; যেকোনো জায়গায় নতুন লেখা যোগ বা মুছতে পারবেন)</span> <span id="dw-own-count" class="' + ( n ? 'is-warn' : 'is-ok' ) + '">' + ( n ? '⚠ এখনো ' + bn( n ) + 'টি হলুদ ঘর বদলানো হয়নি (Word-এ "…………" আসবে)' : '✓ সব ঘর ভরা হয়েছে' ) + '</span></div>' +
 			'<div class="df-own" contenteditable="true" spellcheck="false" data-own>' + srcToHtml( S.f.ownership_src ) + '</div>' +
-			'<div class="df-ownbtns"><span>নতুন ধাপ যোগ:</span><button type="button" class="btn btn-outline btn-sm" data-own-add="warish">+ ওয়ারিশ সূত্র</button><button type="button" class="btn btn-outline btn-sm" data-own-add="deed">+ দলিল মূলে</button><button type="button" class="btn btn-outline btn-sm" data-own-add="namjari">+ নামজারি/খতিয়ান</button><button type="button" class="dw-link" data-own-reset="1">ছাঁচ নতুন করে বসান</button></div>';
+			'<div class="df-ownbtns"><span>নতুন ধাপ যোগ:</span><button type="button" class="btn btn-outline btn-sm" data-own-add="warish">+ ওয়ারিশ সূত্র</button><button type="button" class="btn btn-outline btn-sm" data-own-add="deed">+ দলিল মূলে</button><button type="button" class="btn btn-outline btn-sm" data-own-add="namjari">+ নামজারি/খতিয়ান</button><button type="button" class="dw-link" data-own-reset="1">ছাঁচ নতুন করে বসান</button></div>' + ownTplBar();
+	}
+	/* ---- saved ownership templates: pick the ownership type, the schedule text changes ---- */
+	var OT = BOOT.owntpls || [];
+	function ownTplBar() {
+		var sel = S.f.own_tpl || '';
+		return '<div class="df-owntpl"><b>মালিকানা সিস্টেম:</b> <select data-own-tpl><option value="">— বেছে নিন (সেভ করা টেমপ্লেট) —</option>' +
+			OT.map( function ( t ) { return '<option value="' + esc( t.id ) + '"' + ( t.id === sel ? ' selected' : '' ) + '>' + esc( t.name ) + '</option>'; } ).join( '' ) + '</select> ' +
+			'<button type="button" class="btn btn-outline btn-sm" data-own-mk title="লেখার যে অংশ প্রতিবার বদলাবে তা মাউসে সিলেক্ট করে এটি চাপুন">▮ সিলেক্ট করা অংশ হলুদ ঘর বানান</button> ' +
+			'<button type="button" class="btn btn-outline btn-sm" data-own-tpl-new>💾 নতুন টেমপ্লেট হিসেবে সেভ</button>' +
+			( sel ? ' <button type="button" class="btn btn-outline btn-sm" data-own-tpl-upd>↻ এই টেমপ্লেট আপডেট</button> <button type="button" class="dw-link" data-own-tpl-del>মুছুন</button>' : '' ) +
+			'<span class="dw-hint" id="dw-owntpl-st"></span></div>';
+	}
+	/** template text: filled boxes go back to their instruction, unlabelled filled boxes become plain text */
+	function tplFromSrc( src ) {
+		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { var m = mkParse( t ); if ( m.label ) { return '⟦' + m.label + '§' + m.label + '⟧'; } return OWN_PH.indexOf( m.cur.trim() ) >= 0 ? x : m.cur; } );
+	}
+	function ownTplStatus( t ) { var el = document.getElementById( 'dw-owntpl-st' ); if ( el ) { el.textContent = t; } }
+	function ownTplSave( id ) {
+		var ed = app.querySelector( '[data-own]' ); if ( ed ) { ownSync( ed ); }
+		var cur = OT.filter( function ( t ) { return t.id === id; } )[ 0 ];
+		var name = cur && id ? cur.name : window.prompt( 'এই মালিকানা সিস্টেমের নাম (যেমন: ওয়ারিশ সূত্রে, ক্রয় সূত্রে, নামজারি সূত্রে):', '' );
+		if ( ! name ) { return; }
+		post( 'sojib68_dw_owntpl_save', { id: id || '', name: name, text: tplFromSrc( S.f.ownership_src || '' ) } ).then( function ( res ) {
+			if ( res && res.success ) {
+				var t = res.data.tpl, hit = false;
+				OT = OT.map( function ( x ) { if ( x.id === t.id ) { hit = true; return t; } return x; } ); if ( ! hit ) { OT.push( t ); }
+				S.f.own_tpl = t.id; render(); schedule(); ownTplStatus( '✓ টেমপ্লেট সেভ হয়েছে' );
+			} else { ownTplStatus( '⚠ ' + ( ( res && res.data && res.data.message ) || 'সেভ হয়নি' ) ); }
+		} );
+	}
+	function ownTplApply( id ) {
+		var t = OT.filter( function ( x ) { return x.id === id; } )[ 0 ]; S.f.own_tpl = id || '';
+		if ( ! t ) { render(); schedule(); return; }
+		if ( ( S.f.ownership_src || '' ).trim() && ! window.confirm( '"' + t.name + '" বসালে ৭ নম্বরের বর্তমান লেখা বদলে যাবে। বসাবেন?' ) ) { render(); return; }
+		S.f.ownership_src = t.text; S.f.ownership = srcPlain( t.text ); render(); schedule();
+	}
+	function ownMakeBox() {
+		var ed = app.querySelector( '[data-own]' ), sel = window.getSelection();
+		if ( ! ed || ! sel || ! sel.rangeCount || sel.isCollapsed || ! ed.contains( sel.getRangeAt( 0 ).commonAncestorContainer ) ) { window.alert( 'আগে ৭ নম্বরের লেখার যে অংশটুকু বদলাবে সেটি মাউস দিয়ে সিলেক্ট করুন, তারপর এই বোতাম চাপুন।' ); return; }
+		var r = sel.getRangeAt( 0 ), txt = r.toString().replace( /[⟦⟧§]/g, '' ).trim(); if ( ! txt ) { return; }
+		var label = window.prompt( 'এই ঘরে কী লিখতে হবে তার নাম (যেমন: দলিল নং, তারিখ):', txt ); if ( ! label ) { return; }
+		label = label.replace( /[⟦⟧§]/g, '' ).trim(); if ( ! label ) { return; }
+		var mk = document.createElement( 'mark' ); mk.className = 'ph'; mk.setAttribute( 'data-label', label ); mk.textContent = label;
+		r.deleteContents(); r.insertNode( mk ); sel.removeAllRanges();
+		ownSync( ed ); refreshAuto(); schedule();
 	}
 	function ownInsert( kind ) {
 		var ed = app.querySelector( '[data-own]' ); if ( ! ed ) { return; }
@@ -745,12 +793,19 @@
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }
 		else if ( ( v = t.getAttribute( 'data-own-add' ) ) ) { ownInsert( v ); }
+		else if ( t.hasAttribute( 'data-own-mk' ) ) { ownMakeBox(); }
+		else if ( t.hasAttribute( 'data-own-tpl-new' ) ) { ownTplSave( '' ); }
+		else if ( t.hasAttribute( 'data-own-tpl-upd' ) ) { if ( window.confirm( 'এই টেমপ্লেট এখনকার লেখা দিয়ে বদলে দেবেন?' ) ) { ownTplSave( S.f.own_tpl ); } }
+		else if ( t.hasAttribute( 'data-own-tpl-del' ) ) { if ( window.confirm( 'এই টেমপ্লেটটি মুছবেন? (আগের দলিলে প্রভাব পড়বে না)' ) ) { var did = S.f.own_tpl; post( 'sojib68_dw_owntpl_delete', { id: did } ).then( function () { OT = OT.filter( function ( x ) { return x.id !== did; } ); S.f.own_tpl = ''; render(); schedule(); } ); } }
 		else if ( t.hasAttribute( 'data-own-reset' ) ) { if ( ! S.f.ownership_src || ! S.f.ownership_src.trim() || window.confirm( 'মালিকানার বিবরণ মুছে ছাঁচ আবার বসাবেন? (আপনার লেখা চলে যাবে)' ) ) { S.f.ownership_src = ownFormat(); S.f.ownership = srcPlain( S.f.ownership_src ); render(); schedule(); } }
 		else if ( t.id === 'dw-pv-hide' || t.id === 'dw-pv-show' ) { var hide = t.id === 'dw-pv-hide'; try { window.localStorage.setItem( 'sojib68DwPreviewHidden', hide ? '1' : '0' ); } catch ( err ) {} app.querySelector( '.dw-edit' ).classList.toggle( 'is-nopreview', hide ); }
 		else if ( t.id === 'dw-pv-full' ) { openFullPreview(); }
 		else if ( t.id === 'dw-save-mouza' ) { saveMouza(); }
 		else if ( t.id === 'dw-download' || t.id === 'dw-download2' ) { e.preventDefault(); download(); }
 	} );
+
+	app.addEventListener( 'change', function ( e ) { if ( e.target.hasAttribute && e.target.hasAttribute( 'data-own-tpl' ) ) { ownTplApply( e.target.value ); } } );
+	app.addEventListener( 'mousedown', function ( e ) { if ( e.target.closest && e.target.closest( '[data-own-mk]' ) ) { e.preventDefault(); } } );
 
 	function saveMouza() {
 		var f = S.f, st = document.getElementById( 'dw-mouza-st' );

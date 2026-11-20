@@ -507,6 +507,44 @@ function sojib68_dw_ajax_mouza_delete() {
 	wp_send_json_success();
 }
 
+/* ---------------------------------------------------------------------
+ * Ownership-chain templates (item 7): one saved text per ownership type
+ * (e.g. ওয়ারিশ সূত্র, দলিল মূলে, নামজারি). Boxes are stored as ⟦label§label⟧.
+ * ------------------------------------------------------------------ */
+
+function sojib68_dw_get_owntpls() {
+	$list = get_option( 'sojib68_dw_owntpls', array() );
+	return is_array( $list ) ? $list : array();
+}
+
+add_action( 'wp_ajax_sojib68_dw_owntpl_save', 'sojib68_dw_ajax_owntpl_save' );
+function sojib68_dw_ajax_owntpl_save() {
+	sojib68_dw_guard();
+	$name = isset( $_POST['name'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_POST['name'] ) ), 0, 120 ) : '';
+	$text = isset( $_POST['text'] ) ? mb_substr( sanitize_textarea_field( wp_unslash( $_POST['text'] ) ), 0, 20000 ) : '';
+	if ( '' === trim( $name ) || '' === trim( $text ) ) {
+		wp_send_json_error( array( 'message' => 'নাম ও লেখা দুটোই দরকার।' ), 400 );
+	}
+	$list = sojib68_dw_get_owntpls();
+	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
+	if ( '' === $id || ! isset( $list[ $id ] ) ) {
+		$id = 't' . base_convert( (string) time(), 10, 36 ) . wp_rand( 10, 99 );
+	}
+	$list[ $id ] = array( 'id' => $id, 'name' => $name, 'text' => $text );
+	update_option( 'sojib68_dw_owntpls', $list, false );
+	wp_send_json_success( array( 'id' => $id, 'tpl' => $list[ $id ] ) );
+}
+
+add_action( 'wp_ajax_sojib68_dw_owntpl_delete', 'sojib68_dw_ajax_owntpl_delete' );
+function sojib68_dw_ajax_owntpl_delete() {
+	sojib68_dw_guard();
+	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
+	$list = sojib68_dw_get_owntpls();
+	unset( $list[ $id ] );
+	update_option( 'sojib68_dw_owntpls', $list, false );
+	wp_send_json_success();
+}
+
 /** Which mouza does a saved deed belong to? (matches the saved mouza id, else name + number) */
 function sojib68_dw_draft_mouza_id( $data, $mouzas ) {
 	$f = isset( $data['f'] ) && is_array( $data['f'] ) ? $data['f'] : array();
@@ -634,6 +672,7 @@ function sojib68_dw_render( $base = null ) {
 				'defaults'  => get_option( 'sojib68_dw_defaults', array() ),
 				'newMouza'  => ( ! $draft && $sel_mouza ) ? $mouzas[ $sel_mouza ] : null,
 				'mouzas'    => array_values( $mouzas ),
+				'owntpls'   => array_values( sojib68_dw_get_owntpls() ),
 				'listUrl'   => $base,
 				'docxUrl'   => home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' ),
 			);

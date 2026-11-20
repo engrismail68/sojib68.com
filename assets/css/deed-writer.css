@@ -247,3 +247,6 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 #dw-own-count.is-warn { color: #b45309; font-weight: 600; }
 #dw-own-count.is-ok { color: #14532d; font-weight: 600; }
 .df-ownbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; font-size: 13px; }
+
+.df-owntpl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; padding: 8px 10px; background: #f3f8f4; border: 1px dashed #198030; border-radius: 6px; font-size: 13px; }
+.df-owntpl select { padding: 5px 8px; border: 1px solid #98a79c; border-radius: 6px; min-width: 220px; font: inherit; }
