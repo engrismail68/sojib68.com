@@ -172,6 +172,18 @@ function sojib68_office_router() {
 			exit;
 		}
 
+		// The deed-writing tool lives on the public "দলিল লিখুন" page; the old office address just forwards there.
+		if ( isset( $segments[1] ) && 'deed-write' === $segments[1] ) {
+			$qs = array();
+			foreach ( array( 'draft', 'new' ) as $k ) {
+				if ( isset( $_GET[ $k ] ) ) {
+					$qs[ $k ] = sanitize_text_field( wp_unslash( $_GET[ $k ] ) );
+				}
+			}
+			wp_safe_redirect( add_query_arg( $qs, home_url( '/deed-writing/' ) ) );
+			exit;
+		}
+
 		if ( isset( $segments[1] ) && 'deed-docx' === $segments[1] ) {
 			sojib68_dw_download( isset( $segments[2] ) ? (int) $segments[2] : 0 );
 			exit;
@@ -427,7 +439,7 @@ function sojib68_office_render_dashboard( $page_key ) {
 						<?php foreach ( $menu as $key => $label ) : ?>
 							<li>
 								<a
-									href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/' . ( 'dashboard' === $key ? '' : $key ) ) ); ?>"
+									href="<?php echo esc_url( 'deed-write' === $key ? home_url( '/deed-writing/' ) : home_url( '/' . SOJIB68_OFFICE_BASE . '/' . ( 'dashboard' === $key ? '' : $key ) ) ); ?>"
 									class="<?php echo $active_key === $key ? 'is-active' : ''; ?>"
 								>
 									<?php echo sojib68_office_icon( $icons[ $key ] ?? 'file', 19 ); // phpcs:ignore ?>
