@@ -367,6 +367,12 @@ function sojib68_dw_build_docx( $data ) {
 	$land_total = count( $land_rows ) > 1 ? array( array( 'area' => sojib68_dw_get( $out, 'area_text' ), 'class' => 'মোট', 'price' => sojib68_dw_get( $out, 'price_text' ) ) ) : array();
 	$body       = sojib68_dw_expand_rows( $body, 'lands', $land_rows );
 	$body       = sojib68_dw_expand_rows( $body, 'lands_total', $land_total );
+	// Blank room for the hand-drawn map (হাত নকশা) after item 15: N empty lines, N chosen in the form.
+	$lines = isset( $out['sketch_lines'] ) ? (int) $out['sketch_lines'] : 10;
+	$lines = max( 0, min( 40, $lines ) );
+	$blank = (string) file_get_contents( $dir . 'blank-paragraph.xml' );
+	$body  = str_replace( sojib68_dw_marker( '@@space:sketch@@' ), str_repeat( $blank, $lines ), $body );
+
 	$body = sojib68_dw_fill_tokens( $body, function ( $path ) use ( $out ) {
 		return sojib68_dw_get( $out, $path );
 	} );

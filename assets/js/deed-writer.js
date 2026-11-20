@@ -164,6 +164,7 @@
 	// চৌহদ্দি: one set (উত্তর/দক্ষিণ/পূর্ব/পশ্চিম) or several when the land has separate boundaries.
 	if ( ! S.f.bounds || ! S.f.bounds.length ) { S.f.bounds = [ { title: '', north: S.f.north || '', south: S.f.south || '', east: S.f.east || '', west: S.f.west || '' } ]; }
 	[ 'north', 'south', 'east', 'west', 'n_ft', 's_ft', 'e_ft', 'w_ft' ].forEach( function ( k ) { delete S.f[ k ]; } );
+	if ( S.f.sketch_lines == null ) { S.f.sketch_lines = 10; }
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -221,6 +222,7 @@
 		out.w1 = f.w1; out.w2 = f.w2;
 		[ 'name', 'father', 'mother', 'village', 'post', 'upazila', 'district' ].forEach( function ( k ) { out[ 'id_' + k ] = f.id[ k ] || ''; out[ 'wr_' + k ] = f.wr[ k ] || ''; } );
 		out.wr_sanad = f.wr.sanad || '';
+		out.sketch_lines = parseInt( f.sketch_lines, 10 ); if ( ! isFinite( out.sketch_lines ) ) { out.sketch_lines = 10; }
 		out.land_class = ( f.lands || [] ).map( function ( l ) { return l.cls || ''; } ).filter( Boolean ).join( ', ' );
 		out.land_rows = ( f.lands || [] ).map( function ( l ) {
 			var lo = l.o || {};
@@ -414,6 +416,7 @@
 			'<button type="button" class="btn btn-outline btn-sm" data-add-bound="1">+ আরেকটি চৌহদ্দি (আলাদা চৌহদ্দি হলে)</button>' +
 			dauto( 'চৌহদ্দির পুরো লেখা', 'boundaries', 'f.o', 3 ) +
 			dauto( '১৩। হস্তান্তরিত সম্পত্তির পরিমাণ', 'area_text', 'f.o', 1 ) + dauto( '১৪। মূল্য পরিশোধের বিবরণ', 'payment_text', 'f.o', 1 ) + dauto( '১৫। হাত নকশা ও পরিমাপ', 'sqft_text', 'f.o', 1 ) +
+			drow( 'হাত নকশার জন্য খালি জায়গা', '<select data-p="f.sketch_lines">' + [ [ 4, 'অল্প (৪ লাইন)' ], [ 8, 'কিছুটা (৮ লাইন)' ], [ 10, 'মাঝারি (১০ লাইন)' ], [ 14, 'বেশি (১৪ লাইন)' ], [ 20, 'অনেক (২০ লাইন)' ], [ 30, 'পুরো পাতার মতো (৩০ লাইন)' ] ].map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( +S.f.sketch_lines === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>'; } ).join( '' ) + '</select>', '<small>১৫ নম্বরের পরে এই পরিমাণ ফাঁকা জায়গা থাকবে, হাতে নকশা আঁকার জন্য</small>' ) +
 			'<p class="df-note">১৬। কৈফিয়ত ও ১৭। স্বাক্ষর অংশ আপনার ছাঁচ অনুযায়ী ফাঁকা থাকবে।</p>' );
 
 		// 18–20
@@ -513,7 +516,7 @@
 			var kc = r.vm === 'cont' ? '' : '<td' + ( r.span > 1 ? ' rowspan="' + r.span + '"' : '' ) + '>' + pv( r.khatian ) + '</td>';
 			return '<tr>' + kc + '<td>' + pv( r.cs_dag ) + '</td><td>' + pv( r.rs_dag ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.total ) + '</td><td>' + pv( r.transferred ) + '</td></tr>';
 		} ).join( '' ) + '</table><p class="pv-sm">' + pv( o.total_text ) + '</p>';
-		h += row( '১২। চৌহদ্দির বিবরণ', o.boundaries ) + row( '১৩। সম্পত্তির পরিমাণ', o.area_text ) + row( '১৪। মূল্য পরিশোধের বিবরণ', o.payment_text ) + row( '১৫। হাত নকশা ও পরিমাপ', o.sqft_text );
+		h += row( '১২। চৌহদ্দির বিবরণ', o.boundaries ) + row( '১৩। সম্পত্তির পরিমাণ', o.area_text ) + row( '১৪। মূল্য পরিশোধের বিবরণ', o.payment_text ) + row( '১৫। হাত নকশা ও পরিমাপ', o.sqft_text ) + '<div class="pv-sketch" style="height:' + Math.max( 10, ( o.sketch_lines || 0 ) * 6 ) + 'px">হাত নকশার জন্য খালি জায়গা</div>';
 		h += '<p class="pv-h">১৬। কৈফিয়ত যদি থাকে :</p>' + fixedNote( '[১৭। স্বাক্ষর অংশ ছাঁচ অনুযায়ী ফাঁকা থাকবে]' );
 		h += '<p class="pv-h">১৮। স্বাক্ষীগণের নাম, ঠিকানা ও স্বাক্ষর</p>' + pvPerson( '(ক)', f.w1 ) + pvPerson( '(খ)', f.w2 );
 		h += '<p class="pv-h">১৯। সনাক্তকারী</p>' + pvPerson( '', f.id );
