@@ -176,8 +176,15 @@
 	pageEl.addEventListener( 'change', function () { var n = Math.max( 1, Math.min( pdfDoc ? pdfDoc.numPages : 1, parseInt( pageEl.value, 10 ) || 1 ) ); pageEl.value = n; if ( pdfDoc ) { renderPdfPage( n ); } } );
 
 	/* ---------------------------------------------------------------- modes & buttons */
+	function lockUi() {
+		var b = panel.querySelector( '[data-lm-mode="draw"]' ); if ( ! b ) { return; }
+		b.classList.toggle( 'is-locked', ! ppf ); b.setAttribute( 'aria-disabled', ppf ? 'false' : 'true' );
+		b.title = ppf ? '' : 'আগে স্কেল ঠিক করুন';
+	}
 	function setMode( m ) {
+		if ( m === 'draw' && ! ppf ) { m = 'scale'; say( 'আগে স্কেল ঠিক করতে হবে — নকশার জানা দূরত্বের দুই মাথায় ক্লিক করে দূরত্ব লিখুন। স্কেল ছাড়া জমি আঁকা যাবে না।', true ); }
 		mode = m;
+		lockUi();
 		panel.querySelectorAll( '[data-lm-mode]' ).forEach( function ( b ) { b.classList.toggle( 'is-on', b.getAttribute( 'data-lm-mode' ) === m ); } );
 		canvas.style.cursor = m === 'pan' ? 'grab' : 'crosshair';
 		steps();
@@ -188,14 +195,14 @@
 		if ( m ) { setMode( m ); }
 		else if ( z ) { if ( z === 'fit' ) { fit(); draw(); } else { zoomAt( cw / 2, ch / 2, z === 'in' ? 1.4 : 1 / 1.4 ); } }
 		else if ( b.hasAttribute( 'data-lm-undo' ) ) { if ( closed ) { closed = false; } else { pts.pop(); } draw(); update(); }
-		else if ( b.hasAttribute( 'data-lm-close' ) ) { if ( pts.length >= 3 ) { closed = true; draw(); update(); } else { say( 'জমি বন্ধ করতে অন্তত ৩টি কোণা লাগে।', true ); } }
+		else if ( b.hasAttribute( 'data-lm-close' ) ) { if ( ! ppf ) { say( 'আগে স্কেল ঠিক করুন।', true ); return; } if ( pts.length >= 3 ) { closed = true; draw(); update(); } else { say( 'জমি বন্ধ করতে অন্তত ৩টি কোণা লাগে।', true ); } }
 		else if ( b.hasAttribute( 'data-lm-clear' ) ) { pts = []; closed = false; draw(); update(); }
 		else if ( b.hasAttribute( 'data-lm-setscale' ) ) {
 			var d = LC.parseNumber( distEl.value );
 			if ( scalePts.length < 2 ) { say( 'আগে নকশায় দুটি বিন্দুতে ক্লিক করুন।', true ); return; }
 			if ( d === null || isNaN( d ) || d <= 0 ) { say( 'দূরত্ব সংখ্যায় লিখুন, যেমন 66', true ); return; }
 			ppf = dist( scalePts[ 0 ], scalePts[ 1 ] ) / ( d * ( dunitEl.value === 'm' ? FT_PER_M : 1 ) );
-			scaleBox.hidden = true; scalePts = []; setMode( 'draw' ); draw(); update();
+			scaleBox.hidden = true; scalePts = []; say( '' ); setMode( 'draw' ); draw(); update();
 		}
 	} );
 
@@ -210,6 +217,7 @@
 			if ( scalePts.length >= 2 ) { scalePts = []; }
 			scalePts.push( toImage( p.x, p.y ) ); scaleBox.hidden = scalePts.length < 2; if ( scalePts.length === 2 ) { distEl.focus(); } draw(); return;
 		}
+		if ( ! ppf ) { setMode( 'scale' ); draw(); return; }
 		var h = hit( p.x, p.y );
 		if ( h === 0 && ! closed && pts.length >= 3 ) { closed = true; draw(); update(); return; }
 		if ( h >= 0 ) { drag = { kind: 'pt', i: h }; return; }

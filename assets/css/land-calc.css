@@ -612,3 +612,4 @@ body.lc-open {
 .lm-scalebox input, .lm-scalebox select { padding: 7px 9px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; }
 .lc-msg.is-bad { color: #b42318; }
 .lm-scalebox[hidden], .lm-pdfbar[hidden], .lm-tools[hidden], .lm-stage[hidden], .lm-step[hidden] { display: none !important; }
+.lm-btn.is-locked { opacity: .5; border-style: dashed; cursor: not-allowed; }
