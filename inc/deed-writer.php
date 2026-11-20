@@ -305,7 +305,10 @@ function sojib68_dw_expand_rows( $xml, $name, $items ) {
 		$tpl = str_replace( $marker, '', $m[0] );
 		$out = '';
 		foreach ( $items as $item ) {
-			$out .= sojib68_dw_fill_tokens( $tpl, function ( $path ) use ( $item ) {
+			// Vertical merge of the first cell (one khatian spanning several dag rows).
+			$vm  = isset( $item['vm'] ) ? $item['vm'] : '';
+			$row = str_replace( '@@vm@@', 'restart' === $vm ? '<w:vMerge w:val="restart"/>' : ( 'cont' === $vm ? '<w:vMerge/>' : '' ), $tpl );
+			$out .= sojib68_dw_fill_tokens( $row, function ( $path ) use ( $item ) {
 				return 0 === strpos( $path, 'r.' ) ? sojib68_dw_get( $item, substr( $path, 2 ) ) : '';
 			} );
 		}

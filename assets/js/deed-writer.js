@@ -96,7 +96,6 @@
 			sub_office: DEF.sub_office || 'রামগঞ্জ সাব রেজিস্ট্রি অফিস।', deed_type: 'সাফ কবলা', district: DEF.district || 'লক্ষ্মীপুর', upazila: DEF.upazila || 'রামগঞ্জ',
 			union: '', mouza_no: '', mouza_name: '', land_class: 'নাল', area: '', price: '', pages: '', ownership: '',
 			exec_greg: new Date().toISOString().slice( 0, 10 ), village: '', land_office: DEF.land_office || 'সহকারী কমিশনার ভূমি অফিস, রামগঞ্জ।', jl_no: '',
-			schedule: [ { khatian: '', rs_dag: '', cs_dag: '', class: 'নাল', total: '', transferred: '' } ],
 			north: '', south: '', east: '', west: '', n_ft: '', s_ft: '', e_ft: '', w_ft: '',
 			w1: person( 'w1' ), w2: person( 'w2' ), id: person( 'id' ), wr: person( 'wr' ), o: {}
 		},
@@ -128,7 +127,7 @@
 			if ( overwrite || ! S.f[ p[ 0 ] ] || ! String( S.f[ p[ 0 ] ] ).trim() ) { if ( S.f[ p[ 0 ] ] !== v ) { S.f[ p[ 0 ] ] = v; changed = true; } }
 		} );
 		if ( m.id && S.f.mouza_id !== m.id ) { S.f.mouza_id = m.id; changed = true; }
-		if ( m.land_class && S.f.schedule && S.f.schedule[ 0 ] && ! S.f.schedule[ 0 ][ 'class' ] ) { S.f.schedule[ 0 ][ 'class' ] = m.land_class; }
+		if ( m.land_class && S.f.khatians && S.f.khatians[ 0 ] && S.f.khatians[ 0 ].dags[ 0 ] && ! S.f.khatians[ 0 ].dags[ 0 ].cls ) { S.f.khatians[ 0 ].dags[ 0 ].cls = m.land_class; }
 		return changed;
 	}
 
@@ -147,6 +146,14 @@
 	if ( S.f.proxy_text && S.f.proxy_text.trim() && S.f.proxy_text.trim() !== 'প্রযোজ্য নহে।' && S.f.rep.mode === 'none' && ! S.f.o.proxy_text ) { S.f.o.proxy_text = S.f.proxy_text; }
 	if ( S.f.poa_text && S.f.poa_text.trim() && S.f.poa_text.trim() !== 'প্রযোজ্য নহে।' && S.f.poa.mode === 'none' && ! S.f.o.poa_text ) { S.f.o.poa_text = S.f.poa_text; }
 	delete S.f.proxy_text; delete S.f.poa_text;
+	// তফসিল: one or more khatians, each with one or more dags (several dags can share a khatian).
+	function newDag( cls ) { return { rs_dag: '', cs_dag: '', cls: cls || '', total: '', transferred: '' }; }
+	if ( ! S.f.khatians || ! S.f.khatians.length ) {
+		S.f.khatians = ( S.f.schedule && S.f.schedule.length ? S.f.schedule : [ { khatian: '', class: S.f.land_class || 'নাল' } ] ).map( function ( r ) {
+			return { khatian: r.khatian || '', dags: [ { rs_dag: r.rs_dag || '', cs_dag: r.cs_dag || '', cls: r[ 'class' ] || '', total: r.total || '', transferred: r.transferred || '' } ] };
+		} );
+	}
+	delete S.f.schedule;
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -210,7 +217,12 @@
 			l.area_auto = areaText( l.area ); l.price_auto = priceText( l.price );
 			return { area: lo.area_text || l.area_auto, 'class': l.cls || '', price: lo.price_text || l.price_auto };
 		} );
-		out.schedule_rows = ( f.schedule || [] ).map( function ( r ) { return { khatian: r.khatian || '', rs_dag: r.rs_dag || '', cs_dag: r.cs_dag || '', 'class': r[ 'class' ] || '', total: r.total || '', transferred: r.transferred || '' }; } );
+		out.schedule_rows = [];
+		( f.khatians || [] ).forEach( function ( k ) {
+			( k.dags || [] ).forEach( function ( d, j ) {
+				out.schedule_rows.push( { khatian: j === 0 ? ( k.khatian || '' ) : '', rs_dag: d.rs_dag || '', cs_dag: d.cs_dag || '', 'class': d.cls || '', total: d.total || '', transferred: d.transferred || '', vm: ( k.dags.length > 1 ? ( j === 0 ? 'restart' : 'cont' ) : '' ), span: j === 0 ? k.dags.length : 0 } );
+			} );
+		} );
 
 		function shareRows( list, single ) {
 			return list.map( function ( p ) {
@@ -359,15 +371,21 @@
 		h += dsec( 's-10', '১০', 'সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)', drow( 'ইংরেজি তারিখ বেছে নিন', inp( 'f.exec_greg', { type: 'date' } ) ) + dauto( 'বাংলা ও ইংরেজি তারিখ', 'exec_date', 'f.o', 1 ) );
 
 		// 11
-		var srows = ( S.f.schedule || [] ).map( function ( r, i ) {
-			var b = 'f.schedule.' + i + '.';
-			return '<tr><td>' + inp( b + 'khatian', { area: true, rows: 2, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) + '</td><td>' + inp( b + 'rs_dag' ) + '</td><td>' + inp( b + 'cs_dag', { ph: '১৭১৩ (এক হাজার সাতশত তেরো) দাগ' } ) + '</td><td>' + inp( b + 'class' ) + '</td><td>' + inp( b + 'total', { ph: 'মোঃ ১৮ শতাংশ হইতে' } ) + '</td><td>' + inp( b + 'transferred', { ph: 'মোঃ ০৫ শতাংশ' } ) + '</td><td class="df-x">' + ( S.f.schedule.length > 1 ? '<button type="button" class="dw-x" data-del-sched="' + i + '" title="এই দাগ মুছুন">×</button>' : '' ) + '</td></tr>';
+		var srows = ( S.f.khatians || [] ).map( function ( k, ki ) {
+			var kb = 'f.khatians.' + ki + '.', n = k.dags.length;
+			return k.dags.map( function ( d, di ) {
+				var b = kb + 'dags.' + di + '.';
+				return '<tr>' + ( di === 0 ? '<td class="df-kh" rowspan="' + n + '"><small class="df-mini">খতিয়ান ' + bn( ki + 1 ) + '</small>' + inp( kb + 'khatian', { area: true, rows: 3, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) +
+					'<button type="button" class="dw-link" data-add-dag="' + ki + '">+ এই খতিয়ানে আরেকটি দাগ</button>' + ( S.f.khatians.length > 1 ? '<button type="button" class="dw-x" data-del-kh="' + ki + '">এই খতিয়ান মুছুন ×</button>' : '' ) + '</td>' : '' ) +
+					'<td>' + inp( b + 'rs_dag' ) + '</td><td>' + inp( b + 'cs_dag', { ph: '১৭১৩ (এক হাজার সাতশত তেরো) দাগ' } ) + '</td><td>' + inp( b + 'cls', { list: 'dw-classes' } ) + '</td><td>' + inp( b + 'total', { ph: 'মোঃ ১৮ শতাংশ হইতে' } ) + '</td><td>' + inp( b + 'transferred', { ph: 'মোঃ ০৫ শতাংশ' } ) + '</td>' +
+					'<td class="df-x">' + ( n > 1 ? '<button type="button" class="dw-x" data-del-dag="' + ki + ':' + di + '" title="এই দাগ মুছুন">×</button>' : '' ) + '</td></tr>';
+			} ).join( '' );
 		} ).join( '' );
 		h += dsec( 's-11', '১১', 'সম্পত্তির তফসিল',
 			drow( 'গ্রাম', inp( 'f.village' ) ) + drow( 'জে.এল. নং', inp( 'f.jl_no', { ph: 'সি.এস ১৪১ আর.এস ৯৯ নং' } ) ) + drow( 'ভূমি অফিসের নাম', inp( 'f.land_office' ) ) +
 			dauto( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) +
-			'<table class="df-t"><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'আর.এস দাগ', 'সি.এস দাগ', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
-			'<button type="button" class="btn btn-outline btn-sm" data-add-sched="1">+ আরেকটি দাগ</button>' + dauto( 'মোট জমির পরিমান', 'total_text', 'f.o', 1 ) );
+			'<table class="df-t df-sched"><colgroup><col style="width:25%"><col style="width:11%"><col style="width:19%"><col style="width:10%"><col style="width:14%"><col style="width:16%"><col style="width:5%"></colgroup><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'আর.এস দাগ', 'সি.এস দাগ', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
+			'<button type="button" class="btn btn-outline btn-sm" data-add-kh="1">+ আলাদা খতিয়ান (নতুন খতিয়ান ও দাগ)</button>' + dauto( 'মোট জমির পরিমান', 'total_text', 'f.o', 1 ) );
 
 		// 12–15
 		h += dsec( 's-12', '১২–১৫', 'চৌহদ্দি, পরিমাণ, মূল্য ও হাত নকশা',
@@ -467,7 +485,10 @@
 		h += '<p class="pv-h">৯। একাধিক দাতার হারাহারি মালিকানা</p><table class="pv-t"><tr><th>বিক্রেতা/দাতার নাম</th><th>মালিকানার পরিমান</th></tr>' + ( o.donor_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.name ) + '</td><td>' + pv( r.share ) + '</td></tr>'; } ).join( '' ) + '</table>';
 		h += row( '১০। সম্পাদনের তারিখ', o.exec_date );
 		h += '<p class="pv-h">১১। সম্পত্তির তফসিল</p><p class="pv-body">' + pv( o.schedule_head ) + '</p><p class="pv-sm">' + pv( o.mouza_head ) + '</p>';
-		h += '<table class="pv-t"><tr><th>খতিয়ান নং</th><th>আর.এস দাগ</th><th>সি.এস দাগ</th><th>শ্রেণি</th><th>দাগে মোট জমি</th><th>হস্তান্তরিত জমি</th></tr>' + ( o.schedule_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.khatian ) + '</td><td>' + pv( r.rs_dag ) + '</td><td>' + pv( r.cs_dag ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.total ) + '</td><td>' + pv( r.transferred ) + '</td></tr>'; } ).join( '' ) + '</table><p class="pv-sm">' + pv( o.total_text ) + '</p>';
+		h += '<table class="pv-t"><tr><th>খতিয়ান নং</th><th>আর.এস দাগ</th><th>সি.এস দাগ</th><th>শ্রেণি</th><th>দাগে মোট জমি</th><th>হস্তান্তরিত জমি</th></tr>' + ( o.schedule_rows || [] ).map( function ( r ) {
+			var kc = r.vm === 'cont' ? '' : '<td' + ( r.span > 1 ? ' rowspan="' + r.span + '"' : '' ) + '>' + pv( r.khatian ) + '</td>';
+			return '<tr>' + kc + '<td>' + pv( r.rs_dag ) + '</td><td>' + pv( r.cs_dag ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.total ) + '</td><td>' + pv( r.transferred ) + '</td></tr>';
+		} ).join( '' ) + '</table><p class="pv-sm">' + pv( o.total_text ) + '</p>';
 		h += row( '১২। চৌহদ্দির বিবরণ', o.boundaries ) + row( '১৩। সম্পত্তির পরিমাণ', o.area_text ) + row( '১৪। মূল্য পরিশোধের বিবরণ', o.payment_text ) + row( '১৫। হাত নকশা ও পরিমাপ', o.sqft_text );
 		h += '<p class="pv-h">১৬। কৈফিয়ত যদি থাকে :</p>' + fixedNote( '[১৭। স্বাক্ষর অংশ ছাঁচ অনুযায়ী ফাঁকা থাকবে]' );
 		h += '<p class="pv-h">১৮। স্বাক্ষীগণের নাম, ঠিকানা ও স্বাক্ষর</p>' + pvPerson( '(ক)', f.w1 ) + pvPerson( '(খ)', f.w2 );
@@ -585,8 +606,10 @@
 		else if ( ( v = t.getAttribute( 'data-copy-addr' ) ) ) { var c = v.split( ':' ), pp = S[ c[ 0 ] ][ +c[ 1 ] ]; pp.present = pp.perm; render(); schedule(); }
 		else if ( t.hasAttribute( 'data-add-land' ) ) { S.f.lands.push( { cls: '', area: '', price: '', o: {} } ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-del-land' ) ) !== null ) { S.f.lands.splice( +v, 1 ); render(); schedule(); }
-		else if ( t.hasAttribute( 'data-add-sched' ) ) { S.f.schedule.push( { khatian: '', rs_dag: '', cs_dag: '', 'class': S.f.land_class || '', total: '', transferred: '' } ); render(); schedule(); }
-		else if ( ( v = t.getAttribute( 'data-del-sched' ) ) !== null ) { S.f.schedule.splice( +v, 1 ); render(); schedule(); }
+		else if ( t.hasAttribute( 'data-add-kh' ) ) { var lastK = S.f.khatians[ S.f.khatians.length - 1 ], lc = lastK && lastK.dags.length ? lastK.dags[ lastK.dags.length - 1 ].cls : ''; S.f.khatians.push( { khatian: '', dags: [ newDag( lc ) ] } ); render(); schedule(); }
+		else if ( ( v = t.getAttribute( 'data-del-kh' ) ) !== null ) { if ( window.confirm( 'এই খতিয়ান ও তার সব দাগ মুছবেন?' ) ) { S.f.khatians.splice( +v, 1 ); render(); schedule(); } }
+		else if ( ( v = t.getAttribute( 'data-add-dag' ) ) !== null ) { var kk = S.f.khatians[ +v ], ld = kk.dags[ kk.dags.length - 1 ]; kk.dags.push( newDag( ld ? ld.cls : '' ) ); render(); schedule(); }
+		else if ( ( v = t.getAttribute( 'data-del-dag' ) ) !== null ) { var dp = v.split( ':' ); S.f.khatians[ +dp[ 0 ] ].dags.splice( +dp[ 1 ], 1 ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-reset' ) ) ) { var rp = v.split( '.' ), rk = rp.pop(), holder = getp( rp.join( '.' ) ); if ( holder ) { delete holder[ rk ]; } refreshAuto(); var tx = app.querySelector( '[data-auto="' + v + '"]' ); if ( tx ) { tx.value = tx.placeholder; tx.classList.remove( 'is-manual' ); } schedule(); }
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }

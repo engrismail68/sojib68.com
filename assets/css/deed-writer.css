@@ -221,3 +221,8 @@ td .dw-reset { display: block; margin: 2px auto 4px; }
 .df-radios { display: flex; gap: 6px 18px; flex-wrap: wrap; margin: 4px 0 8px; }
 .df-radios label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .df-radios input { width: auto !important; margin: 0; }
+
+.df-sched { table-layout: fixed; }
+.df-sched td.df-kh { vertical-align: top; background: #fcfbf7; }
+.df-sched td.df-kh .dw-link, .df-sched td.df-kh .dw-x { display: block; margin: 3px 0 0 2px; }
+.df-sched td input { padding: 6px 6px; font-size: 14px; }
