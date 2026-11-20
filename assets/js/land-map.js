@@ -249,30 +249,41 @@
 		for ( di = 0; di < dags.length; di++ ) { for ( k = 0; k < dags[ di ].pts.length; k++ ) { if ( skip && skip.d === di && skip.k === k ) { continue; } var q = toScreen( dags[ di ].pts[ k ] ), dd = Math.hypot( q.x - x, q.y - y ); if ( dd < bd ) { bd = dd; best = dags[ di ].pts[ k ]; } } }
 		return best ? { x: best.x, y: best.y } : p;
 	}
-	canvas.addEventListener( 'pointerdown', function ( e ) {
-		if ( ! bg ) { return; }
-		var p = pos( e ); canvas.setPointerCapture( e.pointerId ); mouse = p;
-		if ( mode === 'pan' || e.button === 1 || space ) { drag = { kind: 'pan', x: p.x, y: p.y, ox: view.ox, oy: view.oy }; canvas.style.cursor = 'grabbing'; return; }
+	/* a click places a point; dragging on empty map moves the map (so the map can always be moved with the mouse) */
+	function clickAction( p ) {
 		if ( mode === 'scale' ) { if ( scalePts.length >= 2 ) { scalePts = []; } scalePts.push( toImage( p.x, p.y ) ); scaleBox.hidden = scalePts.length < 2; if ( scalePts.length === 2 ) { distEl.focus(); } draw(); return; }
 		if ( ! ppf ) { setMode( 'scale' ); return; }
 		if ( mode === 'dist' ) { var sp = snapPoint( p.x, p.y ); if ( ! pendingDist ) { pendingDist = sp; } else { dists.push( [ pendingDist, sp ] ); say( 'দূরত্ব: ' + ftIn( feet( dist( pendingDist, sp ) ) ) + ' (' + n1( feet( dist( pendingDist, sp ) ) ) + ' ফুট ≈ ' + n1( feet( dist( pendingDist, sp ) ) / FT_PER_M ) + ' মিটার)' ); pendingDist = null; } draw(); return; }
 		var d = P(), h = hitVertex( p.x, p.y );
 		if ( h === 0 && ! d.closed && d.pts.length >= 3 ) { closeDag(); return; }
-		if ( h >= 0 ) { drag = { kind: 'pt', i: h }; return; }
 		if ( d.closed ) { return; }
 		d.pts.push( snapPoint( p.x, p.y ) ); draw(); update();
+	}
+	canvas.addEventListener( 'pointerdown', function ( e ) {
+		if ( ! bg ) { return; }
+		var p = pos( e ); canvas.setPointerCapture( e.pointerId ); mouse = p;
+		if ( mode === 'pan' || e.button === 1 || e.button === 2 || space ) { drag = { kind: 'pan', x: p.x, y: p.y, ox: view.ox, oy: view.oy }; canvas.style.cursor = 'grabbing'; return; }
+		if ( mode === 'draw' && ppf ) { var h = hitVertex( p.x, p.y ); if ( h > 0 || ( h === 0 && ( P().closed || P().pts.length < 3 ) ) ) { drag = { kind: 'pt', i: h }; return; } }
+		drag = { kind: 'maybe', x: p.x, y: p.y, ox: view.ox, oy: view.oy };
 	} );
 	canvas.addEventListener( 'pointermove', function ( e ) {
 		var p = pos( e ); mouse = p;
 		if ( drag ) {
+			if ( drag.kind === 'maybe' && Math.hypot( p.x - drag.x, p.y - drag.y ) > 5 ) { drag.kind = 'pan'; canvas.style.cursor = 'grabbing'; }
 			if ( drag.kind === 'pan' ) { view.ox = drag.ox + p.x - drag.x; view.oy = drag.oy + p.y - drag.y; }
-			else { P().pts[ drag.i ] = snapPoint( p.x, p.y, { d: cur, k: drag.i } ); }
+			else if ( drag.kind === 'pt' ) { P().pts[ drag.i ] = snapPoint( p.x, p.y, { d: cur, k: drag.i } ); }
 		}
 		draw();
 	} );
 	canvas.addEventListener( 'pointerleave', function () { if ( ! drag ) { mouse = null; draw(); } } );
-	function endDrag() { if ( drag && drag.kind === 'pt' ) { update(); } drag = null; canvas.style.cursor = mode === 'pan' ? 'grab' : 'crosshair'; draw(); }
+	function endDrag( e ) {
+		var d = drag; drag = null;
+		if ( d && d.kind === 'pt' ) { update(); }
+		if ( d && d.kind === 'maybe' && e && e.type === 'pointerup' ) { clickAction( pos( e ) ); }
+		canvas.style.cursor = mode === 'pan' ? 'grab' : 'crosshair'; draw();
+	}
 	canvas.addEventListener( 'pointerup', endDrag ); canvas.addEventListener( 'pointercancel', endDrag );
+	canvas.addEventListener( 'contextmenu', function ( e ) { e.preventDefault(); } );
 	canvas.addEventListener( 'wheel', function ( e ) { if ( ! bg ) { return; } e.preventDefault(); var p = pos( e ); zoomAt( p.x, p.y, e.deltaY < 0 ? 1.15 : 1 / 1.15 ); }, { passive: false } );
 	canvas.style.touchAction = 'none';
 
