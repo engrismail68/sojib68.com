@@ -192,3 +192,8 @@ td .dw-reset { display: block; margin: 2px auto 4px; }
 .df-mini { display: block; color: #6b7a75; font-size: 12px; margin: 4px 2px 2px; }
 .df-sum td textarea { border: 1px solid #e4e2d8 !important; background: #f6faf6 !important; }
 .df-sum td input { border: 1px solid #e4e2d8 !important; background: #fff !important; }
+
+.df-total td { background: #f6faf6; }
+.df-tl { text-align: center; font-weight: 700; vertical-align: middle !important; }
+.pv-tot td { font-weight: 700; background: #f4f3ec; }
+.df-sum .df-x { width: 34px; }

@@ -134,6 +134,9 @@
 
 	if ( ! S.f.o ) { S.f.o = {}; }
 	if ( ! saved && BOOT.newMouza ) { applyMouza( BOOT.newMouza, true ); }
+	// Several land lines (ভিটি, পুকুর, বাড়ী …), each with its own area and price; older drafts have a single area/price.
+	if ( ! S.f.lands || ! S.f.lands.length ) { S.f.lands = [ { cls: S.f.land_class || 'নাল', area: S.f.area || '', price: S.f.price || '', o: {} } ]; }
+	S.f.lands.forEach( function ( l ) { if ( ! l.o ) { l.o = {}; } } );
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -145,11 +148,21 @@
 		var auto = {};
 		auto.mouza_short = ( f.mouza_no ? bn( String( f.mouza_no ).replace( /\s*নং\s*$/, '' ) ) + 'নং ' : '' ) + ( f.mouza_name || '' );
 		auto.mouza_head = 'মৌজাঃ ' + ( f.mouza_name || '' );
-		auto.area_text = areaText( f.area );
-		auto.price_text = priceText( f.price );
+		var totArea = 0, totPrice = 0, anyArea = false, anyPrice = false;
+		( f.lands || [] ).forEach( function ( l ) {
+			var a = num( l.area ), p = num( l.price );
+			if ( a > 0 ) { totArea += a; anyArea = true; }
+			if ( p > 0 ) { totPrice += p; anyPrice = true; }
+		} );
+		totArea = Math.round( totArea * 10000 ) / 10000; totPrice = Math.round( totPrice * 100 ) / 100;
+		auto.area_text = anyArea ? areaText( totArea ) : '';
+		auto.price_text = anyPrice ? priceText( totPrice ) : '';
 		auto.payment_text = auto.price_text ? auto.price_text + ' নগদ পরিশোধিত।' : '';
-		var a = num( f.area );
-		auto.sqft_text = a > 0 ? lakh( Math.round( a * 435.6 ) ) + ' বর্গফুট।' : '';
+		auto.sqft_text = totArea > 0 ? lakh( Math.round( totArea * 435.6 ) ) + ' বর্গফুট।' : '';
+		S.totals = { area: totArea, price: totPrice };
+		f.land_class = ( f.lands && f.lands[ 0 ] && f.lands[ 0 ].cls ) || f.land_class || '';
+		f.area = anyArea ? String( totArea ) : '';
+		f.price = anyPrice ? String( totPrice ) : '';
 		auto.exec_date = banglaDate( f.exec_greg );
 		auto.schedule_head = 'জেলা ঃ ' + ( f.district || '' ) + ' মৌজাঃ ' + ( f.mouza_name || '' ) + ' উপজেলা ঃ ' + ( f.upazila || '' ) + ', জে. এল নং ঃ ' + ( f.jl_no || '' ) + ', ইউনিয়নঃ ' + ( f.union || '' ) + ' গ্রাম ঃ ' + ( f.village || '' ) + ', ভূমি অফিসের নাম ঃ ' + ( f.land_office || '' );
 		auto.total_text = 'মোট জমির পরিমান ঃ ' + ( o.area_text || auto.area_text );
@@ -162,10 +175,16 @@
 		[ 'mouza_short', 'mouza_head', 'area_text', 'price_text', 'payment_text', 'sqft_text', 'exec_date', 'schedule_head', 'total_text', 'boundaries' ].forEach( function ( k ) {
 			out[ k ] = o[ k ] != null && o[ k ] !== '' ? o[ k ] : auto[ k ];
 		} );
-		[ 'sub_office', 'deed_type', 'union', 'upazila', 'district', 'land_class', 'proxy_text', 'poa_text', 'ownership', 'pages' ].forEach( function ( k ) { out[ k ] = f[ k ] || ''; } );
+		[ 'sub_office', 'deed_type', 'union', 'upazila', 'district', 'proxy_text', 'poa_text', 'ownership', 'pages' ].forEach( function ( k ) { out[ k ] = f[ k ] || ''; } );
 		out.w1 = f.w1; out.w2 = f.w2;
 		[ 'name', 'father', 'mother', 'village', 'post', 'upazila', 'district' ].forEach( function ( k ) { out[ 'id_' + k ] = f.id[ k ] || ''; out[ 'wr_' + k ] = f.wr[ k ] || ''; } );
 		out.wr_sanad = f.wr.sanad || '';
+		out.land_class = ( f.lands || [] ).map( function ( l ) { return l.cls || ''; } ).filter( Boolean ).join( ', ' );
+		out.land_rows = ( f.lands || [] ).map( function ( l ) {
+			var lo = l.o || {};
+			l.area_auto = areaText( l.area ); l.price_auto = priceText( l.price );
+			return { area: lo.area_text || l.area_auto, 'class': l.cls || '', price: lo.price_text || l.price_auto };
+		} );
 		out.schedule_rows = ( f.schedule || [] ).map( function ( r ) { return { khatian: r.khatian || '', rs_dag: r.rs_dag || '', cs_dag: r.cs_dag || '', 'class': r[ 'class' ] || '', total: r.total || '', transferred: r.transferred || '' }; } );
 
 		function shareRows( list, single ) {
@@ -240,6 +259,17 @@
 	}
 	var PEOPLE_HEAD = '<tr><th></th>' + [ 'নাম', 'পিতার নাম', 'মাতার নাম', 'গ্রাম/রোড', 'ডাকঘর', 'উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr>';
 
+	function landRows() {
+		var many = ( S.f.lands || [] ).length > 1;
+		return ( S.f.lands || [] ).map( function ( l, i ) {
+			var b = 'f.lands.' + i + '.', ho = 'f.lands.' + i + '.o';
+			return '<tr><td><small class="df-mini">জমির পরিমাণ (শতাংশ, শুধু সংখ্যা)</small>' + inp( b + 'area', { ph: 'যেমন 5 বা 5.25' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'area_text', ho, 2 ) + reset( 'area_text', ho ) + '</td>' +
+				'<td><small class="df-mini">শ্রেণী</small>' + inp( b + 'cls', { ph: 'যেমন নাল, ভিটি, পুকুর', list: 'dw-classes' } ) + '</td>' +
+				'<td><small class="df-mini">মূল্য (টাকা, শুধু সংখ্যা)</small>' + inp( b + 'price', { ph: 'যেমন 500000' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'price_text', ho, 2 ) + reset( 'price_text', ho ) + '</td>' +
+				'<td class="df-x">' + ( many ? '<button type="button" class="dw-x" data-del-land="' + i + '" title="এই সারি মুছুন">×</button>' : '' ) + '</td></tr>';
+		} ).join( '' );
+	}
+
 	function render() {
 		var f = S.f, h = '';
 		h += '<div class="dw-top"><a class="btn btn-outline btn-sm" href="' + esc( BOOT.listUrl ) + '">← সব দলিল</a>' +
@@ -256,10 +286,9 @@
 			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
 			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
 			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
-			'<table class="df-t df-sum"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)' ].map( th ).join( '' ) + '</tr><tr>' +
-			'<td><small class="df-mini">পরিমাণ লিখুন (শতাংশ, শুধু সংখ্যা)</small>' + inp( 'f.area', { ph: 'যেমন 5 বা 5.25' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td>' +
-			'<td>' + inp( 'f.land_class', { ph: 'যেমন নাল' } ) + '</td>' +
-			'<td><small class="df-mini">মূল্য লিখুন (টাকা, শুধু সংখ্যা)</small>' + inp( 'f.price', { ph: 'যেমন 500000' } ) + '<small class="df-mini">কথায় লেখা (নিজে নিজে হয়, চাইলে বদলান)</small>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td></tr></table>' +
+			'<table class="df-t df-sum"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)', '' ].map( th ).join( '' ) + '</tr>' + landRows() +
+			'<tr class="df-total"><td><small class="df-mini">মোট জমি (নিজে নিজে যোগ হয়, চাইলে বদলান)</small>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td><td class="df-tl">মোট</td><td><small class="df-mini">মোট মূল্য (নিজে নিজে যোগ হয়, চাইলে বদলান)</small>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td><td class="df-x"></td></tr></table>' +
+			'<button type="button" class="btn btn-outline btn-sm" data-add-land="1">+ আরেক শ্রেণীর জমি (ভিটি, পুকুর, বাড়ী …)</button>' +
 			'<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' );
 
 		// 3, 4
@@ -306,7 +335,7 @@
 
 		h += '</div><section class="dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
 			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। Word-এ SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
-		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
+		h += '<datalist id="dw-classes"><option value="নাল"><option value="ভিটি"><option value="ভিটা"><option value="পুকুর"><option value="বাড়ী (স্থাপনা বিহীন)"><option value="বাগান"><option value="ডোবা"><option value="আবাদী"><option value="চালা"><option value="জঙ্গল"></datalist>' + '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
 		app.innerHTML = '<div class="dw-edit' + ( previewHidden() ? ' is-nopreview' : '' ) + '"><div class="dw-form">' + h + '</div><aside class="dw-preview" id="dw-preview" aria-label="দলিলের প্রিভিউ"></aside></div>';
 		refreshAuto();
 	}
@@ -328,7 +357,9 @@
 		[].forEach.call( app.querySelectorAll( '[data-auto]' ), function ( el ) {
 			var path = el.getAttribute( 'data-auto' ), parts = path.split( '.' ), key = parts.pop(), ov = getp( parts.join( '.' ) ) || {};
 			var autoVal;
-			if ( /^(donees|donors)\./.test( path ) ) {
+			var lm = /^f\.lands\.(\d+)\.o\./.exec( path );
+			if ( lm ) { autoVal = ( key === 'area_text' ? S.f.lands[ +lm[ 1 ] ].area_auto : S.f.lands[ +lm[ 1 ] ].price_auto ) || ''; }
+			else if ( /^(donees|donors)\./.test( path ) ) {
 				var m = /^(donees|donors)\.(\d+)\./.exec( path ); autoVal = ( S[ m[ 1 ] ][ +m[ 2 ] ].share_text_auto ) || '';
 			} else { autoVal = S.auto[ key ] || ''; }
 			el.placeholder = autoVal;
@@ -372,7 +403,7 @@
 		h += '<p class="pv-h">১। রেজিস্ট্রী অফিসের নাম : <span>' + pv( o.sub_office ) + '</span></p>';
 		h += '<p class="pv-h">২। দলিলের সার সংক্ষেপ</p>';
 		h += '<table class="pv-t"><tr><th>দলিলের প্রকৃতি</th><th>মৌজার নাম</th><th>ইউনিয়ন/ওয়ার্ড</th><th>থানা/উপজেলা</th><th>জেলা</th></tr><tr><td>' + pv( o.deed_type ) + '</td><td>' + pv( o.mouza_short ) + '</td><td>' + pv( o.union ) + '</td><td>' + pv( o.upazila ) + '</td><td>' + pv( o.district ) + '</td></tr></table>';
-		h += '<table class="pv-t"><tr><th>হস্তান্তরিত সম্পত্তির পরিমান</th><th>শ্রেণী</th><th>মূল্য (অংকে ও কথায়)</th></tr><tr><td>' + pv( o.area_text ) + '</td><td>' + pv( o.land_class ) + '</td><td>' + pv( o.price_text ) + '</td></tr></table>';
+		h += '<table class="pv-t"><tr><th>হস্তান্তরিত সম্পত্তির পরিমান</th><th>শ্রেণী</th><th>মূল্য (অংকে ও কথায়)</th></tr>' + ( o.land_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.area ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.price ) + '</td></tr>'; } ).join( '' ) + ( ( o.land_rows || [] ).length > 1 ? '<tr class="pv-tot"><td>' + pv( o.area_text ) + '</td><td><b>মোট</b></td><td>' + pv( o.price_text ) + '</td></tr>' : '' ) + '</table>';
 		h += '<p class="pv-h">৩। দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা</p>' + S.donees.map( function ( p, i ) { return pvParty( p, i, S.donees.length ); } ).join( '' );
 		h += '<p class="pv-h">৪। দলিল দাতা/দাতাগণের নাম ও ঠিকানা</p>' + S.donors.map( function ( p, i ) { return pvParty( p, i, S.donors.length ); } ).join( '' );
 		h += row( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', o.proxy_text ) + row( '৬। আমমোক্তারনামার বিবরণ', o.poa_text );
@@ -495,6 +526,8 @@
 		if ( ( v = t.getAttribute( 'data-add-party' ) ) ) { S[ v ].push( emptyParty() ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-del-party' ) ) ) { var g = v.split( ':' ); if ( window.confirm( 'এই ব্যক্তিকে সরাবেন?' ) ) { S[ g[ 0 ] ].splice( +g[ 1 ], 1 ); render(); schedule(); } }
 		else if ( ( v = t.getAttribute( 'data-copy-addr' ) ) ) { var c = v.split( ':' ), pp = S[ c[ 0 ] ][ +c[ 1 ] ]; pp.present = pp.perm; render(); schedule(); }
+		else if ( t.hasAttribute( 'data-add-land' ) ) { S.f.lands.push( { cls: '', area: '', price: '', o: {} } ); render(); schedule(); }
+		else if ( ( v = t.getAttribute( 'data-del-land' ) ) !== null ) { S.f.lands.splice( +v, 1 ); render(); schedule(); }
 		else if ( t.hasAttribute( 'data-add-sched' ) ) { S.f.schedule.push( { khatian: '', rs_dag: '', cs_dag: '', 'class': S.f.land_class || '', total: '', transferred: '' } ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-del-sched' ) ) !== null ) { S.f.schedule.splice( +v, 1 ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-reset' ) ) ) { var rp = v.split( '.' ), rk = rp.pop(), holder = getp( rp.join( '.' ) ); if ( holder ) { delete holder[ rk ]; } refreshAuto(); var tx = app.querySelector( '[data-auto="' + v + '"]' ); if ( tx ) { tx.value = tx.placeholder; tx.classList.remove( 'is-manual' ); } schedule(); }

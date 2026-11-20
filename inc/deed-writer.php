@@ -355,6 +355,13 @@ function sojib68_dw_build_docx( $data ) {
 	$body = sojib68_dw_expand_rows( $body, 'donee_shares', $rows( 'donee_rows' ) );
 	$body = sojib68_dw_expand_rows( $body, 'donor_shares', $rows( 'donor_rows' ) );
 	$body = sojib68_dw_expand_rows( $body, 'schedule', $rows( 'schedule_rows' ) );
+
+	// Land lines (e.g. ভিটি, পুকুর, বাড়ী …) each with its own area and price, then a total row when there are several.
+	$land_rows = ! empty( $out['land_rows'] ) && is_array( $out['land_rows'] ) ? array_values( $out['land_rows'] )
+		: array( array( 'area' => sojib68_dw_get( $out, 'area_text' ), 'class' => sojib68_dw_get( $out, 'land_class' ), 'price' => sojib68_dw_get( $out, 'price_text' ) ) );
+	$land_total = count( $land_rows ) > 1 ? array( array( 'area' => sojib68_dw_get( $out, 'area_text' ), 'class' => 'মোট', 'price' => sojib68_dw_get( $out, 'price_text' ) ) ) : array();
+	$body       = sojib68_dw_expand_rows( $body, 'lands', $land_rows );
+	$body       = sojib68_dw_expand_rows( $body, 'lands_total', $land_total );
 	$body = sojib68_dw_fill_tokens( $body, function ( $path ) use ( $out ) {
 		return sojib68_dw_get( $out, $path );
 	} );
