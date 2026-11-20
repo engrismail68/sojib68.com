@@ -262,6 +262,44 @@ function sojib68_dw_ajax_party_import() {
 	wp_send_json_success( array( 'added' => $added, 'skipped' => $skip ) );
 }
 
+add_action( 'wp_ajax_sojib68_dw_party_update', 'sojib68_dw_ajax_party_update' );
+function sojib68_dw_ajax_party_update() {
+	sojib68_dw_guard();
+	global $wpdb;
+	$t  = sojib68_dw_parties_table();
+	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	$in = isset( $_POST['person'] ) ? json_decode( wp_unslash( $_POST['person'] ), true ) : null;
+	if ( ! $id || ! is_array( $in ) || '' === trim( (string) ( $in['name'] ?? '' ) ) ) {
+		wp_send_json_error( array( 'message' => 'নাম লিখুন।' ), 400 );
+	}
+	$key = sojib68_dw_nid_key( $in['nid'] ?? '' );
+	if ( strlen( $key ) < 8 ) {
+		wp_send_json_error( array( 'message' => 'সঠিক NID লিখুন।' ), 400 );
+	}
+	$clash = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE nid = %s AND id <> %d", $key, $id ) );
+	if ( $clash ) {
+		wp_send_json_error( array( 'message' => 'এই NID অন্য একজনের নামে আগে থেকেই সেভ আছে।' ), 409 );
+	}
+	$keep = array();
+	foreach ( array( 'gender', 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present' ) as $f ) {
+		$keep[ $f ] = isset( $in[ $f ] ) ? mb_substr( sanitize_textarea_field( (string) $in[ $f ] ), 0, 500 ) : '';
+	}
+	$keep['nid_display'] = mb_substr( sanitize_text_field( (string) ( $in['nid'] ?? '' ) ), 0, 40 );
+	$wpdb->update( $t, array( 'nid' => $key, 'name' => mb_substr( sanitize_text_field( (string) $in['name'] ), 0, 190 ), 'data' => wp_json_encode( $keep, JSON_UNESCAPED_UNICODE ), 'updated_at' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s', '%s', '%s' ), array( '%d' ) );
+	wp_send_json_success();
+}
+
+add_action( 'wp_ajax_sojib68_dw_party_delete', 'sojib68_dw_ajax_party_delete' );
+function sojib68_dw_ajax_party_delete() {
+	sojib68_dw_guard();
+	global $wpdb;
+	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	if ( $id ) {
+		$wpdb->delete( sojib68_dw_parties_table(), array( 'id' => $id ), array( '%d' ) );
+	}
+	wp_send_json_success();
+}
+
 add_action( 'wp_ajax_sojib68_dw_party_search', 'sojib68_dw_ajax_party_search' );
 function sojib68_dw_ajax_party_search() {
 	sojib68_dw_guard();
@@ -615,6 +653,7 @@ function sojib68_dw_render( $base = null ) {
 	};
 	$edit_id   = isset( $_GET['draft'] ) ? (int) $_GET['draft'] : 0;
 	$is_new    = isset( $_GET['new'] );
+	$people_view = isset( $_GET['people'] ) && ! $edit_id && ! $is_new;
 	$mouzas    = sojib68_dw_get_mouzas();
 	uasort( $mouzas, static function ( $x, $y ) {
 		return strnatcasecmp( (string) $x['name'] . ' ' . (string) $x['no'], (string) $y['name'] . ' ' . (string) $y['no'] );
@@ -666,12 +705,104 @@ function sojib68_dw_render( $base = null ) {
 				<p class="dw-hint">এখনো কোনো মৌজা সেভ করা নেই। নিচের বোতামে মৌজা যোগ করুন, তারপর সেই মৌজার "+ দলিল" চাপলে ইউনিয়ন, জে.এল. নং, ভূমি অফিস ইত্যাদি নিজে নিজে ভরা থাকবে।</p>
 			<?php endif; ?>
 			<button type="button" class="btn btn-outline btn-sm" id="dw-mouza-add">+ নতুন মৌজা</button>
+				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'people', '1', $base ) ); ?>">👥 সেভ করা ব্যক্তি (NID) দেখুন</a>
 				<button type="button" class="btn btn-outline btn-sm dw-imp-open" id="dw-import-open">📥 পুরোনো ফাইল থেকে তথ্য তুলুন</button>
 		</aside>
 		<div class="dw-main">
 	<?php
 
-	if ( ! $edit_id && ! $is_new ) {
+	if ( $people_view ) {
+		$q    = isset( $_GET['q'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['q'] ) ) ) : '';
+		$pg   = isset( $_GET['pg'] ) ? max( 1, (int) $_GET['pg'] ) : 1;
+		$per  = 50;
+		$pt   = sojib68_dw_parties_table();
+		$where = '';
+		$args  = array();
+		if ( '' !== $q ) {
+			$digits = sojib68_dw_nid_key( $q );
+			$like   = '%' . $wpdb->esc_like( $q ) . '%';
+			if ( strlen( $digits ) >= 3 ) {
+				$where  = 'WHERE nid LIKE %s OR name LIKE %s OR data LIKE %s';
+				$args[] = '%' . $wpdb->esc_like( $digits ) . '%';
+			} else {
+				$where  = 'WHERE name LIKE %s OR data LIKE %s';
+			}
+			$args[] = $like;
+			$args[] = $like;
+		}
+		$total = (int) ( $args ? $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$pt} {$where}", $args ) ) : $wpdb->get_var( "SELECT COUNT(*) FROM {$pt}" ) );
+		$sql   = "SELECT * FROM {$pt} {$where} ORDER BY updated_at DESC LIMIT %d OFFSET %d";
+		$rows  = (array) $wpdb->get_results( $wpdb->prepare( $sql, array_merge( $args, array( $per, ( $pg - 1 ) * $per ) ) ), ARRAY_A );
+		$pages = max( 1, (int) ceil( $total / $per ) );
+		?>
+		<h2 class="dw-ph">সেভ করা ব্যক্তি (NID) <small>— মোট <?php echo (int) $total; ?> জন<?php echo '' !== $q ? ' পাওয়া গেছে' : ''; ?></small></h2>
+		<form method="get" action="<?php echo esc_url( $base ); ?>" class="dw-psearch">
+			<input type="hidden" name="people" value="1">
+			<input type="search" name="q" value="<?php echo esc_attr( $q ); ?>" placeholder="NID, নাম, পিতার নাম বা ঠিকানা দিয়ে খুঁজুন…">
+			<button class="btn btn-primary btn-sm" type="submit">খুঁজুন</button>
+			<a class="btn btn-outline btn-sm" href="<?php echo esc_url( $base ); ?>">← দলিলের তালিকা</a>
+		</form>
+		<?php if ( ! $rows ) : ?>
+			<p class="office-muted">কোনো ব্যক্তি পাওয়া যায়নি।</p>
+		<?php else : ?>
+			<div class="office-card dw-ptable"><table class="office-table">
+				<thead><tr><th>NID</th><th>নাম</th><th>পিতা</th><th>মাতা</th><th>স্বামী/স্ত্রী</th><th>স্থায়ী ঠিকানা</th><th></th></tr></thead>
+				<tbody>
+				<?php
+				foreach ( $rows as $r ) :
+					$d = json_decode( $r['data'], true );
+					$d = is_array( $d ) ? $d : array();
+					$p = array_merge( array( 'id' => (int) $r['id'], 'nid' => ! empty( $d['nid_display'] ) ? $d['nid_display'] : $r['nid'], 'name' => $r['name'] ), $d );
+					?>
+					<tr>
+						<td><?php echo esc_html( $p['nid'] ); ?></td>
+						<td><b><?php echo esc_html( $r['name'] ); ?></b></td>
+						<td><?php echo esc_html( $d['father'] ?? '' ); ?></td>
+						<td><?php echo esc_html( $d['mother'] ?? '' ); ?></td>
+						<td><?php echo esc_html( $d['spouse'] ?? '' ); ?></td>
+						<td class="dw-paddr"><?php echo esc_html( $d['perm'] ?? '' ); ?></td>
+						<td class="dw-actions">
+							<button type="button" class="btn btn-outline btn-sm dw-pedit" data-p="<?php echo esc_attr( wp_json_encode( $p, JSON_UNESCAPED_UNICODE ) ); ?>">বদলান</button>
+							<button type="button" class="btn btn-outline btn-sm dw-pdel" data-id="<?php echo (int) $r['id']; ?>">মুছুন</button>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				</tbody>
+			</table></div>
+			<?php if ( $pages > 1 ) : ?>
+				<p class="dw-pager">
+					<?php if ( $pg > 1 ) : ?><a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( array( 'people' => 1, 'q' => $q, 'pg' => $pg - 1 ), $base ) ); ?>">← আগের</a><?php endif; ?>
+					পাতা <?php echo (int) $pg; ?> / <?php echo (int) $pages; ?>
+					<?php if ( $pg < $pages ) : ?><a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( array( 'people' => 1, 'q' => $q, 'pg' => $pg + 1 ), $base ) ); ?>">পরের →</a><?php endif; ?>
+				</p>
+			<?php endif; ?>
+		<?php endif; ?>
+		<script>
+		( function () {
+			var cfg = { ajaxUrl: <?php echo wp_json_encode( $ajax ); ?>, nonce: <?php echo wp_json_encode( $nonce ); ?> };
+			var F = [ [ 'nid', 'NID' ], [ 'name', 'নাম' ], [ 'spouse', 'স্বামী/স্ত্রী' ], [ 'father', 'পিতা' ], [ 'mother', 'মাতা' ], [ 'dob', 'জন্ম তারিখ' ], [ 'religion', 'ধর্ম' ], [ 'profession', 'পেশা' ], [ 'nationality', 'জাতীয়তা' ], [ 'perm', 'স্থায়ী ঠিকানা' ], [ 'present', 'বর্তমান ঠিকানা' ] ];
+			function esc( s ) { return String( s == null ? '' : s ).replace( /[&<>"']/g, function ( c ) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ c ]; } ); }
+			function post( action, extra ) { var fd = new FormData(); fd.append( 'action', action ); fd.append( 'nonce', cfg.nonce ); Object.keys( extra ).forEach( function ( k ) { fd.append( k, extra[ k ] ); } ); return fetch( cfg.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' } ).then( function ( r ) { return r.json(); } ); }
+			document.addEventListener( 'click', function ( e ) {
+				var del = e.target.closest && e.target.closest( '.dw-pdel' ), ed = e.target.closest && e.target.closest( '.dw-pedit' );
+				if ( del && window.confirm( 'এই ব্যক্তির সেভ করা তথ্য মুছবেন? (আগের দলিলে প্রভাব পড়বে না, ফেরত আনা যাবে না)' ) ) { post( 'sojib68_dw_party_delete', { id: del.getAttribute( 'data-id' ) } ).then( function () { location.reload(); } ); }
+				if ( ed ) {
+					var p = JSON.parse( ed.getAttribute( 'data-p' ) ), d = document.createElement( 'div' ); d.className = 'dw-tpl-dlg';
+					d.innerHTML = '<div class="dw-tpl-box"><h3>ব্যক্তির তথ্য বদলান</h3><div class="dw-imp-g">' + F.map( function ( f ) { return '<label>' + f[ 1 ] + '<input type="text" data-k="' + f[ 0 ] + '" value="' + esc( p[ f[ 0 ] ] ) + '"></label>'; } ).join( '' ) +
+						'<label>লিঙ্গ<select data-k="gender"><option value="">—</option><option' + ( p.gender === 'পুরুষ' ? ' selected' : '' ) + '>পুরুষ</option><option' + ( p.gender === 'মহিলা' ? ' selected' : '' ) + '>মহিলা</option></select></label></div>' +
+						'<div class="dw-tpl-act"><button type="button" class="btn btn-primary btn-sm" data-ok>সেভ করুন</button> <button type="button" class="btn btn-outline btn-sm" data-no>বাতিল</button> <span class="dw-hint" data-msg></span></div></div>';
+					document.body.appendChild( d );
+					d.querySelector( '[data-no]' ).addEventListener( 'click', function () { d.remove(); } );
+					d.querySelector( '[data-ok]' ).addEventListener( 'click', function () {
+						var o = {}; [].forEach.call( d.querySelectorAll( '[data-k]' ), function ( i ) { o[ i.getAttribute( 'data-k' ) ] = i.value.trim(); } );
+						post( 'sojib68_dw_party_update', { id: p.id, person: JSON.stringify( o ) } ).then( function ( res ) { if ( res && res.success ) { location.reload(); } else { d.querySelector( '[data-msg]' ).textContent = '⚠ ' + ( ( res && res.data && res.data.message ) || 'সেভ হয়নি' ); } } );
+					} );
+				}
+			} );
+		}() );
+		</script>
+		<?php
+	} elseif ( ! $edit_id && ! $is_new ) {
 		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza ) {
 			return ! $sel_mouza || $r['mid'] === $sel_mouza;
 		} ) );
@@ -682,7 +813,7 @@ function sojib68_dw_render( $base = null ) {
 		?>
 		<div class="dw-stats">
 			<div><b><?php echo (int) $n_deeds; ?></b><span>মোট দলিল</span></div>
-			<div><b><?php echo (int) $n_people; ?></b><span>সেভ করা NID (ব্যক্তি)</span></div>
+			<a class="dw-stat-link" href="<?php echo esc_url( add_query_arg( 'people', '1', $base ) ); ?>"><b><?php echo (int) $n_people; ?></b><span>সেভ করা NID (ব্যক্তি) — দেখুন →</span></a>
 			<div><b><?php echo (int) count( $mouzas ); ?></b><span>মৌজা</span></div>
 			<div><b><?php echo (int) count( sojib68_dw_get_owntpls() ); ?></b><span>মালিকানা টেমপ্লেট</span></div>
 			<div><b><?php echo (int) $n_week; ?></b><span>গত ৭ দিনে বদলানো দলিল</span></div>

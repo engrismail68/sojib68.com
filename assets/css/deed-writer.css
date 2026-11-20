@@ -290,3 +290,13 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-stats div { background: #fff; border: 1px solid #e4e2d8; border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
 .dw-stats b { font-size: 24px; line-height: 1.1; color: #14532d; }
 .dw-stats span { font-size: 12.5px; color: #5f6f64; }
+
+.dw-stat-link { background: #fff; border: 1px solid #1f8a3a !important; border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; text-decoration: none; color: inherit; }
+.dw-stat-link:hover { background: #eaf4ec; }
+.dw-stat-link b { font-size: 24px; line-height: 1.1; color: #14532d; }
+.dw-stat-link span { font-size: 12.5px; color: #14532d; }
+.dw-ph { margin: 0 0 10px; font-size: 20px; } .dw-ph small { font-size: 14px; font-weight: 400; color: #5f6f64; }
+.dw-psearch { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.dw-psearch input[type=search] { flex: 1; min-width: 220px; padding: 8px 10px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; }
+.dw-ptable { overflow-x: auto; } .dw-paddr { max-width: 280px; font-size: 13px; }
+.dw-pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 12px 0; }
