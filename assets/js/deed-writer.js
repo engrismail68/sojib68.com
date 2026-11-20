@@ -139,6 +139,7 @@
 			if ( p[ 0 ] === 'ownership' && S.f.ownership && S.f.ownership.trim() && S.f.ownership !== v ) { if ( ! overwrite || ! window.confirm( 'মালিকানার বিবরণে আগে থেকে লেখা আছে। এই মৌজার শুরুর অংশ দিয়ে বদলে দেবেন?' ) ) { return; } }
 			if ( overwrite || ! S.f[ p[ 0 ] ] || ! String( S.f[ p[ 0 ] ] ).trim() ) { if ( S.f[ p[ 0 ] ] !== v ) { S.f[ p[ 0 ] ] = v; changed = true; } }
 		} );
+		if ( S.f.ownership_src != null && S.f.ownership !== srcPlain( S.f.ownership_src ) ) { S.f.ownership_src = S.f.ownership; }
 		// the mouza's usual শ্রেণী goes into the first land line
 		if ( m.land_class && S.f.lands && S.f.lands[ 0 ] && ( overwrite || ! S.f.lands[ 0 ].cls ) && S.f.lands[ 0 ].cls !== m.land_class ) { S.f.lands[ 0 ].cls = m.land_class; changed = true; }
 		if ( m.id && S.f.mouza_id !== m.id ) { S.f.mouza_id = m.id; changed = true; }
@@ -373,6 +374,69 @@
 				[ [ 'উত্তরে', 'north' ], [ 'দক্ষিণে', 'south' ], [ 'পূর্বে', 'east' ], [ 'পশ্চিমে', 'west' ] ].map( function ( d ) { return '<tr><th>' + d[ 0 ] + '</th><td>' + inp( p + d[ 1 ] ) + '</td></tr>'; } ).join( '' ) + '</table></div>';
 		} ).join( '' );
 	}
+	/* ---- item 7: a ready-made format; yellow marks = what must change, green = filled ---- */
+	var OWN_PH = [ 'পরগনার নাম', 'তৌজি নং', 'বর্তমান মালিক (যেমন বাংলাদেশ সরকার)', 'সি.এস/আর.এস খতিয়ান নং', 'খতিয়ানে মোট জমি (একর/শতাংশ)', 'খাজনা', 'প্রথম মালিকের পরিচয় (যেমন আমার পিতা …)',
+		'পূর্বের মালিকের নাম', 'আর.এস খতিয়ান নং', 'তারিখ', 'দলিল নং', 'দলিলের ধরন (যেমন পারিবারিক বন্টনামা)', 'অফিসের নাম (যেমন সহকারী কমিশনার (ভূমি) অফিস)', 'মামলা নং', 'জমাখারিজ খতিয়ান নং' ];
+	var OWN_STEPS = {
+		warish: '⟦পূর্বের মালিকের নাম⟧ ⟦আর.এস খতিয়ান নং⟧ নং খতিয়ান মূলে মালিক দখলকার থাকাবস্থায় তাহার লোকান্তরে পৈত্রিক ওয়ারিশ সূত্রে মালিক থাকাবস্থায়',
+		deed: 'বিগত ⟦তারিখ⟧ ইং তারিখের অত্রাফিসের রেজিঃকৃত ⟦দলিল নং⟧নং ⟦দলিলের ধরন (যেমন পারিবারিক বন্টনামা)⟧ দলিল মুলে আমি অত্র দলিল দাতা মালিক থাকাবস্থায়',
+		namjari: 'বিগত ⟦তারিখ⟧ ইং তারিখের ⟦অফিসের নাম (যেমন সহকারী কমিশনার (ভূমি) অফিস)⟧ কর্তৃক আদেশ মোতাবেক নামজারি মামলা নংঃ ⟦মামলা নং⟧ ইং সনের ⟦জমাখারিজ খতিয়ান নং⟧ নং জমাখারিজ খতিয়ান মূলে আমি অত্র দলিল দাতার নিজ নামে রেকর্ড সৃজিত হয়।'
+	};
+	function ownFormat() {
+		var f = S.f, o = S.out || compute();
+		var m = function ( t ) { return '⟦' + t + '⟧'; };
+		return 'জেলা- ' + m( f.district || 'জেলা' ) + ', উপজেলা ও সাব- রেজিস্ট্রি অফিস মোকাম ' + m( f.upazila || 'উপজেলা' ) + ' পরগনা ' + m( 'পরগনার নাম' ) + ' ' + m( 'তৌজি নং' ) + ' নং তৌজিভুক্ত জমিদারির বর্তমান মালিক ' + m( 'বর্তমান মালিক (যেমন বাংলাদেশ সরকার)' ) +
+			' অধীন কিং ' + m( f.jl_no || 'জে.এল. নং' ) + ' ' + m( f.mouza_name || 'মৌজার নাম' ) + ' মৌজার ' + m( 'সি.এস/আর.এস খতিয়ান নং' ) + ' খতিয়ান ভূক্ত। ' + m( 'খতিয়ানে মোট জমি (একর/শতাংশ)' ) +
+			' জমিনের বাং মং ' + m( 'খাজনা' ) + ' জমায় স্থিতিবান রায়তি ' + m( 'প্রথম মালিকের পরিচয় (যেমন আমার পিতা …)' ) + '। ' +
+			OWN_STEPS.warish + ' ' + OWN_STEPS.deed + ' ' + OWN_STEPS.namjari + ' ' +
+			'বর্ণিত প্রকারে মালিক ও ভোগদখলকার থাকিয়া নিম্ন দাগ ও চৌহুদ্দিস্থিত ' + m( o.area_text || 'জমির পরিমাণ' ) + ' জমিনের বাং মং বাংলাদেশ সরকার কর্তৃক নির্ধারিত হারে খাজনাধি পরিশোধ ক্রমে ' +
+			( o.vb ? o.vb.d_amar : 'আমার' ) + ' নগদ টাকার বিশেষ প্রয়োজনে ' + ( o.vb ? o.vb.g_apnar : 'আপনাদের' ) + ' নিকট সাফ বিক্রয় করিলাম।';
+	}
+	function srcToHtml( src ) {
+		return esc( src ).replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { return '<mark class="' + ( OWN_PH.indexOf( t.trim() ) >= 0 ? 'ph' : 'ok' ) + '">' + t + '</mark>'; } ).replace( /\n/g, '<br>' );
+	}
+	function domToSrc( node ) {
+		var out = '';
+		[].forEach.call( node.childNodes, function ( c ) {
+			if ( c.nodeType === 3 ) { out += c.nodeValue; }
+			else if ( c.nodeName === 'MARK' ) { out += '⟦' + c.textContent + '⟧'; }
+			else if ( c.nodeName === 'BR' ) { out += '\n'; }
+			else if ( c.nodeType === 1 ) { out += ( out && ! /\n$/.test( out ) ? '\n' : '' ) + domToSrc( c ); }
+		} );
+		return out;
+	}
+	/** Word text: marks become plain text; a mark still showing its instruction becomes a blank line "…………". */
+	function srcPlain( src ) {
+		return src.replace( /⟦([^⟧]*)⟧/g, function ( x, t ) { return OWN_PH.indexOf( t.trim() ) >= 0 ? '…………' : t; } ).replace( /[ \t]+\n/g, '\n' );
+	}
+	function ownCount() { return ( ( S.f.ownership_src || '' ).match( /⟦([^⟧]*)⟧/g ) || [] ).filter( function ( x ) { return OWN_PH.indexOf( x.slice( 1, -1 ).trim() ) >= 0; } ).length; }
+	function ownSync( el ) {
+		var src = domToSrc( el );
+		S.f.ownership_src = src; S.f.ownership = srcPlain( src );
+		[].forEach.call( el.querySelectorAll( 'mark' ), function ( mk ) { mk.className = OWN_PH.indexOf( mk.textContent.trim() ) >= 0 ? 'ph' : 'ok'; } );
+		var c = document.getElementById( 'dw-own-count' ); if ( c ) { var n = ownCount(); c.textContent = n ? '⚠ এখনো ' + bn( n ) + 'টি হলুদ ঘর বদলানো হয়নি (Word-এ "…………" আসবে)' : '✓ সব ঘর ভরা হয়েছে'; c.className = n ? 'is-warn' : 'is-ok'; }
+	}
+	function ownBlock() {
+		if ( S.f.ownership_src == null ) { S.f.ownership_src = ( S.f.ownership && S.f.ownership.trim() ) ? S.f.ownership : ownFormat(); S.f.ownership = srcPlain( S.f.ownership_src ); }
+		var n = ownCount();
+		return '<div class="df-ownbar"><span class="df-leg"><mark class="ph">হলুদ</mark> = বদলাতে হবে &nbsp; <mark class="ok">সবুজ</mark> = ভরা হয়েছে &nbsp; (হলুদ ঘরে ক্লিক করে সরাসরি লিখুন; যেকোনো জায়গায় নতুন লেখা যোগ বা মুছতে পারবেন)</span> <span id="dw-own-count" class="' + ( n ? 'is-warn' : 'is-ok' ) + '">' + ( n ? '⚠ এখনো ' + bn( n ) + 'টি হলুদ ঘর বদলানো হয়নি (Word-এ "…………" আসবে)' : '✓ সব ঘর ভরা হয়েছে' ) + '</span></div>' +
+			'<div class="df-own" contenteditable="true" spellcheck="false" data-own>' + srcToHtml( S.f.ownership_src ) + '</div>' +
+			'<div class="df-ownbtns"><span>নতুন ধাপ যোগ:</span><button type="button" class="btn btn-outline btn-sm" data-own-add="warish">+ ওয়ারিশ সূত্র</button><button type="button" class="btn btn-outline btn-sm" data-own-add="deed">+ দলিল মূলে</button><button type="button" class="btn btn-outline btn-sm" data-own-add="namjari">+ নামজারি/খতিয়ান</button><button type="button" class="dw-link" data-own-reset="1">ছাঁচ নতুন করে বসান</button></div>';
+	}
+	function ownInsert( kind ) {
+		var ed = app.querySelector( '[data-own]' ); if ( ! ed ) { return; }
+		var frag = document.createElement( 'span' ); frag.innerHTML = ' ' + srcToHtml( OWN_STEPS[ kind ] ) + ' ';
+		var sel = window.getSelection(), inside = sel && sel.rangeCount && ed.contains( sel.getRangeAt( 0 ).commonAncestorContainer );
+		if ( inside ) {
+			var r = sel.getRangeAt( 0 ), nd = r.endContainer;
+			r.collapse( false );
+			while ( nd && nd !== ed ) { if ( nd.nodeName === 'MARK' ) { r.setStartAfter( nd ); r.collapse( true ); break; } nd = nd.parentNode; }   // never insert inside a coloured box
+			while ( frag.firstChild ) { r.insertNode( frag.lastChild ); }
+		}
+		else { while ( frag.firstChild ) { ed.appendChild( frag.firstChild ); } }
+		ownSync( ed ); refreshAuto(); schedule();
+	}
+
 	function vbBlock() {
 		var dn = S.donors.length, gn = S.donees.length;
 		var rows = [ [ 'd_ami', 'আমি / আমরা', 'দাতা' ], [ 'd_amar', 'আমার / আমাদের', 'দাতা' ], [ 'd_datar', 'দাতার / দাতাগণের', 'দাতা' ], [ 'g_apni', 'আপনি / আপনারা', 'গ্রহীতা' ], [ 'g_grohitar', 'গ্রহিতার', 'গ্রহীতা' ], [ 'g_grohita', 'গ্রহিতা / গ্রহিতাগণ', 'গ্রহীতা' ], [ 'g_apnar', 'আপনার / আপনাদের', 'গ্রহীতা' ] ];
@@ -421,7 +485,7 @@
 		h += dsec( 's-5', '৫–৭', 'আমমোক্তার, আমমোক্তারনামা ও মালিকানার বিবরণ',
 			'<p class="df-cap">৫। আমমোক্তার/প্রতিনিধি/অভিভাবকের মাধ্যমে দলিল সম্পাদিত হইয়া থাকিলে তাহাদের নাম, ঠিকানা ও বিবরণ</p>' + repBlock() +
 			'<p class="df-cap">৬। আমমোক্তারনামার বিবরণ</p>' + poaBlock() +
-			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p><div class="df-box">' + inp( 'f.ownership', { area: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) + '</div>' + vbBlock() );
+			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p>' + ownBlock() + vbBlock() );
 
 		// 10
 		h += dsec( 's-10', '১০', 'সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)', drow( 'ইংরেজি তারিখ বেছে নিন', inp( 'f.exec_greg', { type: 'date' } ) ) + dauto( 'বাংলা ও ইংরেজি তারিখ', 'exec_date', 'f.o', 1 ) );
@@ -624,6 +688,7 @@
 	var nidTimers = {};
 	app.addEventListener( 'input', function ( e ) {
 		var el = e.target;
+		if ( el.closest && el.closest( '[data-own]' ) ) { ownSync( el.closest( '[data-own]' ) ); refreshAuto(); schedule(); return; }
 		if ( el.matches( '.dw-search input' ) ) { return searchInput( el ); }
 		var p = el.getAttribute && el.getAttribute( 'data-p' ), a = el.getAttribute && el.getAttribute( 'data-auto' );
 		if ( p ) {
@@ -658,6 +723,10 @@
 	}, true );
 
 	app.addEventListener( 'click', function ( e ) {
+		var mk = e.target.closest && e.target.closest( 'mark.ph' );
+		if ( mk && mk.closest( '[data-own]' ) ) { var rg = document.createRange(); rg.selectNodeContents( mk ); var sl = window.getSelection(); sl.removeAllRanges(); sl.addRange( rg ); }
+	} );
+	app.addEventListener( 'click', function ( e ) {
 		var t = e.target.closest ? e.target.closest( 'button,a' ) : null;
 		if ( ! t ) { return; }
 		var v;
@@ -675,6 +744,8 @@
 		else if ( ( v = t.getAttribute( 'data-reset' ) ) ) { var rp = v.split( '.' ), rk = rp.pop(), holder = getp( rp.join( '.' ) ); if ( holder ) { delete holder[ rk ]; } refreshAuto(); var tx = app.querySelector( '[data-auto="' + v + '"]' ); if ( tx ) { tx.value = tx.placeholder; tx.classList.remove( 'is-manual' ); } schedule(); }
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }
+		else if ( ( v = t.getAttribute( 'data-own-add' ) ) ) { ownInsert( v ); }
+		else if ( t.hasAttribute( 'data-own-reset' ) ) { if ( ! S.f.ownership_src || ! S.f.ownership_src.trim() || window.confirm( 'মালিকানার বিবরণ মুছে ছাঁচ আবার বসাবেন? (আপনার লেখা চলে যাবে)' ) ) { S.f.ownership_src = ownFormat(); S.f.ownership = srcPlain( S.f.ownership_src ); render(); schedule(); } }
 		else if ( t.id === 'dw-pv-hide' || t.id === 'dw-pv-show' ) { var hide = t.id === 'dw-pv-hide'; try { window.localStorage.setItem( 'sojib68DwPreviewHidden', hide ? '1' : '0' ); } catch ( err ) {} app.querySelector( '.dw-edit' ).classList.toggle( 'is-nopreview', hide ); }
 		else if ( t.id === 'dw-pv-full' ) { openFullPreview(); }
 		else if ( t.id === 'dw-save-mouza' ) { saveMouza(); }
