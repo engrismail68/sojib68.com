@@ -200,119 +200,120 @@
 	}
 
 	/* ------------------------------------------------------------ render */
-	function field( label, path, opts ) {
-		opts = opts || {};
-		var cls = 'dw-f' + ( opts.wide ? ' dw-wide' : '' ) + ( opts.full ? ' dw-full' : '' );
-		var v = getp( path );
-		var input = opts.area
-			? '<textarea data-p="' + esc( path ) + '" rows="' + ( opts.rows || 3 ) + '"' + ( opts.ph ? ' placeholder="' + esc( opts.ph ) + '"' : '' ) + '>' + esc( v ) + '</textarea>'
-			: '<input type="' + ( opts.type || 'text' ) + '" data-p="' + esc( path ) + '" value="' + esc( v ) + '"' + ( opts.ph ? ' placeholder="' + esc( opts.ph ) + '"' : '' ) + ( opts.nid ? ' data-nid="1" inputmode="numeric"' : '' ) + ( opts.list ? ' list="' + opts.list + '"' : '' ) + ' autocomplete="off">';
-		return '<label class="' + cls + '"><span>' + label + '</span>' + input + ( opts.note ? '<small>' + opts.note + '</small>' : '' ) + '</label>';
+	/* ---- document-style form: same layout as the preview, with the values typed in place ---- */
+	function inp( path, o ) {
+		o = o || {};
+		var v = getp( path ), ph = o.ph ? ' placeholder="' + esc( o.ph ) + '"' : '';
+		if ( o.area ) { return '<textarea data-p="' + esc( path ) + '" rows="' + ( o.rows || 2 ) + '"' + ph + '>' + esc( v ) + '</textarea>'; }
+		return '<input type="' + ( o.type || 'text' ) + '" data-p="' + esc( path ) + '" value="' + esc( v ) + '"' + ph + ( o.nid ? ' data-nid="1" inputmode="numeric"' : '' ) + ( o.list ? ' list="' + o.list + '"' : '' ) + ' autocomplete="off">';
 	}
-
-	/** Computed text the user may overwrite; ↺ restores the automatic value. */
-	function autoField( label, key, scope, rows ) {
+	function ainp( key, scope, rows ) {
 		var holder = scope || 'f.o';
-		return '<label class="dw-f dw-full dw-autof"><span>' + label + ' <em>(নিজে নিজে হয়, চাইলে বদলান)</em> <button type="button" class="dw-reset" data-reset="' + holder + '.' + key + '" title="স্বয়ংক্রিয় মান ফেরান">↺</button></span>' +
-			'<textarea rows="' + ( rows || 1 ) + '" data-auto="' + holder + '.' + key + '"></textarea></label>';
+		return '<textarea data-auto="' + holder + '.' + key + '" rows="' + ( rows || 1 ) + '"></textarea>';
 	}
+	function reset( key, scope ) { return '<button type="button" class="dw-reset" data-reset="' + ( scope || 'f.o' ) + '.' + key + '" title="স্বয়ংক্রিয় মান ফেরান">↺</button>'; }
+	/** "label : [input]" line like the document */
+	function drow( label, control, note ) { return '<div class="df-row"><span class="df-l">' + label + '</span><span class="df-c">:</span><span class="df-v">' + control + ( note || '' ) + '</span></div>'; }
+	function dauto( label, key, scope, rows ) { return drow( label + ' ' + reset( key, scope ), ainp( key, scope, rows ) ); }
+	function th( t ) { return '<th>' + t + '</th>'; }
+	function dsec( id, num, title, body ) { return '<section class="df-sec" id="' + id + '"><h3 class="df-h"><b>' + num + '।</b> ' + title + '</h3>' + body + '</section>'; }
 
 	function partyCard( group, i ) {
-		var p = S[ group ][ i ], base = group + '.' + i + '.';
-		var title = group === 'donees' ? 'গ্রহীতা' : 'দাতা';
-		var n = S[ group ].length;
-		return '<div class="dw-party" data-group="' + group + '" data-i="' + i + '">' +
-			'<div class="dw-party-h"><strong>' + title + ' ' + ( i + 1 ) + '</strong>' + ( n > 1 ? '<button type="button" class="dw-x" data-del-party="' + group + ':' + i + '">মুছুন ×</button>' : '' ) + '</div>' +
-			'<div class="dw-grid">' +
-			field( 'জাতীয় পরিচয়পত্র (NID) নম্বর', base + 'nid', { nid: true, ph: 'যেমন 823 541 7337', note: '<span class="dw-nid-st"></span>' } ) +
-			field( 'নাম', base + 'name', { wide: true } ) +
-			field( 'স্বামীর নাম (বিবাহিতা মহিলা হলে)', base + 'spouse' ) +
-			field( 'পিতার নাম', base + 'father' ) + field( 'মাতার নাম', base + 'mother' ) +
-			field( 'জন্ম তারিখ', base + 'dob', { ph: 'যেমন ১০/০৩/১৯৮৭' } ) +
-			field( 'ধর্ম', base + 'religion' ) + field( 'পেশা', base + 'profession' ) + field( 'জাতীয়তা', base + 'nationality' ) +
-			field( 'স্থায়ী ঠিকানা', base + 'perm', { area: true, full: true, rows: 2, ph: 'বাসা/হোল্ডিং: …, গ্রাম/রাস্তা: …, ডাকঘর: …, উপজেলা: …, জেলা: …' } ) +
-			field( 'বর্তমান ঠিকানা', base + 'present', { area: true, full: true, rows: 2, note: '<button type="button" class="dw-link" data-copy-addr="' + group + ':' + i + '">স্থায়ীর মতোই</button>' } ) +
-			( n > 1 ? field( 'এই ব্যক্তির অংশ (শতাংশ)', base + 'share', { type: 'text', ph: 'যেমন 3' } ) + autoField( 'অংশের লেখা', 'share_text', group + '.' + i + '.o', 1 ) : '' ) +
-			'</div></div>';
+		var base = group + '.' + i + '.', n = S[ group ].length, nm = n > 1 ? bn( i + 1 ) + '। ' : '';
+		return '<div class="df-party" data-group="' + group + '" data-i="' + i + '">' +
+			'<div class="df-party-h"><b>' + nm + ( group === 'donees' ? 'গ্রহীতা' : 'দাতা' ) + '</b>' + ( n > 1 ? '<button type="button" class="dw-x" data-del-party="' + group + ':' + i + '">মুছুন ×</button>' : '' ) + '</div>' +
+			drow( 'পরিচিতি নং (NID)', inp( base + 'nid', { nid: true, ph: 'যেমন 823 541 7337' } ), '<small class="dw-nid-st"></small>' ) +
+			drow( 'নাম', inp( base + 'name' ) ) +
+			drow( 'স্বামীর নাম <em>(বিবাহিতা মহিলা হলে)</em>', inp( base + 'spouse' ) ) +
+			drow( 'পিতার নাম', inp( base + 'father' ) ) + drow( 'মাতার নাম', inp( base + 'mother' ) ) +
+			drow( 'জন্ম তারিখ', inp( base + 'dob', { ph: 'যেমন ১০/০৩/১৯৮৭' } ) ) +
+			drow( 'ধর্ম', inp( base + 'religion' ) ) + drow( 'পেশা', inp( base + 'profession' ) ) + drow( 'জাতীয়তা', inp( base + 'nationality' ) ) +
+			'<table class="df-t df-addr"><tr>' + th( 'স্থায়ী ঠিকানা' ) + th( 'বর্তমান ঠিকানা <button type="button" class="dw-link" data-copy-addr="' + group + ':' + i + '">স্থায়ীর মতোই</button>' ) + '</tr><tr><td>' +
+			inp( base + 'perm', { area: true, rows: 3, ph: 'বাসা/হোল্ডিং: …, গ্রাম/রাস্তা: …, ডাকঘর: …, উপজেলা: …, জেলা: …' } ) + '</td><td>' + inp( base + 'present', { area: true, rows: 3 } ) + '</td></tr></table>' +
+			( n > 1 ? drow( 'এই ব্যক্তির অংশ (শতাংশ)', inp( base + 'share', { ph: 'যেমন 3' } ) ) + drow( 'অংশের লেখা ' + reset( 'share_text', group + '.' + i + '.o' ), ainp( 'share_text', group + '.' + i + '.o' ) ) : '' ) +
+			'</div>';
 	}
 
-	function sched( i ) {
-		var b = 'f.schedule.' + i + '.';
-		return '<div class="dw-sched"><div class="dw-party-h"><strong>দাগ ' + ( i + 1 ) + '</strong>' + ( S.f.schedule.length > 1 ? '<button type="button" class="dw-x" data-del-sched="' + i + '">মুছুন ×</button>' : '' ) + '</div><div class="dw-grid">' +
-			field( 'খতিয়ান (সি.এস/আর.এস/বর্তমান)', b + 'khatian', { area: true, full: true, rows: 2, ph: 'যেমন সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) +
-			field( 'আর.এস দাগ', b + 'rs_dag' ) + field( 'সি.এস দাগ', b + 'cs_dag', { ph: 'যেমন ১৭১৩ (এক হাজার সাতশত তেরো) দাগ' } ) + field( 'শ্রেণি', b + 'class' ) +
-			field( 'দাগে মোট জমি', b + 'total', { ph: 'যেমন মোঃ ১৮ শতাংশ হইতে' } ) + field( 'হস্তান্তরিত জমি', b + 'transferred', { ph: 'যেমন মোঃ ০৫ শতাংশ' } ) +
-			'</div></div>';
-	}
-
-	function personBlock( title, key, extra ) {
+	function peopleRow( label, key, extra ) {
 		var b = 'f.' + key + '.';
-		return '<div class="dw-sub"><h4>' + title + '</h4><div class="dw-grid">' + field( 'নাম', b + 'name', { wide: true } ) + field( 'পিতার নাম', b + 'father' ) + field( 'মাতার নাম', b + 'mother' ) +
-			field( 'গ্রাম/রোড', b + 'village' ) + field( 'ডাকঘর', b + 'post' ) + field( 'উপজেলা', b + 'upazila' ) + field( 'জেলা', b + 'district' ) + ( extra || '' ) + '</div></div>';
+		return '<tr><th>' + label + '</th><td>' + inp( b + 'name' ) + '</td><td>' + inp( b + 'father' ) + '</td><td>' + inp( b + 'mother' ) + '</td><td>' + inp( b + 'village' ) + '</td><td>' + inp( b + 'post' ) + '</td><td>' + inp( b + 'upazila' ) + '</td><td>' + inp( b + 'district' ) + '</td></tr>';
 	}
+	var PEOPLE_HEAD = '<tr><th></th>' + [ 'নাম', 'পিতার নাম', 'মাতার নাম', 'গ্রাম/রোড', 'ডাকঘর', 'উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr>';
 
 	function render() {
-		var h = '';
+		var f = S.f, h = '';
 		h += '<div class="dw-top"><a class="btn btn-outline btn-sm" href="' + esc( BOOT.listUrl ) + '">← সব দলিল</a>' +
 			'<span class="dw-status" id="dw-status">নতুন — লিখতে শুরু করুন, নিজে নিজে সেভ হবে</span>' +
 			'<button type="button" class="btn btn-outline btn-sm" id="dw-pv-full">পুরো পাতায় দেখুন</button>' +
 			'<button type="button" class="btn btn-outline btn-sm dw-pv-show" id="dw-pv-show">প্রিভিউ দেখুন</button>' +
 			'<a class="btn btn-primary btn-sm" id="dw-download" href="#">Word ডাউনলোড</a>' +
-			'<nav class="dw-jump" aria-label="দলিলের অংশ"><a href="#s-1">১–২</a><a href="#s-3">৩ গ্রহীতা</a><a href="#s-4">৪ দাতা</a><a href="#s-5">৫–৭ মালিকানা</a><a href="#s-10">১০ তারিখ</a><a href="#s-11">১১ তফসিল</a><a href="#s-12">১২ চৌহদ্দি</a><a href="#s-18">১৮–২০ সাক্ষী</a><a href="#s-21">২১–২২</a></nav></div>' +
-			'<div class="dw-warn" id="dw-warn" hidden></div>';
+			'<nav class="dw-jump" aria-label="দলিলের অংশ"><a href="#s-1">১–২</a><a href="#s-3">৩ গ্রহীতা</a><a href="#s-4">৪ দাতা</a><a href="#s-5">৫–৭ মালিকানা</a><a href="#s-10">১০ তারিখ</a><a href="#s-11">১১ তফসিল</a><a href="#s-12">১২–১৫</a><a href="#s-18">১৮–২০ সাক্ষী</a><a href="#s-21">২১–২২</a></nav></div>' +
+			'<div class="dw-warn" id="dw-warn" hidden></div><div class="df-paper">';
 
-		h += '<section class="dw-sec dw-rows" id="s-1"><h3><b>১–২।</b> রেজিস্ট্রি অফিস ও দলিলের সার সংক্ষেপ</h3><div class="dw-grid">' +
-			mouzaPicker() +
-			field( 'রেজিস্ট্রি অফিসের নাম', 'f.sub_office', { wide: true } ) + field( 'দলিলের প্রকৃতি', 'f.deed_type', { list: 'dw-types' } ) +
-			field( 'জেলা', 'f.district' ) + field( 'উপজেলা/থানা', 'f.upazila' ) + field( 'ইউনিয়ন/ওয়ার্ড', 'f.union', { ph: 'যেমন ৯ নং ভোলাকোট' } ) +
-			field( 'মৌজা নম্বর', 'f.mouza_no', { ph: 'যেমন 99' } ) + field( 'মৌজার নাম', 'f.mouza_name', { ph: 'যেমন তিয়রী' } ) + field( 'শ্রেণি', 'f.land_class' ) +
-			field( 'জমির পরিমাণ (শতাংশ)', 'f.area', { ph: 'যেমন 5 বা 5.25' } ) + field( 'মূল্য (টাকা)', 'f.price', { ph: 'যেমন 500000' } ) + field( 'দলিলের ফর্দ সংখ্যা', 'f.pages', { ph: 'যেমন 7' } ) +
-			'<div class="dw-f dw-full"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' +
-			autoField( 'পরিমাণ (অংকে ও কথায়)', 'area_text' ) + autoField( 'মূল্য (অংকে ও কথায়)', 'price_text' ) + autoField( 'মূল্য পরিশোধের বিবরণ', 'payment_text' ) + autoField( 'হাত নকশা ও পরিমাপ', 'sqft_text' ) +
-			'</div></section>';
+		// 1–2
+		h += dsec( 's-1', '১–২', 'রেজিস্ট্রি অফিস ও দলিলের সার সংক্ষেপ',
+			mouzaPicker() + drow( '১। রেজিস্ট্রী অফিসের নাম', inp( 'f.sub_office' ) ) +
+			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
+			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
+			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
+			'<table class="df-t"><tr>' + [ 'জমির পরিমাণ (শতাংশ, সংখ্যা)', 'মূল্য (টাকা, সংখ্যা)', 'দলিলের ফর্দ সংখ্যা' ].map( th ).join( '' ) + '</tr><tr><td>' + inp( 'f.area', { ph: '5 বা 5.25' } ) + '</td><td>' + inp( 'f.price', { ph: '500000' } ) + '</td><td>' + inp( 'f.pages', { ph: '7' } ) + '</td></tr></table>' +
+			'<table class="df-t"><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)' ].map( th ).join( '' ) + '</tr><tr><td>' + ainp( 'area_text', 'f.o', 2 ) + reset( 'area_text' ) + '</td><td>' + inp( 'f.land_class' ) + '</td><td>' + ainp( 'price_text', 'f.o', 2 ) + reset( 'price_text' ) + '</td></tr></table>' +
+			'<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' );
 
-		h += '<section class="dw-sec dw-rows" id="s-3"><h3><b>৩।</b> দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা (ক্রেতা)</h3>' + searchBox( 'donees' ) + S.donees.map( function ( p, i ) { return partyCard( 'donees', i ); } ).join( '' ) +
-			'<button type="button" class="btn btn-outline btn-sm" data-add-party="donees">+ আরেকজন গ্রহীতা</button></section>';
-		h += '<section class="dw-sec dw-rows" id="s-4"><h3><b>৪।</b> দলিল দাতা/দাতাগণের নাম ও ঠিকানা (বিক্রেতা)</h3>' + searchBox( 'donors' ) + S.donors.map( function ( p, i ) { return partyCard( 'donors', i ); } ).join( '' ) +
-			'<button type="button" class="btn btn-outline btn-sm" data-add-party="donors">+ আরেকজন দাতা</button></section>';
+		// 3, 4
+		h += dsec( 's-3', '৩', 'দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা (ক্রেতা)', searchBox( 'donees' ) + S.donees.map( function ( p, i ) { return partyCard( 'donees', i ); } ).join( '' ) + '<button type="button" class="btn btn-outline btn-sm" data-add-party="donees">+ আরেকজন গ্রহীতা</button>' );
+		h += dsec( 's-4', '৪', 'দলিল দাতা/দাতাগণের নাম ও ঠিকানা (বিক্রেতা)', searchBox( 'donors' ) + S.donors.map( function ( p, i ) { return partyCard( 'donors', i ); } ).join( '' ) + '<button type="button" class="btn btn-outline btn-sm" data-add-party="donors">+ আরেকজন দাতা</button>' );
 
-		h += '<section class="dw-sec dw-rows" id="s-5"><h3><b>৫–৭।</b> প্রতিনিধি, আমমোক্তারনামা ও মালিকানার বিবরণ</h3><div class="dw-grid">' +
-			field( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', 'f.proxy_text', { full: true } ) + field( '৬। আমমোক্তারনামার বিবরণ', 'f.poa_text', { full: true } ) +
-			field( '৭। মালিকানার ধারাবাহিক বিবরণ', 'f.ownership', { area: true, full: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) +
-			'</div></section>';
+		// 5–7
+		h += dsec( 's-5', '৫–৭', 'আমমোক্তার, আমমোক্তারনামা ও মালিকানার বিবরণ',
+			drow( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', inp( 'f.proxy_text' ) ) + drow( '৬। আমমোক্তারনামার বিবরণ', inp( 'f.poa_text' ) ) +
+			'<p class="df-cap">৭। হস্তান্তরাধীন জমির নূন্য পক্ষে ২৫ বছরের মালিকানার ধারাবাহিক বিবরণ</p><div class="df-box">' + inp( 'f.ownership', { area: true, rows: 10, ph: 'জেলা-…, উপজেলা ও সাব-রেজিস্ট্রি অফিস … এর পুরো বিবরণ এখানে লিখুন বা পেস্ট করুন' } ) + '</div>' );
 
-		h += '<section class="dw-sec dw-rows" id="s-10"><h3><b>১০।</b> সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)</h3><div class="dw-grid">' + field( 'ইংরেজি তারিখ', 'f.exec_greg', { type: 'date' } ) + autoField( 'বাংলা ও ইংরেজি তারিখ', 'exec_date' ) + '</div></section>';
+		// 10
+		h += dsec( 's-10', '১০', 'সম্পাদনের তারিখ (বাংলায় ও ইংরেজী)', drow( 'ইংরেজি তারিখ বেছে নিন', inp( 'f.exec_greg', { type: 'date' } ) ) + dauto( 'বাংলা ও ইংরেজি তারিখ', 'exec_date', 'f.o', 1 ) );
 
-		h += '<section class="dw-sec dw-rows" id="s-11"><h3><b>১১।</b> সম্পত্তির তফসিল</h3><div class="dw-grid">' + field( 'গ্রাম', 'f.village' ) + field( 'জে.এল. নং', 'f.jl_no', { ph: 'যেমন সি.এস ১৪১ আর.এস ৯৯ নং' } ) + field( 'ভূমি অফিসের নাম', 'f.land_office', { wide: true } ) +
-			autoField( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) + '</div>' +
-			S.f.schedule.map( function ( r, i ) { return sched( i ); } ).join( '' ) + '<button type="button" class="btn btn-outline btn-sm" data-add-sched="1">+ আরেকটি দাগ</button>' +
-			'<div class="dw-grid">' + autoField( 'মোট জমির পরিমাণ (তফসিলের নিচে)', 'total_text' ) + '</div></section>';
+		// 11
+		var srows = ( S.f.schedule || [] ).map( function ( r, i ) {
+			var b = 'f.schedule.' + i + '.';
+			return '<tr><td>' + inp( b + 'khatian', { area: true, rows: 2, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) + '</td><td>' + inp( b + 'rs_dag' ) + '</td><td>' + inp( b + 'cs_dag', { ph: '১৭১৩ (এক হাজার সাতশত তেরো) দাগ' } ) + '</td><td>' + inp( b + 'class' ) + '</td><td>' + inp( b + 'total', { ph: 'মোঃ ১৮ শতাংশ হইতে' } ) + '</td><td>' + inp( b + 'transferred', { ph: 'মোঃ ০৫ শতাংশ' } ) + '</td><td class="df-x">' + ( S.f.schedule.length > 1 ? '<button type="button" class="dw-x" data-del-sched="' + i + '" title="এই দাগ মুছুন">×</button>' : '' ) + '</td></tr>';
+		} ).join( '' );
+		h += dsec( 's-11', '১১', 'সম্পত্তির তফসিল',
+			drow( 'গ্রাম', inp( 'f.village' ) ) + drow( 'জে.এল. নং', inp( 'f.jl_no', { ph: 'সি.এস ১৪১ আর.এস ৯৯ নং' } ) ) + drow( 'ভূমি অফিসের নাম', inp( 'f.land_office' ) ) +
+			dauto( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) +
+			'<table class="df-t"><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'আর.এস দাগ', 'সি.এস দাগ', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
+			'<button type="button" class="btn btn-outline btn-sm" data-add-sched="1">+ আরেকটি দাগ</button>' + dauto( 'মোট জমির পরিমান', 'total_text', 'f.o', 1 ) );
 
-		h += '<section class="dw-sec" id="s-12"><h3><b>১২।</b> সম্পত্তির চৌহদ্দির বিবরণ</h3><div class="dw-grid">' +
-			field( 'উত্তরে', 'f.north' ) + field( 'উত্তরে মাপ (ফুট)', 'f.n_ft', { ph: 'যেমন 38' } ) + field( 'দক্ষিণে', 'f.south' ) + field( 'দক্ষিণে মাপ (ফুট)', 'f.s_ft' ) +
-			field( 'পূর্বে', 'f.east' ) + field( 'পূর্বে মাপ (ফুট)', 'f.e_ft' ) + field( 'পশ্চিমে', 'f.west' ) + field( 'পশ্চিমে মাপ (ফুট)', 'f.w_ft' ) +
-			autoField( 'চৌহদ্দির পুরো লেখা', 'boundaries', 'f.o', 3 ) + '</div></section>';
+		// 12–15
+		h += dsec( 's-12', '১২–১৫', 'চৌহদ্দি, পরিমাণ, মূল্য ও হাত নকশা',
+			'<p class="df-cap">১২। সম্পত্তির চৌহদ্দির বিবরণ</p><table class="df-t df-bound"><tr>' + th( 'দিক' ) + th( 'চৌহদ্দিতে যা আছে' ) + th( 'মাপ (ফুট)' ) + '</tr>' +
+			[ [ 'উত্তরে', 'north', 'n_ft' ], [ 'দক্ষিণে', 'south', 's_ft' ], [ 'পূর্বে', 'east', 'e_ft' ], [ 'পশ্চিমে', 'west', 'w_ft' ] ].map( function ( d ) { return '<tr><th>' + d[ 0 ] + '</th><td>' + inp( 'f.' + d[ 1 ] ) + '</td><td>' + inp( 'f.' + d[ 2 ], { ph: '38' } ) + '</td></tr>'; } ).join( '' ) + '</table>' +
+			dauto( 'চৌহদ্দির পুরো লেখা', 'boundaries', 'f.o', 3 ) +
+			dauto( '১৩। হস্তান্তরিত সম্পত্তির পরিমাণ', 'area_text', 'f.o', 1 ) + dauto( '১৪। মূল্য পরিশোধের বিবরণ', 'payment_text', 'f.o', 1 ) + dauto( '১৫। হাত নকশা ও পরিমাপ', 'sqft_text', 'f.o', 1 ) +
+			'<p class="df-note">১৬। কৈফিয়ত ও ১৭। স্বাক্ষর অংশ আপনার ছাঁচ অনুযায়ী ফাঁকা থাকবে।</p>' );
 
-		h += '<section class="dw-sec" id="s-18"><h3><b>১৮–২০।</b> স্বাক্ষী, সনাক্তকারী ও দলিল লেখক</h3>' +
-			personBlock( '(ক) সাক্ষী', 'w1' ) + personBlock( '(খ) সাক্ষী', 'w2' ) +
-			personBlock( '১৯। সনাক্তকারী', 'id' ) + personBlock( '২০। দলিল লেখক', 'wr', field( 'সনদ নং', 'f.wr.sanad' ) ) +
-			'<p class="dw-hint">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p></section>';
+		// 18–20
+		h += dsec( 's-18', '১৮–২০', 'স্বাক্ষী, সনাক্তকারী ও দলিল লেখক',
+			'<table class="df-t df-people">' + PEOPLE_HEAD + peopleRow( '১৮। (ক) স্বাক্ষী', 'w1' ) + peopleRow( '১৮। (খ) স্বাক্ষী', 'w2' ) + peopleRow( '১৯। সনাক্তকারী', 'id' ) + peopleRow( '২০। দলিল লেখক', 'wr' ) + '</table>' +
+			drow( 'দলিল লেখকের সনদ নং', inp( 'f.wr.sanad' ) ) + '<p class="df-note">সাক্ষী ছাড়া অন্যগুলো পরের দলিলে নিজে নিজে ভরা থাকবে।</p>' );
 
-		h += '<section class="dw-sec dw-rows" id="s-21"><h3><b>২১।</b> দলিল দাতার হলফনামা</h3><p class="dw-hint">হলফনামার স্থায়ী ঘোষণাগুলো (ক–চ ও “আমি/আমরা আরও ঘোষনা করিতেছি”) আপনার ছাঁচ থেকে নিজে নিজে আসে। শুধু হলফকারীর পরিচয়ের লাইনটি দাতার তথ্য থেকে ভরা হয়; চাইলে এখানে বদলান।</p><div class="dw-grid">' +
-			autoField( 'হলফকারীগনের নাম, পিতার নাম, ঠিকানা ও বয়স', 'affidavit_head', 'f.o', 4 ) + '</div></section>';
-		h += '<section class="dw-sec" id="s-22"><h3><b>২২।</b> সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ</h3><p class="dw-hint">এটি রেজিস্ট্রি অফিসে সাব-রেজিস্ট্রার নিজে পূরণ করেন, তাই Word ফাইলে শিরোনামটি ফাঁকা জায়গাসহ থাকে। এখানে কিছু লেখার নেই।</p></section>';
-		h += '<section class="dw-sec dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
-			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। ফাইলটি Word-এ খুলে একবার দেখে নিন; SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
+		// 21–22
+		h += dsec( 's-21', '২১–২২', 'দলিল দাতার হলফনামা ও সাব-রেজিষ্ট্রারের স্বাক্ষর',
+			'<p class="df-note">হলফনামার স্থায়ী ঘোষণাগুলো ছাঁচ থেকে আসে। শুধু হলফকারীর পরিচয়ের লাইনটি দাতার তথ্য থেকে ভরে; চাইলে বদলান।</p>' +
+			'<p class="df-cap">২১। হলফকারীগনের নাম, পিতার নাম, ঠিকানা ও বয়স ' + reset( 'affidavit_head' ) + '</p><div class="df-box">' + ainp( 'affidavit_head', 'f.o', 4 ) + '</div>' +
+			'<p class="df-note">২২। সাব-রেজিষ্ট্রারের নাম, পদবী, স্বাক্ষর ও তারিখ: রেজিস্ট্রি অফিসে তিনি নিজে পূরণ করেন, এখানে কিছু লেখার নেই।</p>' );
+
+		h += '</div><section class="dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
+			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। Word-এ SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
 		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
 		app.innerHTML = '<div class="dw-edit' + ( previewHidden() ? ' is-nopreview' : '' ) + '"><div class="dw-form">' + h + '</div><aside class="dw-preview" id="dw-preview" aria-label="দলিলের প্রিভিউ"></aside></div>';
 		refreshAuto();
 	}
 
 	function mouzaPicker() {
-		if ( ! MZ.length ) { return '<p class="dw-hint dw-full">মৌজা তালিকায় মৌজা যোগ করলে এখানে বেছে নেওয়া যাবে, আর তার তথ্য নিজে নিজে ভরবে।</p>'; }
+		if ( ! MZ.length ) { return '<p class="df-note">মৌজা তালিকায় মৌজা যোগ করলে এখানে বেছে নেওয়া যাবে, আর তার তথ্য নিজে নিজে ভরবে।</p>'; }
 		var cur = ( findMouza() || {} ).id || '';
-		return '<label class="dw-f dw-full dw-mpick"><span>মৌজা বেছে নিন <em>(ইউনিয়ন, জে.এল. নং, গ্রাম, ভূমি অফিস, মালিকানার শুরুর অংশ নিজে নিজে ভরবে)</em></span><select id="dw-mouza-pick"><option value="">— মৌজা বেছে নিন —</option>' +
-			MZ.map( function ( m ) { return '<option value="' + esc( m.id ) + '"' + ( m.id === cur ? ' selected' : '' ) + '>' + esc( ( m.no ? m.no + 'নং ' : '' ) + m.name ) + '</option>'; } ).join( '' ) + '</select></label>';
+		return '<div class="df-row df-mpick"><span class="df-l">মৌজা বেছে নিন</span><span class="df-c">:</span><span class="df-v"><select id="dw-mouza-pick"><option value="">— মৌজা বেছে নিন —</option>' +
+			MZ.map( function ( m ) { return '<option value="' + esc( m.id ) + '"' + ( m.id === cur ? ' selected' : '' ) + '>' + esc( ( m.no ? m.no + 'নং ' : '' ) + m.name ) + '</option>'; } ).join( '' ) + '</select><small>ইউনিয়ন, জে.এল. নং, গ্রাম, ভূমি অফিস ও মালিকানার শুরুর অংশ নিজে নিজে ভরবে</small></span></div>';
 	}
 
 	function searchBox( group ) {
@@ -535,7 +536,7 @@
 	}
 
 	function lookupNid( el, path, onBlur ) {
-		var key = nidKey( el.value ), card = el.closest( '.dw-party' ), st = card && card.querySelector( '.dw-nid-st' );
+		var key = nidKey( el.value ), card = el.closest( '.df-party' ), st = card && card.querySelector( '.dw-nid-st' );
 		if ( key.length < 8 || ! st ) { if ( st ) { st.textContent = ''; } return; }
 		post( 'sojib68_dw_party_get', { nid: key } ).then( function ( res ) {
 			var party = res && res.success && res.data.party;
@@ -544,7 +545,7 @@
 			if ( ! cur.name ) {
 				FILL.forEach( function ( k ) { if ( party[ k ] ) { cur[ k ] = party[ k ]; } } );
 				render(); schedule();
-				var again = app.querySelector( '.dw-party[data-group="' + g + '"][data-i="' + i + '"] .dw-nid-st' );
+				var again = app.querySelector( '.df-party[data-group="' + g + '"][data-i="' + i + '"] .dw-nid-st' );
 				if ( again ) { again.textContent = '✓ সেভ করা তথ্য থেকে ভরা হয়েছে'; }
 			} else {
 				st.innerHTML = 'সেভ করা তথ্য আছে: <b>' + esc( party.name ) + '</b> <button type="button" class="dw-link" data-use-saved="' + esc( JSON.stringify( party ) ) + '">এটি ব্যবহার করুন</button>';
@@ -553,7 +554,7 @@
 	}
 
 	function useSaved( btn ) {
-		var card = btn.closest( '.dw-party' ), g = card.getAttribute( 'data-group' ), i = +card.getAttribute( 'data-i' ), party = {};
+		var card = btn.closest( '.df-party' ), g = card.getAttribute( 'data-group' ), i = +card.getAttribute( 'data-i' ), party = {};
 		try { party = JSON.parse( btn.getAttribute( 'data-use-saved' ) ); } catch ( e ) { return; }
 		FILL.forEach( function ( k ) { if ( party[ k ] != null ) { S[ g ][ i ][ k ] = party[ k ]; } } );
 		render(); schedule();
