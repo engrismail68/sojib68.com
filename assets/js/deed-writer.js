@@ -104,15 +104,38 @@
 		donors: saved ? saved.donors : [ emptyParty() ]
 	};
 	if ( ! S.f.o ) { S.f.o = {}; }
-	// New deed started from a saved mouza: its fixed details are filled in already.
-	if ( ! saved && BOOT.newMouza ) {
-		var nm = BOOT.newMouza;
-		S.f.mouza_id = nm.id || '';
-		[ [ 'mouza_name', 'name' ], [ 'mouza_no', 'no' ], [ 'union', 'union' ], [ 'upazila', 'upazila' ], [ 'district', 'district' ], [ 'jl_no', 'jl_no' ], [ 'village', 'village' ], [ 'land_office', 'land_office' ], [ 'sub_office', 'sub_office' ], [ 'land_class', 'land_class' ], [ 'ownership', 'intro' ] ].forEach( function ( p ) {
-			if ( nm[ p[ 1 ] ] ) { S.f[ p[ 0 ] ] = nm[ p[ 1 ] ]; }
-		} );
-		if ( S.f.schedule && S.f.schedule[ 0 ] && nm.land_class ) { S.f.schedule[ 0 ][ 'class' ] = nm.land_class; }
+	/* ---- mouza library: fixed details of a mouza fill in automatically ---- */
+	var MZ = BOOT.mouzas || [];
+	var MAP = [ [ 'mouza_name', 'name' ], [ 'mouza_no', 'no' ], [ 'union', 'union' ], [ 'upazila', 'upazila' ], [ 'district', 'district' ], [ 'jl_no', 'jl_no' ], [ 'village', 'village' ], [ 'land_office', 'land_office' ], [ 'sub_office', 'sub_office' ], [ 'land_class', 'land_class' ], [ 'ownership', 'intro' ] ];
+
+	function findMouza() {
+		var f = S.f, i, hit = null, name = ( f.mouza_name || '' ).trim(), no = en( f.mouza_no || '' ).trim();
+		if ( f.mouza_id ) { for ( i = 0; i < MZ.length; i++ ) { if ( MZ[ i ].id === f.mouza_id ) { return MZ[ i ]; } } }
+		if ( ! name ) { return null; }
+		var same = MZ.filter( function ( m ) { return ( m.name || '' ).trim() === name; } );
+		if ( same.length === 1 ) { return same[ 0 ]; }
+		same.forEach( function ( m ) { if ( en( m.no || '' ).trim() === no ) { hit = m; } } );
+		return hit;
 	}
+
+	/** overwrite=true: set every mouza field (user chose the mouza); false: only fill what is still empty. Returns true if anything changed. */
+	function applyMouza( m, overwrite ) {
+		var changed = false;
+		MAP.forEach( function ( p ) {
+			var v = m[ p[ 1 ] ];
+			if ( ! v ) { return; }
+			if ( p[ 0 ] === 'ownership' && S.f.ownership && S.f.ownership.trim() && S.f.ownership !== v ) { if ( ! overwrite || ! window.confirm( 'মালিকানার বিবরণে আগে থেকে লেখা আছে। এই মৌজার শুরুর অংশ দিয়ে বদলে দেবেন?' ) ) { return; } }
+			if ( overwrite || ! S.f[ p[ 0 ] ] || ! String( S.f[ p[ 0 ] ] ).trim() ) { if ( S.f[ p[ 0 ] ] !== v ) { S.f[ p[ 0 ] ] = v; changed = true; } }
+		} );
+		if ( m.id && S.f.mouza_id !== m.id ) { S.f.mouza_id = m.id; changed = true; }
+		if ( m.land_class && S.f.schedule && S.f.schedule[ 0 ] && ! S.f.schedule[ 0 ][ 'class' ] ) { S.f.schedule[ 0 ][ 'class' ] = m.land_class; }
+		return changed;
+	}
+
+	if ( ! S.f.o ) { S.f.o = {}; }
+	if ( ! saved && BOOT.newMouza ) { applyMouza( BOOT.newMouza, true ); }
+	var loadedFilled = false;
+	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
 	S.donors.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
 
@@ -237,6 +260,7 @@
 			'<div class="dw-warn" id="dw-warn" hidden></div>';
 
 		h += '<section class="dw-sec"><h3>১–২ নম্বর: মূল তথ্য</h3><div class="dw-grid">' +
+			mouzaPicker() +
 			field( 'রেজিস্ট্রি অফিসের নাম', 'f.sub_office', { wide: true } ) + field( 'দলিলের প্রকৃতি', 'f.deed_type', { list: 'dw-types' } ) +
 			field( 'জেলা', 'f.district' ) + field( 'উপজেলা/থানা', 'f.upazila' ) + field( 'ইউনিয়ন/ওয়ার্ড', 'f.union', { ph: 'যেমন ৯ নং ভোলাকোট' } ) +
 			field( 'মৌজা নম্বর', 'f.mouza_no', { ph: 'যেমন 99' } ) + field( 'মৌজার নাম', 'f.mouza_name', { ph: 'যেমন তিয়রী' } ) + field( 'শ্রেণি', 'f.land_class' ) +
@@ -280,6 +304,13 @@
 		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
 		app.innerHTML = '<div class="dw-edit' + ( previewHidden() ? ' is-nopreview' : '' ) + '"><div class="dw-form">' + h + '</div><aside class="dw-preview" id="dw-preview" aria-label="দলিলের প্রিভিউ"></aside></div>';
 		refreshAuto();
+	}
+
+	function mouzaPicker() {
+		if ( ! MZ.length ) { return '<p class="dw-hint dw-full">মৌজা তালিকায় মৌজা যোগ করলে এখানে বেছে নেওয়া যাবে, আর তার তথ্য নিজে নিজে ভরবে।</p>'; }
+		var cur = ( findMouza() || {} ).id || '';
+		return '<label class="dw-f dw-full dw-mpick"><span>মৌজা বেছে নিন <em>(ইউনিয়ন, জে.এল. নং, গ্রাম, ভূমি অফিস, মালিকানার শুরুর অংশ নিজে নিজে ভরবে)</em></span><select id="dw-mouza-pick"><option value="">— মৌজা বেছে নিন —</option>' +
+			MZ.map( function ( m ) { return '<option value="' + esc( m.id ) + '"' + ( m.id === cur ? ' selected' : '' ) + '>' + esc( ( m.no ? m.no + 'নং ' : '' ) + m.name ) + '</option>'; } ).join( '' ) + '</select></label>';
 	}
 
 	function searchBox( group ) {
@@ -418,8 +449,19 @@
 		schedule();
 	} );
 
+	app.addEventListener( 'change', function ( e ) {
+		if ( e.target.id !== 'dw-mouza-pick' || ! e.target.value ) { return; }
+		var m = MZ.filter( function ( x ) { return x.id === e.target.value; } )[ 0 ];
+		if ( m ) { applyMouza( m, true ); render(); schedule(); }
+	} );
+
 	app.addEventListener( 'blur', function ( e ) {
 		var el = e.target;
+		var bp = el.getAttribute && el.getAttribute( 'data-p' );
+		if ( bp === 'f.mouza_name' || bp === 'f.mouza_no' ) {
+			var mm = findMouza();
+			if ( mm && applyMouza( mm, false ) ) { render(); schedule(); }
+		}
 		if ( el.hasAttribute && el.hasAttribute( 'data-nid' ) ) { var p = el.getAttribute( 'data-p' ); el.value = fmtNid( el.value ) || el.value; setp( p, el.value ); lookupNid( el, p, true ); schedule(); }
 	}, true );
 
@@ -529,4 +571,5 @@
 
 	render();
 	if ( S.id ) { statusText( 'খোলা হয়েছে — যা বদলাবেন নিজে নিজে সেভ হবে', 'is-ok' ); lastSaved = JSON.stringify( payload().data ); }
+	if ( loadedFilled ) { lastSaved = ''; schedule(); }
 }() );

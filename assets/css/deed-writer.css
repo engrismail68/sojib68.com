@@ -101,3 +101,5 @@
 	.dw-edit { grid-template-columns: minmax(0, 1fr); }
 	.dw-preview { position: static; max-height: none; }
 }
+
+.dw-mpick select { width: 100%; padding: 8px 10px; border: 1px solid #198030; border-radius: 8px; font: inherit; background: #f6faf6; }

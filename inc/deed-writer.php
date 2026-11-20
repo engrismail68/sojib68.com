@@ -559,6 +559,7 @@ function sojib68_dw_render( $base = null ) {
 				'data'      => is_array( $data ) ? $data : new stdClass(),
 				'defaults'  => get_option( 'sojib68_dw_defaults', array() ),
 				'newMouza'  => ( ! $draft && $sel_mouza ) ? $mouzas[ $sel_mouza ] : null,
+				'mouzas'    => array_values( $mouzas ),
 				'listUrl'   => $base,
 				'docxUrl'   => home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' ),
 			);
