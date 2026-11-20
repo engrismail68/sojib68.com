@@ -138,7 +138,11 @@
 	if ( ! S.f.lands || ! S.f.lands.length ) { S.f.lands = [ { cls: S.f.land_class || 'নাল', area: S.f.area || '', price: S.f.price || '', o: {} } ]; }
 	S.f.lands.forEach( function ( l ) { if ( ! l.o ) { l.o = {}; } } );
 	// ৫ আমমোক্তার/প্রতিনিধি/অভিভাবক and ৬ আমমোক্তারনামা: pick who (donor / donee / someone else) instead of typing the text.
-	if ( ! S.f.rep ) { S.f.rep = { mode: 'none', idx: 0, role: 'অভিভাবক', name: '', father: '', mother: '', addr: '' }; }
+	if ( ! S.f.rep ) { S.f.rep = { mode: 'none', idx: 0, role: 'অভিভাবক' }; }
+	[ 'nid', 'name', 'spouse', 'father', 'mother', 'dob', 'profession', 'perm', 'present' ].forEach( function ( k ) { if ( S.f.rep[ k ] == null ) { S.f.rep[ k ] = ''; } } );
+	if ( S.f.rep.addr && ! S.f.rep.perm ) { S.f.rep.perm = S.f.rep.addr; }
+	if ( S.f.rep.religion == null ) { S.f.rep.religion = DEF.religion || 'ইসলাম'; }
+	if ( S.f.rep.nationality == null ) { S.f.rep.nationality = DEF.nationality || 'বাংলাদেশী'; }
 	if ( ! S.f.poa ) { S.f.poa = { mode: 'none', no: '', date: '', office: '' }; }
 	if ( S.f.proxy_text && S.f.proxy_text.trim() && S.f.proxy_text.trim() !== 'প্রযোজ্য নহে।' && S.f.rep.mode === 'none' && ! S.f.o.proxy_text ) { S.f.o.proxy_text = S.f.proxy_text; }
 	if ( S.f.poa_text && S.f.poa_text.trim() && S.f.poa_text.trim() !== 'প্রযোজ্য নহে।' && S.f.poa.mode === 'none' && ! S.f.o.poa_text ) { S.f.o.poa_text = S.f.poa_text; }
@@ -147,6 +151,17 @@
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
 	S.donors.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
+
+	/** The representative / guardian as a full person record (same shape as a donor), or null. */
+	function repParty() {
+		var rp = S.f.rep || {};
+		if ( rp.mode === 'donor' || rp.mode === 'donee' ) {
+			var p = ( S[ rp.mode === 'donor' ? 'donors' : 'donees' ] || [] )[ +rp.idx || 0 ];
+			return p ? { nid: p.nid, name: p.name, spouse: p.spouse, father: p.father, mother: p.mother, dob: p.dob, religion: p.religion, profession: p.profession, nationality: p.nationality, perm: p.perm, present: p.present } : null;
+		}
+		if ( rp.mode === 'other' ) { return { nid: rp.nid, name: rp.name, spouse: rp.spouse, father: rp.father, mother: rp.mother, dob: rp.dob, religion: rp.religion, profession: rp.profession, nationality: rp.nationality, perm: rp.perm, present: rp.present }; }
+		return null;
+	}
 
 	/* ------------------------------------------------------------ compute */
 	function compute() {
@@ -171,10 +186,8 @@
 		f.price = anyPrice ? String( totPrice ) : '';
 		auto.exec_date = banglaDate( f.exec_greg );
 		auto.schedule_head = 'জেলা ঃ ' + ( f.district || '' ) + ' মৌজাঃ ' + ( f.mouza_name || '' ) + ' উপজেলা ঃ ' + ( f.upazila || '' ) + ', জে. এল নং ঃ ' + ( f.jl_no || '' ) + ', ইউনিয়নঃ ' + ( f.union || '' ) + ' গ্রাম ঃ ' + ( f.village || '' ) + ', ভূমি অফিসের নাম ঃ ' + ( f.land_office || '' );
-		var rp = f.rep || {}, who = null;
-		if ( rp.mode === 'donor' || rp.mode === 'donee' ) { who = ( S[ rp.mode === 'donor' ? 'donors' : 'donees' ][ +rp.idx || 0 ] ) || null; if ( who ) { who = { name: who.name, father: who.father, mother: who.mother, addr: who.perm }; } }
-		else if ( rp.mode === 'other' ) { who = { name: rp.name, father: rp.father, mother: rp.mother, addr: rp.addr }; }
-		auto.proxy_text = who ? ( who.name || '………' ) + ( who.father ? ', পিতা: ' + who.father : '' ) + ( who.mother ? ', মাতা: ' + who.mother : '' ) + ( who.addr ? ', ঠিকানা: ' + who.addr : '' ) + ' (' + ( rp.role || 'অভিভাবক' ) + ')।' : 'প্রযোজ্য নহে।';
+		var rp = f.rep || {};
+		auto.proxy_text = rp.mode && rp.mode !== 'none' ? ( rp.role || 'অভিভাবক' ) + ' (বিবরণ নিচে)' : 'প্রযোজ্য নহে।';
 		var pa = f.poa || {};
 		auto.poa_text = pa.mode === 'yes' ? [ pa.no ? 'দলিল নং ' + pa.no : '', pa.date ? 'তারিখ: ' + pa.date : '', pa.office ? 'রেজিস্ট্রি অফিস: ' + pa.office : '' ].filter( Boolean ).join( ', ' ) + '।' : 'প্রযোজ্য নহে।';
 		auto.total_text = 'মোট জমির পরিমান ঃ ' + ( o.area_text || auto.area_text );
@@ -284,7 +297,12 @@
 		if ( m !== 'none' ) {
 			h += drow( 'পরিচয়', '<select data-p="f.rep.role">' + [ 'অভিভাবক', 'প্রতিনিধি', 'আমমোক্তার' ].map( function ( r ) { return '<option' + ( S.f.rep.role === r ? ' selected' : '' ) + '>' + r + '</option>'; } ).join( '' ) + '</select>' );
 			if ( m === 'donor' || m === 'donee' ) { h += drow( 'কে', personSelect( m === 'donor' ? 'donors' : 'donees' ) ); }
-			if ( m === 'other' ) { h += drow( 'নাম', inp( 'f.rep.name' ) ) + drow( 'পিতার নাম', inp( 'f.rep.father' ) ) + drow( 'মাতার নাম', inp( 'f.rep.mother' ) ) + drow( 'ঠিকানা', inp( 'f.rep.addr', { area: true, rows: 2 } ) ); }
+			if ( m === 'other' ) {
+				h += drow( 'পরিচিতি নং (NID)', inp( 'f.rep.nid', { nid: true, ph: 'যেমন 823 541 7337' } ) ) + drow( 'নাম', inp( 'f.rep.name' ) ) + drow( 'স্বামীর নাম <em>(বিবাহিতা মহিলা হলে)</em>', inp( 'f.rep.spouse' ) ) +
+					drow( 'পিতার নাম', inp( 'f.rep.father' ) ) + drow( 'মাতার নাম', inp( 'f.rep.mother' ) ) + drow( 'জন্ম তারিখ', inp( 'f.rep.dob', { ph: 'যেমন ১০/০৩/১৯৮৭' } ) ) +
+					drow( 'ধর্ম', inp( 'f.rep.religion' ) ) + drow( 'পেশা', inp( 'f.rep.profession' ) ) + drow( 'জাতীয়তা', inp( 'f.rep.nationality' ) ) +
+					'<table class="df-t df-addr"><tr>' + th( 'স্থায়ী ঠিকানা' ) + th( 'বর্তমান ঠিকানা' ) + '</tr><tr><td>' + inp( 'f.rep.perm', { area: true, rows: 3 } ) + '</td><td>' + inp( 'f.rep.present', { area: true, rows: 3 } ) + '</td></tr></table>';
+			} else { h += '<p class="df-note">দলিলে এই ব্যক্তির পুরো বিবরণ (নাম, পিতা, মাতা, জন্ম তারিখ, NID, ঠিকানা) দাতা/গ্রহীতার তথ্য থেকে নিজে নিজে বসবে, ছবির জায়গাসহ ঠিক ৩–৪ নম্বরের মতো।</p>'; }
 		}
 		return h + dauto( 'দলিলে যা লেখা হবে', 'proxy_text', 'f.o', 2 );
 	}
@@ -443,7 +461,7 @@
 		h += '<table class="pv-t"><tr><th>হস্তান্তরিত সম্পত্তির পরিমান</th><th>শ্রেণী</th><th>মূল্য (অংকে ও কথায়)</th></tr>' + ( o.land_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.area ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.price ) + '</td></tr>'; } ).join( '' ) + ( ( o.land_rows || [] ).length > 1 ? '<tr class="pv-tot"><td>' + pv( o.area_text ) + '</td><td><b>মোট</b></td><td>' + pv( o.price_text ) + '</td></tr>' : '' ) + '</table>';
 		h += '<p class="pv-h">৩। দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা</p>' + S.donees.map( function ( p, i ) { return pvParty( p, i, S.donees.length ); } ).join( '' );
 		h += '<p class="pv-h">৪। দলিল দাতা/দাতাগণের নাম ও ঠিকানা</p>' + S.donors.map( function ( p, i ) { return pvParty( p, i, S.donors.length ); } ).join( '' );
-		h += row( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', o.proxy_text ) + row( '৬। আমমোক্তারনামার বিবরণ', o.poa_text );
+		h += row( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', o.proxy_text ) + ( repParty() ? pvParty( repParty(), 0, 1 ) : '' ) + row( '৬। আমমোক্তারনামার বিবরণ', o.poa_text );
 		h += '<p class="pv-h">৭। মালিকানার ধারাবাহিক বিবরণ</p><p class="pv-body">' + pv( o.ownership ) + '</p>' + fixedNote( '[ছাঁচের স্থায়ী লেখা: “হস্তান্তরিত ভূমির উপর আমি দাতার … ” ও “প্রকাশ থাকে যে, …” অনুচ্ছেদ Word ফাইলে আসবে]' );
 		h += '<p class="pv-h">৮। একাধিক গ্রহীতার হারাহারি মালিকানা</p><table class="pv-t"><tr><th>ক্রেতা/গ্রহীতার নাম</th><th>মালিকানার পরিমান</th></tr>' + ( o.donee_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.name ) + '</td><td>' + pv( r.share ) + '</td></tr>'; } ).join( '' ) + '</table>';
 		h += '<p class="pv-h">৯। একাধিক দাতার হারাহারি মালিকানা</p><table class="pv-t"><tr><th>বিক্রেতা/দাতার নাম</th><th>মালিকানার পরিমান</th></tr>' + ( o.donor_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.name ) + '</td><td>' + pv( r.share ) + '</td></tr>'; } ).join( '' ) + '</table>';
@@ -492,7 +510,8 @@
 		var defaults = { sub_office: f.sub_office, district: f.district, upazila: f.upazila, land_office: f.land_office, id: f.id, wr: f.wr, w1: { upazila: f.w1.upazila, district: f.w1.district }, w2: { upazila: f.w2.upazila, district: f.w2.district } };
 		var title = ( ( S.donors[ 0 ] && S.donors[ 0 ].name ) || '' ) + ( S.donees[ 0 ] && S.donees[ 0 ].name ? ' → ' + S.donees[ 0 ].name : '' );
 		title = ( title ? title + ' — ' : '' ) + ( f.deed_type || '' ) + ( f.mouza_name ? ' (' + f.mouza_name + ')' : '' );
-		return { title: title, data: { f: S.f, donees: S.donees, donors: S.donors, out: S.out, defaults: defaults } };
+		var rep = repParty();
+		return { title: title, data: { f: S.f, donees: S.donees, donors: S.donors, rep: rep ? [ rep ] : [], out: S.out, defaults: defaults } };
 	}
 
 	function send( beacon ) {

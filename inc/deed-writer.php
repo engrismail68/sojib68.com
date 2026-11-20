@@ -348,6 +348,8 @@ function sojib68_dw_build_docx( $data ) {
 	$donors = ! empty( $data['donors'] ) && is_array( $data['donors'] ) ? array_values( $data['donors'] ) : array( array() );
 	$body   = sojib68_dw_expand_loop( $body, 'donee', $donees, $party_filler( count( $donees ), 'donee' ) );
 	$body   = sojib68_dw_expand_loop( $body, 'donor', $donors, $party_filler( count( $donors ), 'donor' ) );
+	$reps   = ! empty( $data['rep'] ) && is_array( $data['rep'] ) ? array_values( $data['rep'] ) : array();
+	$body   = sojib68_dw_expand_loop( $body, 'rep', array_slice( $reps, 0, 1 ), $party_filler( 1, 'rep' ) );
 
 	$rows = function ( $key ) use ( $out ) {
 		return ! empty( $out[ $key ] ) && is_array( $out[ $key ] ) ? array_values( $out[ $key ] ) : array( array() );
