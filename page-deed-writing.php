@@ -20,6 +20,8 @@ $inq_text = "আমি দলিল লেখাতে চাই।\nদলি�
 			<p class="dw-lead"><?php esc_html_e( '১৯৫০ সাল থেকে আমাদের পরিবার দলিল লেখার পেশায় আছে। আমার বাবা মোঃ নুরুল ইসলাম ১৯৮১ সাল থেকে দলিল লেখক হিসেবে কাজ করছেন, আর ২০২০ সাল থেকে আমি তাঁর সহকারী হিসেবে যুক্ত আছি।', 'sojib68' ); ?></p>
 		</header>
 
+		<p class="dw-staff"><?php esc_html_e( 'দলিল লেখক/অফিসের কর্মী?', 'sojib68' ); ?> <a href="<?php echo esc_url( add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writing/' ) ), SOJIB68_OFFICE_LOGIN_URL ) ); ?>"><?php esc_html_e( 'লগইন করে দলিল লেখার সিস্টেম খুলুন', 'sojib68' ); ?></a></p>
+
 		<div class="dw-grid">
 			<section class="dw-card">
 				<h2><?php esc_html_e( 'কীভাবে শুরু করবেন', 'sojib68' ); ?></h2>

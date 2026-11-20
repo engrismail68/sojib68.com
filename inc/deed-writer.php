@@ -387,9 +387,12 @@ function sojib68_dw_download( $id ) {
  * Office page
  * ------------------------------------------------------------------ */
 
-function sojib68_dw_render() {
+/**
+ * @param string|null $base URL of the page that hosts the tool (office page by default, or the public /deed-writing page for signed-in office users).
+ */
+function sojib68_dw_render( $base = null ) {
 	global $wpdb;
-	$base = home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-write' );
+	$base = $base ? $base : home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-write' );
 	$ver  = static function ( $rel ) {
 		$p = get_theme_file_path( $rel );
 		return file_exists( $p ) ? (int) filemtime( $p ) : 1;
@@ -422,6 +425,7 @@ function sojib68_dw_render() {
 				</tbody>
 			</table></div>
 		<?php endif; ?>
+		<link rel="stylesheet" href="<?php echo esc_url( get_theme_file_uri( 'assets/css/deed-writer.css' ) ); ?>?v=<?php echo (int) $ver( 'assets/css/deed-writer.css' ); ?>">
 		<script>
 		window.sojib68DwList = { ajaxUrl: <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, nonce: <?php echo wp_json_encode( wp_create_nonce( 'sojib68_dw' ) ); ?> };
 		document.addEventListener('click', function (e) {

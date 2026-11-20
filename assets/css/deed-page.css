@@ -10,3 +10,6 @@
 .dw-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .dw-note { margin: 0; font-size: .9rem; color: #566760; }
 .dw-card--cta { background: #eaf4ec; border-color: #cfe5d3; }
+
+.dw-staff { margin: 0 0 18px; font-size: .95rem; }
+.dw-page--tool .site-container { max-width: 1100px; }
