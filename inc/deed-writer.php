@@ -649,7 +649,7 @@ function sojib68_dw_render( $base = null ) {
 	<div class="dw-layout">
 		<aside class="dw-side">
 			<h3>মৌজা তালিকা <small>(<?php echo (int) count( $mouzas ); ?>)</small></h3>
-				<?php if ( count( $mouzas ) > 4 ) : ?>
+				<?php if ( $mouzas ) : ?>
 					<input type="search" id="dw-mz-search" class="dw-mz-search" placeholder="মৌজা খুঁজুন…" autocomplete="off">
 				<?php endif; ?>
 			<ul class="dw-mouzas">

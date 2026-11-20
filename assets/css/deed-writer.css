@@ -272,3 +272,16 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-imp-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 10px; margin-top: 6px; }
 .dw-imp-g label { font-size: 12px; font-weight: 600; display: grid; gap: 2px; }
 .dw-imp-g input, .dw-imp-g select { font-size: 13px; padding: 5px 7px; }
+
+/* sidebar: one consistent type scale */
+.dw-side { font-size: 14px; line-height: 1.45; }
+.dw-side h3 { font-size: 16px; }
+.dw-side h3 small { font-size: 13px; }
+.dw-mouzas li { font-size: 14px; }
+.dw-mz-name { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.dw-mz-name small { font-size: 12px; font-weight: 400; }
+.dw-mz-new { font-size: 12px; }
+.dw-mz-search { font-size: 14px; height: 36px; margin-bottom: 8px; }
+.dw-side .btn { display: block; width: 100%; box-sizing: border-box; font-size: 13px; line-height: 1.4; padding: 8px 10px; text-align: center; white-space: normal; }
+.dw-side .btn + .btn { margin-top: 8px; }
+.dw-imp-open { margin-top: 8px; }
