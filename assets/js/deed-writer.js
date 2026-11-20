@@ -133,6 +133,8 @@
 			if ( p[ 0 ] === 'ownership' && S.f.ownership && S.f.ownership.trim() && S.f.ownership !== v ) { if ( ! overwrite || ! window.confirm( 'মালিকানার বিবরণে আগে থেকে লেখা আছে। এই মৌজার শুরুর অংশ দিয়ে বদলে দেবেন?' ) ) { return; } }
 			if ( overwrite || ! S.f[ p[ 0 ] ] || ! String( S.f[ p[ 0 ] ] ).trim() ) { if ( S.f[ p[ 0 ] ] !== v ) { S.f[ p[ 0 ] ] = v; changed = true; } }
 		} );
+		// the mouza's usual শ্রেণী goes into the first land line
+		if ( m.land_class && S.f.lands && S.f.lands[ 0 ] && ( overwrite || ! S.f.lands[ 0 ].cls ) && S.f.lands[ 0 ].cls !== m.land_class ) { S.f.lands[ 0 ].cls = m.land_class; changed = true; }
 		if ( m.id && S.f.mouza_id !== m.id ) { S.f.mouza_id = m.id; changed = true; }
 		if ( m.land_class && S.f.khatians && S.f.khatians[ 0 ] && S.f.khatians[ 0 ].dags[ 0 ] && ! S.f.khatians[ 0 ].dags[ 0 ].cls ) { S.f.khatians[ 0 ].dags[ 0 ].cls = m.land_class; }
 		return changed;
