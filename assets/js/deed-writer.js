@@ -62,6 +62,12 @@
 	/* Bangladesh revised Bangla calendar (Boishakh 1 = 14 April). */
 	var BMONTHS = [ 'বৈশাখ', 'জ্যৈষ্ঠ', 'আষাঢ়', 'শ্রাবণ', 'ভাদ্র', 'আশ্বিন', 'কার্তিক', 'অগ্রহায়ণ', 'পৌষ', 'মাঘ', 'ফাল্গুন', 'চৈত্র' ];
 	function isLeap( y ) { return ( y % 4 === 0 && y % 100 !== 0 ) || y % 400 === 0; }
+	/** দাগে মোট জমি / হস্তান্তরিত জমি: 18 → ১৮ শতাংশ হইতে / ১০ শতাংশ ; anything that is not a plain number stays as typed. */
+	function shotText( v, suffix ) {
+		var t = en( String( v == null ? '' : v ) ).trim();
+		if ( /^\d+(\.\d+)?$/.test( t ) && parseFloat( t ) > 0 ) { return bn( t ) + ' শতাংশ' + ( suffix || '' ); }
+		return String( v == null ? '' : v ).trim();
+	}
 	/** আর.এস দাগ: 1713 → ১৭১৩ (এক হাজার সাতশত তেরো) দাগ ; anything that is not a plain number stays as typed. */
 	function dagText( v ) {
 		var t = en( String( v == null ? '' : v ) ).trim();
@@ -235,8 +241,8 @@
 		( f.khatians || [] ).forEach( function ( k ) {
 			( k.dags || [] ).forEach( function ( d, j ) {
 				if ( ! d.o ) { d.o = {}; }
-				d.rs_auto = dagText( d.rs_dag );
-				out.schedule_rows.push( { khatian: j === 0 ? ( k.khatian || '' ) : '', cs_dag: d.cs_dag || '', rs_dag: d.o.rs_text || d.rs_auto, 'class': d.cls || '', total: d.total || '', transferred: d.transferred || '', vm: ( k.dags.length > 1 ? ( j === 0 ? 'restart' : 'cont' ) : '' ), span: j === 0 ? k.dags.length : 0 } );
+				d.rs_auto = dagText( d.rs_dag ); d.total_auto = shotText( d.total, ' হইতে' ); d.transferred_auto = shotText( d.transferred, '' );
+				out.schedule_rows.push( { khatian: j === 0 ? ( k.khatian || '' ) : '', cs_dag: d.cs_dag || '', rs_dag: d.o.rs_text || d.rs_auto, 'class': d.cls || '', total: d.o.total_text || d.total_auto, transferred: d.o.transferred_text || d.transferred_auto, vm: ( k.dags.length > 1 ? ( j === 0 ? 'restart' : 'cont' ) : '' ), span: j === 0 ? k.dags.length : 0 } );
 			} );
 		} );
 
@@ -402,14 +408,14 @@
 				var b = kb + 'dags.' + di + '.';
 				return '<tr>' + ( di === 0 ? '<td class="df-kh" rowspan="' + n + '"><small class="df-mini">খতিয়ান ' + bn( ki + 1 ) + '</small>' + inp( kb + 'khatian', { area: true, rows: 3, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) +
 					'<button type="button" class="dw-link" data-add-dag="' + ki + '">+ এই খতিয়ানে আরেকটি দাগ</button>' + ( S.f.khatians.length > 1 ? '<button type="button" class="dw-x" data-del-kh="' + ki + '">এই খতিয়ান মুছুন ×</button>' : '' ) + '</td>' : '' ) +
-					'<td>' + inp( b + 'cs_dag', { ph: 'সি.এস দাগ নং' } ) + '</td><td>' + inp( b + 'rs_dag', { ph: 'আর.এস দাগ নং (সংখ্যা)' } ) + wbox( 'rs_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'cls', { list: 'dw-classes' } ) + '</td><td>' + inp( b + 'total', { ph: 'মোঃ ১৮ শতাংশ হইতে' } ) + '</td><td>' + inp( b + 'transferred', { ph: 'মোঃ ০৫ শতাংশ' } ) + '</td>' +
+					'<td>' + inp( b + 'cs_dag', { ph: 'সি.এস দাগ নং' } ) + '</td><td>' + inp( b + 'rs_dag', { ph: 'আর.এস দাগ নং (সংখ্যা)' } ) + wbox( 'rs_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'cls', { list: 'dw-classes' } ) + '</td><td>' + inp( b + 'total', { ph: 'শতাংশ (সংখ্যা), যেমন 18' } ) + wbox( 'total_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'transferred', { ph: 'শতাংশ (সংখ্যা), যেমন 10' } ) + wbox( 'transferred_text', kb + 'dags.' + di + '.o' ) + '</td>' +
 					'<td class="df-x">' + ( n > 1 ? '<button type="button" class="dw-x" data-del-dag="' + ki + ':' + di + '" title="এই দাগ মুছুন">×</button>' : '' ) + '</td></tr>';
 			} ).join( '' );
 		} ).join( '' );
 		h += dsec( 's-11', '১১', 'সম্পত্তির তফসিল',
 			drow( 'গ্রাম', inp( 'f.village' ) ) + drow( 'জে.এল. নং', inp( 'f.jl_no', { ph: 'সি.এস ১৪১ আর.এস ৯৯ নং' } ) ) + drow( 'ভূমি অফিসের নাম', inp( 'f.land_office' ) ) +
 			dauto( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) +
-			'<table class="df-t df-sched"><colgroup><col style="width:22%"><col style="width:10%"><col style="width:22%"><col style="width:9%"><col style="width:14%"><col style="width:17%"><col style="width:4%"></colgroup><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'সি.এস দাগ', 'আর.এস দাগ (কথায় নিজে নিজে হয়)', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
+			'<table class="df-t df-sched"><colgroup><col style="width:20%"><col style="width:9%"><col style="width:19%"><col style="width:9%"><col style="width:19%"><col style="width:19%"><col style="width:5%"></colgroup><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'সি.এস দাগ', 'আর.এস দাগ (কথায় নিজে নিজে হয়)', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-kh="1">+ আলাদা খতিয়ান (নতুন খতিয়ান ও দাগ)</button>' + dauto( 'মোট জমির পরিমান', 'total_text', 'f.o', 1 ) );
 
 		// 12–15
@@ -458,7 +464,7 @@
 			var autoVal;
 			var dm = /^f\.khatians\.(\d+)\.dags\.(\d+)\.o\./.exec( path );
 			var lm = /^f\.lands\.(\d+)\.o\./.exec( path );
-			if ( dm ) { autoVal = ( S.f.khatians[ +dm[ 1 ] ].dags[ +dm[ 2 ] ].rs_auto ) || ''; }
+			if ( dm ) { var dd = S.f.khatians[ +dm[ 1 ] ].dags[ +dm[ 2 ] ]; autoVal = ( key === 'rs_text' ? dd.rs_auto : key === 'total_text' ? dd.total_auto : dd.transferred_auto ) || ''; }
 			else
 			if ( lm ) { autoVal = ( key === 'area_text' ? S.f.lands[ +lm[ 1 ] ].area_auto : S.f.lands[ +lm[ 1 ] ].price_auto ) || ''; }
 			else if ( /^(donees|donors)\./.test( path ) ) {
