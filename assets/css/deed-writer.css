@@ -1,5 +1,5 @@
 /* দলিল লিখুন (office) */
-.dw-app { max-width: 1040px; }
+.dw-app { max-width: none; }
 .dw-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: sticky; top: 0; z-index: 5; background: var(--o-bg, #f4f3ec); padding: 8px 0; }
 .dw-status { flex: 1; font-size: 14px; color: var(--o-muted, #6b7a75); }
 .dw-status.is-ok { color: #14532d; }
@@ -68,3 +68,36 @@
 .dw-dlg-grid { margin: 10px 0; }
 .dw-dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 900px) { .dw-layout { grid-template-columns: 1fr; } .dw-side { position: static; max-height: none; } }
+
+/* live preview (right column) */
+.dw-page--tool .site-container { max-width: 1640px; }
+.dw-edit { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 18px; align-items: start; }
+.dw-edit.is-nopreview { grid-template-columns: minmax(0, 1fr); }
+.dw-edit.is-nopreview .dw-preview { display: none; }
+.dw-pv-show { display: none; }
+.dw-edit.is-nopreview .dw-pv-show { display: inline-block; }
+.dw-form { min-width: 0; }
+.dw-preview { position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow: auto; }
+.pv-bar { display: flex; align-items: center; gap: 8px; padding: 4px 2px 8px; }
+.pv-bar small { color: #6b7a75; flex: 1; }
+.pv-paper { background: #fff; border: 1px solid #d9d6c8; border-radius: 6px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(0, 0, 0, .08); font-size: 13.5px; line-height: 1.6; }
+.pv-h { margin: 12px 0 4px; font-weight: 700; }
+.pv-h span { font-weight: 400; }
+.pv-row { display: flex; gap: 8px; margin: 1px 0; }
+.pv-l { min-width: 110px; color: #44544e; }
+.pv-v { flex: 1; word-break: break-word; }
+.pv-party { border-left: 3px solid #cfe5d3; padding-left: 10px; margin: 8px 0; }
+.pv-addr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; font-size: 12.5px; }
+.pv-t { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12.5px; }
+.pv-t th, .pv-t td { border: 1px solid #999; padding: 3px 5px; text-align: left; vertical-align: top; }
+.pv-t th { background: #f4f3ec; font-weight: 600; }
+.pv-body { white-space: pre-wrap; margin: 2px 0 6px; }
+.pv-sm { margin: 2px 0; font-size: 12.5px; }
+.pv-person { margin: 4px 0; font-size: 12.5px; }
+.pv-fixed { color: #8a8f8c; font-style: italic; font-size: 12px; margin: 2px 0 6px; }
+.pv-note { color: #6b7a75; font-size: 12.5px; margin: 8px 2px 0; }
+.dw-blank { color: #b9b6a8; }
+@media (max-width: 1280px) {
+	.dw-edit { grid-template-columns: minmax(0, 1fr); }
+	.dw-preview { position: static; max-height: none; }
+}

@@ -232,6 +232,7 @@
 		var h = '';
 		h += '<div class="dw-top"><a class="btn btn-outline btn-sm" href="' + esc( BOOT.listUrl ) + '">← সব দলিল</a>' +
 			'<span class="dw-status" id="dw-status">নতুন — লিখতে শুরু করুন, নিজে নিজে সেভ হবে</span>' +
+			'<button type="button" class="btn btn-outline btn-sm dw-pv-show" id="dw-pv-show">প্রিভিউ দেখুন</button>' +
 			'<a class="btn btn-primary btn-sm" id="dw-download" href="#">Word ডাউনলোড</a></div>' +
 			'<div class="dw-warn" id="dw-warn" hidden></div>';
 
@@ -277,7 +278,7 @@
 		h += '<section class="dw-sec dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
 			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। ফাইলটি Word-এ খুলে একবার দেখে নিন; SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
 		h += '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
-		app.innerHTML = h;
+		app.innerHTML = '<div class="dw-edit' + ( previewHidden() ? ' is-nopreview' : '' ) + '"><div class="dw-form">' + h + '</div><aside class="dw-preview" id="dw-preview" aria-label="দলিলের প্রিভিউ"></aside></div>';
 		refreshAuto();
 	}
 
@@ -299,6 +300,7 @@
 			el.classList.toggle( 'is-manual', ov[ key ] != null && ov[ key ] !== '' );
 		} );
 		warnLatin();
+		renderPreview();
 	}
 
 	function warnLatin() {
@@ -310,6 +312,52 @@
 		if ( ! el ) { return; }
 		el.hidden = ! bad.length;
 		if ( bad.length ) { el.textContent = '⚠ কিছু ঘরে ইংরেজি অক্ষর আছে। বিজয় ফন্টে ইংরেজি অক্ষর ঠিক দেখাবে না, বাংলা অক্ষরে লিখুন।'; }
+	}
+
+	/* ------------------------------------------------------------ live preview */
+	function previewHidden() { try { return window.localStorage.getItem( 'sojib68DwPreviewHidden' ) === '1'; } catch ( e ) { return false; } }
+	function nl( v ) { return esc( v ).replace( /\n/g, '<br>' ); }
+	function pv( v ) { return v && String( v ).trim() ? nl( v ) : '<span class="dw-blank">………………</span>'; }
+	function row( label, v ) { return '<div class="pv-row"><span class="pv-l">' + label + '</span><span class="pv-v">' + pv( v ) + '</span></div>'; }
+	function fixedNote( t ) { return '<p class="pv-fixed">' + t + '</p>'; }
+	function pvParty( p, i, n ) {
+		var h = '<div class="pv-party"><strong>' + ( n > 1 ? bn( i + 1 ) + '। ' : '' ) + 'নাম</strong> : ' + pv( p.name );
+		if ( p.spouse ) { h += row( 'স্বামীর নাম', p.spouse ); }
+		h += row( 'পিতার নাম', p.father ) + row( 'মাতার নাম', p.mother ) + row( 'জন্ম তারিখ', p.dob ? p.dob + ' ইং' : '' ) + row( 'ধর্ম', p.religion ) + row( 'পেশা', p.profession ) + row( 'জাতীয়তা', p.nationality ) + row( 'পরিচিতি নং', p.nid );
+		h += '<div class="pv-addr"><div><b>স্থায়ী ঠিকানা</b><br>' + pv( p.perm ) + '</div><div><b>বর্তমান ঠিকানা</b><br>' + pv( p.present ) + '</div></div></div>';
+		return h;
+	}
+	function pvPerson( tag, p ) {
+		return '<div class="pv-person"><b>' + tag + '</b> ' + pv( p.name ) + '<br>পিতা: ' + pv( p.father ) + ' · মাতা: ' + pv( p.mother ) + '<br>গ্রাম/রোড: ' + pv( p.village ) + ' · ডাকঘর: ' + pv( p.post ) + ' · উপজেলা: ' + pv( p.upazila ) + ' · জেলা: ' + pv( p.district ) + '</div>';
+	}
+	function renderPreview() {
+		var box = document.getElementById( 'dw-preview' );
+		if ( ! box ) { return; }
+		var o = S.out || compute(), f = S.f, h = '';
+		h += '<div class="pv-bar"><strong>প্রিভিউ</strong> <small>যা লিখছেন সঙ্গে সঙ্গে দেখাচ্ছে</small> <button type="button" class="dw-link" id="dw-pv-hide">লুকান</button></div>';
+		h += '<div class="pv-paper">';
+		h += '<p class="pv-h">১। রেজিস্ট্রী অফিসের নাম : <span>' + pv( o.sub_office ) + '</span></p>';
+		h += '<p class="pv-h">২। দলিলের সার সংক্ষেপ</p>';
+		h += '<table class="pv-t"><tr><th>দলিলের প্রকৃতি</th><th>মৌজার নাম</th><th>ইউনিয়ন/ওয়ার্ড</th><th>থানা/উপজেলা</th><th>জেলা</th></tr><tr><td>' + pv( o.deed_type ) + '</td><td>' + pv( o.mouza_short ) + '</td><td>' + pv( o.union ) + '</td><td>' + pv( o.upazila ) + '</td><td>' + pv( o.district ) + '</td></tr></table>';
+		h += '<table class="pv-t"><tr><th>হস্তান্তরিত সম্পত্তির পরিমান</th><th>শ্রেণী</th><th>মূল্য (অংকে ও কথায়)</th></tr><tr><td>' + pv( o.area_text ) + '</td><td>' + pv( o.land_class ) + '</td><td>' + pv( o.price_text ) + '</td></tr></table>';
+		h += '<p class="pv-h">৩। দলিল গ্রহীতা/গ্রহীতাগণের নাম ও ঠিকানা</p>' + S.donees.map( function ( p, i ) { return pvParty( p, i, S.donees.length ); } ).join( '' );
+		h += '<p class="pv-h">৪। দলিল দাতা/দাতাগণের নাম ও ঠিকানা</p>' + S.donors.map( function ( p, i ) { return pvParty( p, i, S.donors.length ); } ).join( '' );
+		h += row( '৫। আমমোক্তার/প্রতিনিধি/অভিভাবক', o.proxy_text ) + row( '৬। আমমোক্তারনামার বিবরণ', o.poa_text );
+		h += '<p class="pv-h">৭। মালিকানার ধারাবাহিক বিবরণ</p><p class="pv-body">' + pv( o.ownership ) + '</p>' + fixedNote( '[ছাঁচের স্থায়ী লেখা: “হস্তান্তরিত ভূমির উপর আমি দাতার … ” ও “প্রকাশ থাকে যে, …” অনুচ্ছেদ Word ফাইলে আসবে]' );
+		h += '<p class="pv-h">৮। একাধিক গ্রহীতার হারাহারি মালিকানা</p><table class="pv-t"><tr><th>ক্রেতা/গ্রহীতার নাম</th><th>মালিকানার পরিমান</th></tr>' + ( o.donee_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.name ) + '</td><td>' + pv( r.share ) + '</td></tr>'; } ).join( '' ) + '</table>';
+		h += '<p class="pv-h">৯। একাধিক দাতার হারাহারি মালিকানা</p><table class="pv-t"><tr><th>বিক্রেতা/দাতার নাম</th><th>মালিকানার পরিমান</th></tr>' + ( o.donor_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.name ) + '</td><td>' + pv( r.share ) + '</td></tr>'; } ).join( '' ) + '</table>';
+		h += row( '১০। সম্পাদনের তারিখ', o.exec_date );
+		h += '<p class="pv-h">১১। সম্পত্তির তফসিল</p><p class="pv-body">' + pv( o.schedule_head ) + '</p><p class="pv-sm">' + pv( o.mouza_head ) + '</p>';
+		h += '<table class="pv-t"><tr><th>খতিয়ান নং</th><th>আর.এস দাগ</th><th>সি.এস দাগ</th><th>শ্রেণি</th><th>দাগে মোট জমি</th><th>হস্তান্তরিত জমি</th></tr>' + ( o.schedule_rows || [] ).map( function ( r ) { return '<tr><td>' + pv( r.khatian ) + '</td><td>' + pv( r.rs_dag ) + '</td><td>' + pv( r.cs_dag ) + '</td><td>' + pv( r[ 'class' ] ) + '</td><td>' + pv( r.total ) + '</td><td>' + pv( r.transferred ) + '</td></tr>'; } ).join( '' ) + '</table><p class="pv-sm">' + pv( o.total_text ) + '</p>';
+		h += row( '১২। চৌহদ্দির বিবরণ', o.boundaries ) + row( '১৩। সম্পত্তির পরিমাণ', o.area_text ) + row( '১৪। মূল্য পরিশোধের বিবরণ', o.payment_text ) + row( '১৫। হাত নকশা ও পরিমাপ', o.sqft_text );
+		h += '<p class="pv-h">১৬। কৈফিয়ত যদি থাকে :</p>' + fixedNote( '[১৭। স্বাক্ষর অংশ ছাঁচ অনুযায়ী ফাঁকা থাকবে]' );
+		h += '<p class="pv-h">১৮। স্বাক্ষীগণের নাম, ঠিকানা ও স্বাক্ষর</p>' + pvPerson( '(ক)', f.w1 ) + pvPerson( '(খ)', f.w2 );
+		h += '<p class="pv-h">১৯। সনাক্তকারী</p>' + pvPerson( '', f.id );
+		h += '<p class="pv-h">২০। দলিল লেখক (ফর্দ: ' + pv( o.pages ) + ')</p>' + pvPerson( '', f.wr ) + row( 'সনদ নং', f.wr.sanad );
+		h += '<p class="pv-h">২১। দলিল দাতার হলফনামা</p><p class="pv-body">' + pv( o.affidavit_head ) + '</p>' + fixedNote( '[হলফনামার ঘোষণা (ক–চ) ছাঁচ থেকে আসবে]' );
+		h += '<p class="pv-h">২২। সাব-রেজিষ্ট্রারের নাম ও পদবীসহ স্বাক্ষর ও তারিখ : ………</p>';
+		h += '</div><p class="pv-note">এটি দ্রুত দেখার জন্য প্রিভিউ। বড় স্থায়ী অনুচ্ছেদগুলো সংক্ষেপে দেখানো; চূড়ান্ত ফাইল Word ডাউনলোডে (বিজয় ফন্টে) পাবেন।</p>';
+		box.innerHTML = h;
 	}
 
 	/* ------------------------------------------------------------ autosave */
@@ -387,6 +435,7 @@
 		else if ( ( v = t.getAttribute( 'data-reset' ) ) ) { var rp = v.split( '.' ), rk = rp.pop(), holder = getp( rp.join( '.' ) ); if ( holder ) { delete holder[ rk ]; } refreshAuto(); var tx = app.querySelector( '[data-auto="' + v + '"]' ); if ( tx ) { tx.value = tx.placeholder; tx.classList.remove( 'is-manual' ); } schedule(); }
 		else if ( ( v = t.getAttribute( 'data-pick' ) ) ) { pickResult( t ); }
 		else if ( ( v = t.getAttribute( 'data-use-saved' ) ) ) { useSaved( t ); }
+		else if ( t.id === 'dw-pv-hide' || t.id === 'dw-pv-show' ) { var hide = t.id === 'dw-pv-hide'; try { window.localStorage.setItem( 'sojib68DwPreviewHidden', hide ? '1' : '0' ); } catch ( err ) {} app.querySelector( '.dw-edit' ).classList.toggle( 'is-nopreview', hide ); }
 		else if ( t.id === 'dw-save-mouza' ) { saveMouza(); }
 		else if ( t.id === 'dw-download' || t.id === 'dw-download2' ) { e.preventDefault(); download(); }
 	} );
