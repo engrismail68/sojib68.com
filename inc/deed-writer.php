@@ -218,6 +218,50 @@ function sojib68_dw_ajax_party_get() {
 	wp_send_json_success( array( 'party' => sojib68_dw_party_row_to_array( $row ) ) );
 }
 
+/** Bulk-add people read from old deed files (browser-side). Existing NIDs are left untouched. */
+add_action( 'wp_ajax_sojib68_dw_party_import', 'sojib68_dw_ajax_party_import' );
+function sojib68_dw_ajax_party_import() {
+	sojib68_dw_guard();
+	global $wpdb;
+	$in = isset( $_POST['people'] ) ? json_decode( wp_unslash( $_POST['people'] ), true ) : null;
+	if ( ! is_array( $in ) || count( $in ) > 400 ) {
+		wp_send_json_error( array( 'message' => 'তথ্য পড়া যায়নি (একবারে সর্বোচ্চ ৪০০ জন)।' ), 400 );
+	}
+	$t     = sojib68_dw_parties_table();
+	$now   = current_time( 'mysql' );
+	$added = 0;
+	$skip  = 0;
+	$seen  = array();
+	foreach ( $in as $p ) {
+		if ( ! is_array( $p ) ) {
+			continue;
+		}
+		$p   = sojib68_dw_clean( $p, 6 );
+		$key = sojib68_dw_nid_key( isset( $p['nid'] ) ? $p['nid'] : '' );
+		if ( strlen( $key ) < 8 || '' === trim( (string) ( $p['name'] ?? '' ) ) || isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$seen[ $key ] = true;
+		$keep         = array();
+		foreach ( array( 'gender', 'spouse', 'father', 'mother', 'dob', 'religion', 'profession', 'nationality', 'perm', 'present', 'nid_display' ) as $f ) {
+			$keep[ $f ] = isset( $p[ $f ] ) ? mb_substr( (string) $p[ $f ], 0, 500 ) : '';
+		}
+		$rows = $wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$t} (nid, name, data, updated_at) VALUES (%s, %s, %s, %s)",
+			$key,
+			mb_substr( (string) $p['name'], 0, 190 ),
+			wp_json_encode( $keep, JSON_UNESCAPED_UNICODE ),
+			$now
+		) );
+		if ( $rows ) {
+			$added++;
+		} else {
+			$skip++;
+		}
+	}
+	wp_send_json_success( array( 'added' => $added, 'skipped' => $skip ) );
+}
+
 add_action( 'wp_ajax_sojib68_dw_party_search', 'sojib68_dw_ajax_party_search' );
 function sojib68_dw_ajax_party_search() {
 	sojib68_dw_guard();
@@ -622,6 +666,7 @@ function sojib68_dw_render( $base = null ) {
 				<p class="dw-hint">এখনো কোনো মৌজা সেভ করা নেই। নিচের বোতামে মৌজা যোগ করুন, তারপর সেই মৌজার "+ দলিল" চাপলে ইউনিয়ন, জে.এল. নং, ভূমি অফিস ইত্যাদি নিজে নিজে ভরা থাকবে।</p>
 			<?php endif; ?>
 			<button type="button" class="btn btn-outline btn-sm" id="dw-mouza-add">+ নতুন মৌজা</button>
+				<button type="button" class="btn btn-outline btn-sm dw-imp-open" id="dw-import-open">📥 পুরোনো ফাইল থেকে তথ্য তুলুন</button>
 		</aside>
 		<div class="dw-main">
 	<?php
@@ -719,5 +764,6 @@ function sojib68_dw_render( $base = null ) {
 	</dialog>
 	<script>window.sojib68DwM = { ajaxUrl: <?php echo wp_json_encode( $ajax ); ?>, nonce: <?php echo wp_json_encode( $nonce ); ?>, mouzas: <?php echo wp_json_encode( $mouzas, JSON_UNESCAPED_UNICODE ); ?> };</script>
 	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-mouzas.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-mouzas.js' ); ?>"></script>
+	<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-import.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-import.js' ); ?>"></script>
 	<?php
 }

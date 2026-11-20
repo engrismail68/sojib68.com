@@ -261,3 +261,14 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 
 .dw-mz-search { width: 100%; box-sizing: border-box; padding: 7px 10px; margin: 0 0 8px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; font-size: 14px; }
 .dw-side h3 small { font-weight: 400; color: #5f6f64; }
+
+.dw-imp-open { margin-top: 8px; width: 100%; white-space: normal; }
+.dw-imp-box { width: min(1100px, 100%); }
+.dw-imp-f { margin: 12px 0 4px; font-size: 14px; }
+.dw-imp-p { border: 1px solid #c9d6cc; border-radius: 8px; padding: 8px 10px; margin: 6px 0; background: #fbfdfb; }
+.dw-imp-p.is-off { opacity: .55; background: #f5f5f5; }
+.dw-imp-h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.dw-imp-warn { color: #b45309; font-style: normal; font-size: 12px; }
+.dw-imp-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px 10px; margin-top: 6px; }
+.dw-imp-g label { font-size: 12px; font-weight: 600; display: grid; gap: 2px; }
+.dw-imp-g input, .dw-imp-g select { font-size: 13px; padding: 5px 7px; }
