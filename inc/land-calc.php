@@ -163,6 +163,13 @@ function sojib68_land_calc_modal() {
 						<button type="button" class="lm-btn" data-lm-mode="dist" title="M"><?php esc_html_e( 'দূরত্ব', 'sojib68' ); ?></button>
 						<button type="button" class="lm-btn" data-lm-mode="pan" title="Space"><?php esc_html_e( '✋ সরান', 'sojib68' ); ?></button>
 						<label class="lm-snap"><input type="checkbox" data-lm-snap checked> <?php esc_html_e( 'স্ন্যাপ', 'sojib68' ); ?></label>
+						<label class="lm-snap"><?php esc_html_e( 'বাহুর মাপ ছবিতে:', 'sojib68' ); ?>
+							<select data-lm-labels>
+								<option value="long"><?php esc_html_e( 'শুধু বড় বাহু', 'sojib68' ); ?></option>
+								<option value="all"><?php esc_html_e( 'সব বাহু', 'sojib68' ); ?></option>
+								<option value="none"><?php esc_html_e( 'কোনোটি না', 'sojib68' ); ?></option>
+							</select>
+						</label>
 						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="in" aria-label="<?php esc_attr_e( 'বড় করুন', 'sojib68' ); ?>">＋</button>
 						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="out" aria-label="<?php esc_attr_e( 'ছোট করুন', 'sojib68' ); ?>">－</button>
 						<button type="button" class="lm-btn lm-btn--sm" data-lm-zoom="fit"><?php esc_html_e( 'পুরো নকশা', 'sojib68' ); ?></button>
@@ -189,6 +196,7 @@ function sojib68_land_calc_modal() {
 					</div>
 					<div class="lm-status" data-lm-status hidden></div>
 					<p class="lc-msg" data-lm-msg role="alert" hidden></p>
+					<div class="lm-summary" data-lm-summary aria-live="polite"></div>
 					<ul class="lc-results" data-lm-results aria-live="polite"></ul>
 					<p class="lc-note lc-note--quad"><?php esc_html_e( 'নকশা থেকে বের করা মাপ আনুমানিক। নকশার স্কেল ও আপনি কতটা সঠিক বিন্দু বসান তার ওপর ফল নির্ভর করে। এটি সরকারি জরিপ বা দলিলের বিকল্প নয়। কিবোর্ড: Enter = জমি বন্ধ, Ctrl+Z = শেষ বিন্দু মুছুন, Space চেপে ধরে টানলে নকশা সরে, Esc = বড় পর্দা থেকে বের।', 'sojib68' ); ?></p>
 				</div>

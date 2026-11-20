@@ -629,3 +629,21 @@ body.lm-noscroll { overflow: hidden; }
 .lm-full .lm-stage { flex: 0 0 auto; height: calc(100vh - 290px); min-height: 320px; }
 .lm-full .lc-hint, .lm-full .lc-note, .lm-full .lm-file { display: none; }
 .lm-full .lc-results { max-height: 26vh; overflow: auto; }
+
+.lm-snap select { margin-left: 4px; padding: 4px 6px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; font-size: 13px; }
+.lm-summary { display: grid; gap: 10px; margin: 10px 0; }
+.lm-card { border: 1px solid #b8cbbd; background: #f2f8f2; border-radius: 12px; padding: 12px 14px; }
+.lm-card--total { background: #14532d; color: #fff; border-color: #14532d; }
+.lm-card--total .lm-big, .lm-card--total .lm-sub { color: #fff; }
+.lm-card__t { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.lm-big { font-size: 30px; font-weight: 800; color: #14532d; line-height: 1.15; }
+.lm-big small { font-size: 15px; font-weight: 600; }
+.lm-sub { font-size: 14px; font-weight: 600; color: #2c3d44; margin-top: 2px; }
+.lm-sub2 { font-size: 13px; color: #4b5b55; margin-top: 4px; }
+.lm-det { margin-top: 8px; font-size: 13px; }
+.lm-det summary { cursor: pointer; color: #0f6023; font-weight: 600; }
+.lm-tab { width: 100%; border-collapse: collapse; margin-top: 6px; background: #fff; }
+.lm-tab th, .lm-tab td { border: 1px solid #dbe4dd; padding: 4px 8px; text-align: right; }
+.lm-tab th:first-child, .lm-tab td:first-child { text-align: center; }
+.lm-tab th { background: #eaf4ec; }
+.lm-summary:empty { display: none; }
