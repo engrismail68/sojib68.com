@@ -383,6 +383,29 @@ function sojib68_dw_build_docx( $data ) {
 	return sojib68_docx_package( $document );
 }
 
+/**
+ * File name for the download, by mouza: "<মৌজা নং> <মৌজা> - <দলিলের প্রকৃতি> - <গ্রহীতা> - <তারিখ>".
+ * Characters Windows does not allow in file names are removed.
+ */
+function sojib68_dw_download_name( $data, $id ) {
+	$f     = isset( $data['f'] ) && is_array( $data['f'] ) ? $data['f'] : array();
+	$donee = isset( $data['donees'][0]['name'] ) ? (string) $data['donees'][0]['name'] : '';
+	$no    = preg_replace( '/\s*নং\s*$/u', '', trim( (string) ( $f['mouza_no'] ?? '' ) ) );
+	$mouza = trim( ( '' !== $no ? $no . 'নং ' : '' ) . trim( (string) ( $f['mouza_name'] ?? '' ) ) );
+	$date  = ! empty( $f['exec_greg'] ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $f['exec_greg'] ) ? $f['exec_greg'] : '';
+	$parts = array_filter( array(
+		$mouza ? 'মৌজা ' . $mouza : '',
+		trim( (string) ( $f['deed_type'] ?? '' ) ),
+		$donee ? 'গ্রহীতা ' . trim( $donee ) : '',
+		$date,
+	), 'strlen' );
+	$name = implode( ' - ', $parts );
+	$name = preg_replace( '#[\\\\/:*?"<>|\\x00-\\x1F]+#u', ' ', $name );
+	$name = trim( preg_replace( '/\s+/u', ' ', $name ) );
+	$name = trim( mb_substr( $name, 0, 110 ), " .-" );
+	return '' !== $name ? $name : 'দলিল-' . (int) $id;
+}
+
 /** /office/deed-docx/ID — streams the Word file. */
 function sojib68_dw_download( $id ) {
 	$row = sojib68_dw_get_draft( $id );
@@ -396,7 +419,9 @@ function sojib68_dw_download( $id ) {
 	}
 	nocache_headers();
 	header( 'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document' );
-	header( 'Content-Disposition: attachment; filename="deed-' . (int) $id . '.docx"' );
+	$name = sojib68_dw_download_name( is_array( $data ) ? $data : array(), $id );
+	// ASCII fallback + UTF-8 name (RFC 5987) so Bangla file names work in every browser.
+	header( 'Content-Disposition: attachment; filename="deed-' . (int) $id . '.docx"; filename*=UTF-8\'\'' . rawurlencode( $name . '.docx' ) );
 	header( 'Content-Length: ' . strlen( $bin ) );
 	echo $bin; // phpcs:ignore WordPress.Security.EscapeOutput -- binary file.
 }
