@@ -68,6 +68,8 @@
 		if ( /^\d+$/.test( t ) && +t > 0 ) { return bn( t ) + ' (' + words( +t ) + ') দাগ'; }
 		return String( v == null ? '' : v ).trim();
 	}
+	/** ১ম, ২য়, ৩য়, ৪র্থ, ৫ম, ৬ষ্ঠ, ৭ম … */
+	function ord( n ) { return bn( n ) + ( n === 1 ? 'ম' : n === 2 || n === 3 ? 'য়' : n === 4 ? 'র্থ' : n === 6 ? 'ষ্ঠ' : 'ম' ); }
 	function banglaDate( iso ) {
 		var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec( iso || '' );
 		if ( ! m ) { return ''; }
@@ -102,7 +104,6 @@
 			sub_office: DEF.sub_office || 'রামগঞ্জ সাব রেজিস্ট্রি অফিস।', deed_type: 'সাফ কবলা', district: DEF.district || 'লক্ষ্মীপুর', upazila: DEF.upazila || 'রামগঞ্জ',
 			union: '', mouza_no: '', mouza_name: '', land_class: 'নাল', area: '', price: '', pages: '', ownership: '',
 			exec_greg: new Date().toISOString().slice( 0, 10 ), village: '', land_office: DEF.land_office || 'সহকারী কমিশনার ভূমি অফিস, রামগঞ্জ।', jl_no: '',
-			north: '', south: '', east: '', west: '', n_ft: '', s_ft: '', e_ft: '', w_ft: '',
 			w1: person( 'w1' ), w2: person( 'w2' ), id: person( 'id' ), wr: person( 'wr' ), o: {}
 		},
 		donees: saved ? saved.donees : [ emptyParty() ],
@@ -160,6 +161,9 @@
 		} );
 	}
 	delete S.f.schedule;
+	// চৌহদ্দি: one set (উত্তর/দক্ষিণ/পূর্ব/পশ্চিম) or several when the land has separate boundaries.
+	if ( ! S.f.bounds || ! S.f.bounds.length ) { S.f.bounds = [ { title: '', north: S.f.north || '', south: S.f.south || '', east: S.f.east || '', west: S.f.west || '' } ]; }
+	[ 'north', 'south', 'east', 'west', 'n_ft', 's_ft', 'e_ft', 'w_ft' ].forEach( function ( k ) { delete S.f[ k ]; } );
 	var loadedFilled = false;
 	if ( saved ) { var m0 = findMouza(); if ( m0 ) { loadedFilled = applyMouza( m0, false ); } }
 	S.donees.forEach( function ( p ) { if ( ! p.o ) { p.o = {}; } } );
@@ -204,9 +208,9 @@
 		var pa = f.poa || {};
 		auto.poa_text = pa.mode === 'yes' ? [ pa.no ? 'দলিল নং ' + pa.no : '', pa.date ? 'তারিখ: ' + pa.date : '', pa.office ? 'রেজিস্ট্রি অফিস: ' + pa.office : '' ].filter( Boolean ).join( ', ' ) + '।' : 'প্রযোজ্য নহে।';
 		auto.total_text = 'মোট জমির পরিমান ঃ ' + ( o.area_text || auto.area_text );
-		var ft = function ( v ) { return v ? bn( v ) + ' ফুট' : '                '; };
-		auto.boundaries = 'উত্তরে: ' + ( f.north || '' ) + ', দক্ষিণে: ' + ( f.south || '' ) + ', পূর্বে: ' + ( f.east || '' ) + ', পশ্চিমে: ' + ( f.west || '' ) +
-			'। উক্ত চৌহুদ্দির মধ্যে উত্তরে: ' + ft( f.n_ft ) + ', দক্ষিণে: ' + ft( f.s_ft ) + ', পূর্বে: ' + ft( f.e_ft ) + ', পশ্চিমে: ' + ft( f.w_ft ) + '। অত্র চৌহুদ্দির মধ্যে বিক্রিত ভূমি বটে।';
+		var bset = function ( b ) { return 'উত্তরে: ' + ( b.north || '' ) + ', দক্ষিণে: ' + ( b.south || '' ) + ', পূর্বে: ' + ( b.east || '' ) + ', পশ্চিমে: ' + ( b.west || '' ) + '।'; };
+		var bl = f.bounds || [];
+		auto.boundaries = ( bl.length > 1 ? bl.map( function ( b, i ) { return ( b.title && b.title.trim() ? b.title.trim() : ord( i + 1 ) + ' চৌহদ্দি' ) + ': ' + bset( b ); } ).join( '\n' ) : ( bl[ 0 ] ? bset( bl[ 0 ] ) : '' ) ) + ' অত্র চৌহুদ্দির মধ্যে বিক্রিত ভূমি বটে।';
 		S.auto = auto;
 
 		var out = {};
@@ -334,6 +338,15 @@
 
 	/** words box with the ↺ button inside it */
 	function wbox( key, scope ) { return '<div class="df-wd">' + ainp( key, scope, 1 ) + reset( key, scope ) + '</div>'; }
+	function boundSets() {
+		var many = ( S.f.bounds || [] ).length > 1;
+		return ( S.f.bounds || [] ).map( function ( b, i ) {
+			var p = 'f.bounds.' + i + '.';
+			return '<div class="df-bset">' + ( many ? '<div class="df-bset-h">' + drow( 'কোন অংশের চৌহদ্দি <em>(না লিখলে ' + ord( i + 1 ) + ' চৌহদ্দি)</em>', inp( p + 'title', { ph: 'যেমন ১১২১ নং দাগের চৌহদ্দি' } ), '<button type="button" class="dw-x" data-del-bound="' + i + '">এই চৌহদ্দি মুছুন ×</button>' ) + '</div>' : '' ) +
+				'<table class="df-t df-bound"><tr>' + th( 'দিক' ) + th( 'চৌহদ্দিতে যা আছে' ) + '</tr>' +
+				[ [ 'উত্তরে', 'north' ], [ 'দক্ষিণে', 'south' ], [ 'পূর্বে', 'east' ], [ 'পশ্চিমে', 'west' ] ].map( function ( d ) { return '<tr><th>' + d[ 0 ] + '</th><td>' + inp( p + d[ 1 ] ) + '</td></tr>'; } ).join( '' ) + '</table></div>';
+		} ).join( '' );
+	}
 	function landRows() {
 		var many = ( S.f.lands || [] ).length > 1;
 		return ( S.f.lands || [] ).map( function ( l, i ) {
@@ -397,8 +410,8 @@
 
 		// 12–15
 		h += dsec( 's-12', '১২–১৫', 'চৌহদ্দি, পরিমাণ, মূল্য ও হাত নকশা',
-			'<p class="df-cap">১২। সম্পত্তির চৌহদ্দির বিবরণ</p><table class="df-t df-bound"><tr>' + th( 'দিক' ) + th( 'চৌহদ্দিতে যা আছে' ) + th( 'মাপ (ফুট)' ) + '</tr>' +
-			[ [ 'উত্তরে', 'north', 'n_ft' ], [ 'দক্ষিণে', 'south', 's_ft' ], [ 'পূর্বে', 'east', 'e_ft' ], [ 'পশ্চিমে', 'west', 'w_ft' ] ].map( function ( d ) { return '<tr><th>' + d[ 0 ] + '</th><td>' + inp( 'f.' + d[ 1 ] ) + '</td><td>' + inp( 'f.' + d[ 2 ], { ph: '38' } ) + '</td></tr>'; } ).join( '' ) + '</table>' +
+			'<p class="df-cap">১২। সম্পত্তির চৌহদ্দির বিবরণ</p>' + boundSets() +
+			'<button type="button" class="btn btn-outline btn-sm" data-add-bound="1">+ আরেকটি চৌহদ্দি (আলাদা চৌহদ্দি হলে)</button>' +
 			dauto( 'চৌহদ্দির পুরো লেখা', 'boundaries', 'f.o', 3 ) +
 			dauto( '১৩। হস্তান্তরিত সম্পত্তির পরিমাণ', 'area_text', 'f.o', 1 ) + dauto( '১৪। মূল্য পরিশোধের বিবরণ', 'payment_text', 'f.o', 1 ) + dauto( '১৫। হাত নকশা ও পরিমাপ', 'sqft_text', 'f.o', 1 ) +
 			'<p class="df-note">১৬। কৈফিয়ত ও ১৭। স্বাক্ষর অংশ আপনার ছাঁচ অনুযায়ী ফাঁকা থাকবে।</p>' );
@@ -617,6 +630,8 @@
 		else if ( ( v = t.getAttribute( 'data-copy-addr' ) ) ) { var c = v.split( ':' ), pp = S[ c[ 0 ] ][ +c[ 1 ] ]; pp.present = pp.perm; render(); schedule(); }
 		else if ( t.hasAttribute( 'data-add-land' ) ) { S.f.lands.push( { cls: '', area: '', price: '', o: {} } ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-del-land' ) ) !== null ) { S.f.lands.splice( +v, 1 ); render(); schedule(); }
+		else if ( t.hasAttribute( 'data-add-bound' ) ) { S.f.bounds.push( { title: '', north: '', south: '', east: '', west: '' } ); render(); schedule(); }
+		else if ( ( v = t.getAttribute( 'data-del-bound' ) ) !== null ) { if ( window.confirm( 'এই চৌহদ্দিটি মুছবেন?' ) ) { S.f.bounds.splice( +v, 1 ); render(); schedule(); } }
 		else if ( t.hasAttribute( 'data-add-kh' ) ) { var lastK = S.f.khatians[ S.f.khatians.length - 1 ], lc = lastK && lastK.dags.length ? lastK.dags[ lastK.dags.length - 1 ].cls : ''; S.f.khatians.push( { khatian: '', dags: [ newDag( lc ) ] } ); render(); schedule(); }
 		else if ( ( v = t.getAttribute( 'data-del-kh' ) ) !== null ) { if ( window.confirm( 'এই খতিয়ান ও তার সব দাগ মুছবেন?' ) ) { S.f.khatians.splice( +v, 1 ); render(); schedule(); } }
 		else if ( ( v = t.getAttribute( 'data-add-dag' ) ) !== null ) { var kk = S.f.khatians[ +v ], ld = kk.dags[ kk.dags.length - 1 ]; kk.dags.push( newDag( ld ? ld.cls : '' ) ); render(); schedule(); }
