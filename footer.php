@@ -41,6 +41,7 @@ $sojib68_socials         = function_exists( 'sojib68_get_social_links' ) ? sojib
 		<nav class="footer-links" aria-label="<?php esc_attr_e( 'সেবা মেনু', 'sojib68' ); ?>">
 			<h3 class="footer-heading"><?php esc_html_e( 'সেবা', 'sojib68' ); ?></h3>
 			<ul>
+				<li><a href="<?php echo esc_url( home_url( '/deed-writing/' ) ); ?>"><?php esc_html_e( 'দলিল লিখুন', 'sojib68' ); ?></a></li>
 				<?php foreach ( $sojib68_footer_services as $service ) : ?>
 					<li><a href="<?php echo esc_url( home_url( '/#services' ) ); ?>"><?php echo esc_html( $service['title'] ); ?></a></li>
 				<?php endforeach; ?>
