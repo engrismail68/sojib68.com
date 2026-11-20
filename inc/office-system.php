@@ -367,7 +367,6 @@ function sojib68_office_menu_items() {
 		'entry-new'  => __( 'নতুন দলিল এন্ট্রি', 'sojib68' ),
 		'all-deeds'  => __( 'সকল দলিল', 'sojib68' ),
 		'dues'       => __( 'বকেয়া আদায়', 'sojib68' ),
-		'deed-write' => __( 'দলিল লিখুন', 'sojib68' ),
 		'recycle-bin' => __( 'রিসাইকেল বিন', 'sojib68' ),
 	);
 
