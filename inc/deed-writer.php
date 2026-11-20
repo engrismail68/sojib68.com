@@ -675,8 +675,18 @@ function sojib68_dw_render( $base = null ) {
 		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza ) {
 			return ! $sel_mouza || $r['mid'] === $sel_mouza;
 		} ) );
-		$new_url = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
+		$new_url  = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
+		$n_deeds  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() );
+		$n_people = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_parties_table() );
+		$n_week   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE updated_at >= %s', gmdate( 'Y-m-d H:i:s', time() + (int) ( get_option( 'gmt_offset', 0 ) * HOUR_IN_SECONDS ) - 7 * DAY_IN_SECONDS ) ) );
 		?>
+		<div class="dw-stats">
+			<div><b><?php echo (int) $n_deeds; ?></b><span>মোট দলিল</span></div>
+			<div><b><?php echo (int) $n_people; ?></b><span>সেভ করা NID (ব্যক্তি)</span></div>
+			<div><b><?php echo (int) count( $mouzas ); ?></b><span>মৌজা</span></div>
+			<div><b><?php echo (int) count( sojib68_dw_get_owntpls() ); ?></b><span>মালিকানা টেমপ্লেট</span></div>
+			<div><b><?php echo (int) $n_week; ?></b><span>গত ৭ দিনে বদলানো দলিল</span></div>
+		</div>
 		<p><a class="btn btn-primary" href="<?php echo esc_url( $new_url ); ?>">+ নতুন দলিল লিখুন<?php echo $sel_mouza ? ' (' . esc_html( $mouzas[ $sel_mouza ]['name'] ) . ' মৌজা)' : ''; ?></a></p>
 		<?php if ( ! $show ) : ?>
 			<p class="office-muted">এখানে এখনো কোনো দলিল নেই।</p>
