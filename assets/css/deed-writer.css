@@ -250,3 +250,11 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 
 .df-owntpl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; padding: 8px 10px; background: #f3f8f4; border: 1px dashed #198030; border-radius: 6px; font-size: 13px; }
 .df-owntpl select { padding: 5px 8px; border: 1px solid #98a79c; border-radius: 6px; min-width: 220px; font: inherit; }
+
+.dw-tpl-dlg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dw-tpl-box { background: #fff; border-radius: 10px; padding: 18px 20px; width: min(860px, 100%); max-height: 92vh; overflow: auto; display: grid; gap: 10px; }
+.dw-tpl-box h3 { margin: 0; }
+.dw-tpl-box label { display: grid; gap: 4px; font-size: 14px; font-weight: 600; }
+.dw-tpl-box input, .dw-tpl-box select, .dw-tpl-box textarea { padding: 8px 10px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; font-weight: 400; width: 100%; box-sizing: border-box; }
+.dw-tpl-box textarea { line-height: 1.8; }
+.dw-tpl-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
