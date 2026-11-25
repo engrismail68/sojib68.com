@@ -562,6 +562,12 @@
 			'<nav class="dw-jump" aria-label="দলিলের অংশ"><a href="#s-1">১–২</a><a href="#s-3">৩ গ্রহীতা</a><a href="#s-4">৪ দাতা</a><a href="#s-5">৫–৭ মালিকানা</a><a href="#s-10">১০ তারিখ</a><a href="#s-11">১১ তফসিল</a><a href="#s-12">১২–১৫</a><a href="#s-18">১৮–২০ সাক্ষী</a><a href="#s-21">২১–২২</a></nav></div>' +
 			'<div class="dw-warn" id="dw-warn" hidden></div><div class="df-paper">';
 
+		// status of this deed (for the owner's own record — never goes into the Word file)
+		h += '<div class="df-stcard"><b>দলিলের অবস্থা</b> <small>(শুধু আপনার হিসাবের জন্য — Word-এ যায় না)</small><div class="df-stgrid">' +
+			'<label>অবস্থা<select data-p="f.status">' + [ [ 'draft', 'খসড়া' ], [ 'done', 'লেখা সম্পন্ন' ], [ 'registered', 'রেজিস্ট্রি হয়েছে' ] ].map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( ( f.status || 'draft' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>'; } ).join( '' ) + '</select></label>' +
+			'<label>রেজিস্ট্রির তারিখ' + inp( 'f.reg_date', { type: 'date' } ) + '</label>' +
+			'<label>রেজিস্ট্রি/দলিল নম্বর' + inp( 'f.reg_no', { bn: true, ph: 'যেমন ১২৩৪' } ) + '</label></div></div>';
+
 		// 1–2
 		h += dsec( 's-1', '১–২', 'রেজিস্ট্রি অফিস ও দলিলের সার সংক্ষেপ',
 			mouzaPicker() + '<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' + drow( '১। রেজিস্ট্রী অফিসের নাম', inp( 'f.sub_office' ) ) +

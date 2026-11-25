@@ -841,6 +841,7 @@ function sojib68_dw_render( $base = null ) {
 	$is_new    = isset( $_GET['new'] );
 	$people_view = isset( $_GET['people'] ) && ! $edit_id && ! $is_new;
 	$trash_view  = isset( $_GET['trash'] ) && ! $edit_id && ! $is_new && ! $people_view;
+	$backup_view = isset( $_GET['backup'] ) && ! $edit_id && ! $is_new && ! $people_view && ! $trash_view;
 	sojib68_dw_purge_old();
 	$n_trash = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NOT NULL' . sojib68_dw_draft_scope() );
 	$mouzas    = sojib68_dw_get_mouzas();
@@ -860,17 +861,10 @@ function sojib68_dw_render( $base = null ) {
 	$counts     = array();
 	$n_none     = 0;
 	if ( ! $edit_id && ! $is_new ) {
-		$t    = sojib68_dw_drafts_table();
-		$rows = (array) $wpdb->get_results( "SELECT id, title, data, created_at, updated_at FROM {$t} WHERE deleted_at IS NULL" . sojib68_dw_draft_scope() . " ORDER BY updated_at DESC LIMIT 500", ARRAY_A );
-		foreach ( $rows as $r ) {
-			$d   = json_decode( $r['data'], true );
-			$mid = sojib68_dw_draft_mouza_id( is_array( $d ) ? $d : array(), $mouzas );
-			$r['mid']   = $mid;
-			$r['mname'] = is_array( $d ) && isset( $d['f']['mouza_name'] ) ? (string) $d['f']['mouza_name'] : '';
-			unset( $r['data'] );
-			$draft_rows[] = $r;
-			if ( $mid ) {
-				$counts[ $mid ] = ( $counts[ $mid ] ?? 0 ) + 1;
+		$draft_rows = sojib68_dw_load_rows( $mouzas );
+		foreach ( $draft_rows as $r ) {
+			if ( $r['mid'] ) {
+				$counts[ $r['mid'] ] = ( $counts[ $r['mid'] ] ?? 0 ) + 1;
 			} else {
 				$n_none++;
 			}
@@ -904,6 +898,7 @@ function sojib68_dw_render( $base = null ) {
 			<?php endif; ?>
 			<button type="button" class="btn btn-outline btn-sm" id="dw-mouza-add">+ নতুন মৌজা</button>
 				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'people', '1', $base ) ); ?>">👥 সেভ করা ব্যক্তি (NID) দেখুন</a>
+				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'backup', '1', $base ) ); ?>">💾 ব্যাকআপ ও ফেরত আনা</a>
 				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'trash', '1', $base ) ); ?>">🗑 রিসাইকেল বিন (<?php echo (int) $n_trash; ?>)</a>
 				<button type="button" class="btn btn-outline btn-sm dw-imp-open" id="dw-import-open">📥 পুরোনো ফাইল থেকে তথ্য তুলুন</button>
 		</aside>
@@ -1001,6 +996,8 @@ function sojib68_dw_render( $base = null ) {
 		}() );
 		</script>
 		<?php
+	} elseif ( $backup_view ) {
+		sojib68_dw_render_backup( $base, $ajax, $nonce );
 	} elseif ( $trash_view ) {
 		$t    = sojib68_dw_drafts_table();
 		$rows = (array) $wpdb->get_results( "SELECT id, title, data, updated_at, deleted_at FROM {$t} WHERE deleted_at IS NOT NULL" . sojib68_dw_draft_scope() . " ORDER BY deleted_at DESC LIMIT 500", ARRAY_A );
@@ -1046,12 +1043,25 @@ function sojib68_dw_render( $base = null ) {
 		</script>
 		<?php
 	} elseif ( ! $edit_id && ! $is_new ) {
-		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza, $sel_none ) {
-			if ( $sel_none ) {
-				return '' === $r['mid'];
-			}
-			return ! $sel_mouza || $r['mid'] === $sel_mouza;
-		} ) );
+		$flt    = sojib68_dw_filters();
+		$active = sojib68_dw_filters_active( $flt );
+		$show   = sojib68_dw_filter_rows( $draft_rows, $flt, $sel_mouza, $sel_none );
+		$stl    = sojib68_dw_statuses();
+		$cnt_st = array( 'draft' => 0, 'done' => 0, 'registered' => 0 );
+		$by_day = array();
+		$by_mon = array();
+		foreach ( $show as $r0 ) {
+			$cnt_st[ $r0['meta']['status'] ]++;
+			$dd = sojib68_dw_row_date( $r0, $flt['dt'] );
+			$by_day[ '' !== $dd ? $dd : 'তারিখ নেই' ] = ( $by_day[ '' !== $dd ? $dd : 'তারিখ নেই' ] ?? 0 ) + 1;
+			$mm = '' !== $dd ? substr( $dd, 0, 7 ) : 'তারিখ নেই';
+			$by_mon[ $mm ] = ( $by_mon[ $mm ] ?? 0 ) + 1;
+		}
+		krsort( $by_day );
+		krsort( $by_mon );
+		$keep   = array_filter( array( 'mouza' => $sel_none ? 'none' : $sel_mouza ) );
+		$csv_url = add_query_arg( array_merge( array_filter( $flt ), $keep, array( 'dwcsv' => '1' ) ), $base );
+		$days_bk = sojib68_dw_days_since_backup();
 		$new_url  = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
 		$n_deeds  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NULL' . sojib68_dw_draft_scope() );
 		$n_people = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_parties_table() . ' WHERE 1=1' . sojib68_dw_party_scope() );
@@ -1064,6 +1074,45 @@ function sojib68_dw_render( $base = null ) {
 			<div><b><?php echo (int) count( sojib68_dw_get_owntpls() ); ?></b><span>মালিকানা টেমপ্লেট</span></div>
 			<div><b><?php echo (int) $n_week; ?></b><span>গত ৭ দিনে বদলানো দলিল</span></div>
 		</div>
+		<?php if ( null === $days_bk || $days_bk >= 7 ) : ?>
+			<div class="dw-bkwarn">💾 <?php echo null === $days_bk ? 'এখনো কোনো ব্যাকআপ নেওয়া হয়নি।' : 'শেষ ব্যাকআপ নেওয়া হয়েছে ' . (int) $days_bk . ' দিন আগে।'; ?> <a href="<?php echo esc_url( add_query_arg( 'backup', '1', $base ) ); ?>">এখনই ব্যাকআপ নিন →</a></div>
+		<?php endif; ?>
+		<form class="dw-filter" method="get" action="<?php echo esc_url( $base ); ?>">
+			<?php foreach ( $keep as $k => $v ) : ?><input type="hidden" name="<?php echo esc_attr( $k ); ?>" value="<?php echo esc_attr( $v ); ?>"><?php endforeach; ?>
+			<label class="dw-filter__q">খুঁজুন<input type="search" name="q" value="<?php echo esc_attr( $flt['q'] ); ?>" placeholder="দাতা/গ্রহীতার নাম, NID, মৌজা, দলিল নম্বর…"></label>
+			<label>অবস্থা
+				<select name="st"><option value="">সব</option><?php foreach ( $stl as $k => $v ) : ?><option value="<?php echo esc_attr( $k ); ?>"<?php selected( $flt['st'], $k ); ?>><?php echo esc_html( $v ); ?></option><?php endforeach; ?></select>
+			</label>
+			<label>তারিখের ধরন
+				<select name="dt">
+					<option value="created"<?php selected( $flt['dt'], 'created' ); ?>>লেখার তারিখ</option>
+					<option value="exec"<?php selected( $flt['dt'], 'exec' ); ?>>সম্পাদনের তারিখ</option>
+					<option value="reg"<?php selected( $flt['dt'], 'reg' ); ?>>রেজিস্ট্রির তারিখ</option>
+				</select>
+			</label>
+			<label>থেকে<input type="date" name="from" value="<?php echo esc_attr( $flt['from'] ); ?>"></label>
+			<label>পর্যন্ত<input type="date" name="to" value="<?php echo esc_attr( $flt['to'] ); ?>"></label>
+			<span class="dw-filter__act">
+				<button type="submit" class="btn btn-primary btn-sm">দেখুন</button>
+				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( $keep, $base ) ); ?>">ফিল্টার মুছুন</a>
+				<a class="btn btn-outline btn-sm" href="<?php echo esc_url( $csv_url ); ?>">⬇ এই তালিকা Excel-এ (CSV)</a>
+			</span>
+		</form>
+		<div class="dw-sum">
+			<b>মোট <?php echo (int) count( $show ); ?>টি দলিল</b><?php echo $active ? ' (ফিল্টার অনুযায়ী)' : ''; ?>
+			· <span class="dw-pill dw-pill--registered">রেজিস্ট্রি হয়েছে <?php echo (int) $cnt_st['registered']; ?></span>
+			<span class="dw-pill dw-pill--done">লেখা সম্পন্ন <?php echo (int) $cnt_st['done']; ?></span>
+			<span class="dw-pill dw-pill--draft">খসড়া <?php echo (int) $cnt_st['draft']; ?></span>
+		</div>
+		<?php if ( $by_day ) : ?>
+			<details class="dw-days">
+				<summary>তারিখ অনুযায়ী কতটি দলিল (<?php echo esc_html( array( 'created' => 'লেখার', 'exec' => 'সম্পাদনের', 'reg' => 'রেজিস্ট্রির' )[ $flt['dt'] ] ); ?> তারিখ)</summary>
+				<div class="dw-days__grid">
+					<table class="office-table"><thead><tr><th>মাস</th><th>দলিল</th></tr></thead><tbody><?php foreach ( $by_mon as $k => $v ) : ?><tr><td><?php echo esc_html( $k ); ?></td><td><?php echo (int) $v; ?>টি</td></tr><?php endforeach; ?></tbody></table>
+					<table class="office-table"><thead><tr><th>দিন</th><th>দলিল</th></tr></thead><tbody><?php foreach ( array_slice( $by_day, 0, 62, true ) as $k => $v ) : ?><tr><td><?php echo esc_html( $k ); ?></td><td><?php echo (int) $v; ?>টি</td></tr><?php endforeach; ?></tbody></table>
+				</div>
+			</details>
+		<?php endif; ?>
 		<?php if ( $sel_none ) : ?>
 			<p class="office-muted">এই দলিলগুলোর মৌজার নাম/নম্বর সেভ করা কোনো মৌজার সঙ্গে মেলেনি, তাই কোনো মৌজার তালিকায় আসেনি। দলিল খুলে "মৌজা" অংশ থেকে সেভ করা মৌজাটি বেছে নিলে ঠিক মৌজার তালিকায় চলে যাবে।</p>
 		<?php endif; ?>
@@ -1072,13 +1121,15 @@ function sojib68_dw_render( $base = null ) {
 			<p class="office-muted">এখানে এখনো কোনো দলিল নেই।</p>
 		<?php else : ?>
 			<div class="office-card"><table class="office-table dw-list">
-				<thead><tr><th>দলিল</th><th>মৌজা</th><th>শেষ সংরক্ষণ</th><th></th></tr></thead>
+				<thead><tr><th>দলিল</th><th>মৌজা</th><th>লেখার তারিখ</th><th>অবস্থা</th><th>রেজিস্ট্রি</th><th></th></tr></thead>
 				<tbody>
 				<?php foreach ( $show as $r ) : ?>
 					<tr>
 						<td><a href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>"><?php echo esc_html( '' !== $r['title'] ? $r['title'] : 'নামহীন দলিল #' . (int) $r['id'] ); ?></a></td>
 						<td><?php echo esc_html( $r['mname'] ); ?></td>
-						<td><?php echo esc_html( $r['updated_at'] ); ?></td>
+						<td><?php echo esc_html( substr( (string) $r['created_at'], 0, 10 ) ); ?><br><small class="office-muted">সংরক্ষণ: <?php echo esc_html( substr( (string) $r['updated_at'], 0, 16 ) ); ?></small></td>
+						<td><select class="dw-st dw-st--<?php echo esc_attr( $r['meta']['status'] ); ?>" data-id="<?php echo (int) $r['id']; ?>" data-cur="<?php echo esc_attr( $r['meta']['status'] ); ?>"><?php foreach ( $stl as $k => $v ) : ?><option value="<?php echo esc_attr( $k ); ?>"<?php selected( $r['meta']['status'], $k ); ?>><?php echo esc_html( $v ); ?></option><?php endforeach; ?></select></td>
+						<td class="dw-reg"><?php echo esc_html( trim( $r['meta']['reg_date'] . ' ' . ( '' !== $r['meta']['reg_no'] ? '· নং ' . $r['meta']['reg_no'] : '' ) ) ); ?></td>
 						<td class="dw-actions">
 							<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>">খুলুন</a>
 							<a class="btn btn-primary btn-sm" href="<?php echo esc_url( add_query_arg( 'dwdocx', (int) $r['id'], $base ) ); ?>">Word ডাউনলোড</a>
@@ -1091,6 +1142,17 @@ function sojib68_dw_render( $base = null ) {
 		<?php endif; ?>
 		<script>
 		window.sojib68DwList = { ajaxUrl: <?php echo wp_json_encode( $ajax ); ?>, nonce: <?php echo wp_json_encode( $nonce ); ?> };
+		document.addEventListener('change', function (e) {
+			var s = e.target.closest && e.target.closest('.dw-st'); if (!s) { return; }
+			var fd = new FormData(); fd.append('action', 'sojib68_dw_set_status'); fd.append('id', s.getAttribute('data-id')); fd.append('status', s.value); fd.append('nonce', window.sojib68DwList.nonce);
+			if (s.value === 'registered') {
+				var today = new Date(); var iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+				var d = window.prompt('রেজিস্ট্রির তারিখ (বছর-মাস-দিন, যেমন ' + iso + '):', iso); if (d === null) { s.value = s.getAttribute('data-cur'); return; }
+				var no = window.prompt('রেজিস্ট্রি/দলিল নম্বর (না জানলে ফাঁকা রাখুন):', '');
+				fd.append('reg_date', d || iso); fd.append('reg_no', no || '');
+			}
+			fetch(window.sojib68DwList.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (res) { if (res && res.success) { location.reload(); } else { alert((res && res.data && res.data.message) || 'বদলানো যায়নি'); s.value = s.getAttribute('data-cur'); } });
+		});
 		document.addEventListener('click', function (e) {
 			var b = e.target.closest && e.target.closest('.dw-del');
 			if (!b || !window.confirm('এই দলিল রিসাইকেল বিনে পাঠাবেন? (৭ দিনের মধ্যে ফেরত আনা যাবে)')) { return; }
