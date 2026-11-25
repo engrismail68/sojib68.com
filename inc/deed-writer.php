@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/bijoy.php';
 require_once __DIR__ . '/docx-writer.php';
 
-const SOJIB68_DW_DB_VERSION = '1.1.0';
+const SOJIB68_DW_DB_VERSION = '1.2.0';
 const SOJIB68_DW_TRASH_DAYS   = 7;
 
 /* ---------------------------------------------------------------------
@@ -48,6 +48,23 @@ function sojib68_dw_can_use() {
 function sojib68_dw_is_deed_only( $user_id = 0 ) {
 	$user_id = $user_id ? (int) $user_id : get_current_user_id();
 	return $user_id && user_can( $user_id, SOJIB68_DW_CAP ) && ! user_can( $user_id, 'manage_options' ) && ! ( defined( 'SOJIB68_OFFICE_CAP' ) && user_can( $user_id, SOJIB68_OFFICE_CAP ) );
+}
+
+/* ---- data separation: a "দলিল লেখক" sees ONLY the deeds and people they saved; admin / office staff see everything ---- */
+function sojib68_dw_scoped() {
+	return sojib68_dw_is_deed_only();
+}
+/** owner id stored on people: 0 = the office pool (admin / office staff), otherwise the deed writer's user id */
+function sojib68_dw_owner_id() {
+	return sojib68_dw_scoped() ? get_current_user_id() : 0;
+}
+function sojib68_dw_draft_scope() {
+	global $wpdb;
+	return sojib68_dw_scoped() ? $wpdb->prepare( ' AND created_by = %d', get_current_user_id() ) : '';
+}
+function sojib68_dw_party_scope() {
+	global $wpdb;
+	return sojib68_dw_scoped() ? $wpdb->prepare( ' AND owner = %d', get_current_user_id() ) : '';
 }
 
 // Deed-only users: no admin bar, no wp-admin (except the two-step page and AJAX), always land on /deed-writing/.
@@ -116,13 +133,18 @@ function sojib68_dw_install() {
 	dbDelta( "CREATE TABLE {$parties} (
 		id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
 		nid VARCHAR(32) NOT NULL,
+		owner BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
 		name VARCHAR(190) NOT NULL DEFAULT '',
 		data LONGTEXT NOT NULL,
 		updated_at DATETIME NOT NULL,
 		PRIMARY KEY  (id),
-		UNIQUE KEY nid (nid),
+		UNIQUE KEY nid_owner (nid, owner),
 		KEY name (name)
 	) {$charset};" );
+	// the old table had one global row per NID; now it is one row per NID per owner
+	if ( $wpdb->get_var( "SHOW INDEX FROM {$parties} WHERE Key_name = 'nid' AND Non_unique = 0" ) ) {
+		$wpdb->query( "ALTER TABLE {$parties} DROP INDEX nid" );
+	}
 
 	update_option( 'sojib68_dw_db_version', SOJIB68_DW_DB_VERSION );
 }
@@ -173,7 +195,11 @@ function sojib68_dw_get_draft( $id, $include_deleted = false ) {
 	global $wpdb;
 	$t = sojib68_dw_drafts_table();
 	$w = $include_deleted ? '' : ' AND deleted_at IS NULL';
-	return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d{$w}", (int) $id ), ARRAY_A );
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE id = %d{$w}", (int) $id ), ARRAY_A );
+	if ( $row && sojib68_dw_scoped() && (int) $row['created_by'] !== get_current_user_id() ) {
+		return null; // someone else's deed
+	}
+	return $row;
 }
 
 /* ---- recycle bin: "delete" only moves a deed to the bin; it can be restored for SOJIB68_DW_TRASH_DAYS days ---- */
@@ -228,9 +254,10 @@ function sojib68_dw_remember_parties( $data ) {
 				$keep[ $f ] = isset( $p[ $f ] ) ? (string) $p[ $f ] : '';
 			}
 			$wpdb->query( $wpdb->prepare(
-				"INSERT INTO {$t} (nid, name, data, updated_at) VALUES (%s, %s, %s, %s)
+				"INSERT INTO {$t} (nid, owner, name, data, updated_at) VALUES (%s, %d, %s, %s, %s)
 				 ON DUPLICATE KEY UPDATE name = VALUES(name), data = VALUES(data), updated_at = VALUES(updated_at)",
 				$key,
+				sojib68_dw_owner_id(),
 				mb_substr( (string) $p['name'], 0, 190 ),
 				wp_json_encode( $keep, JSON_UNESCAPED_UNICODE ),
 				$now
@@ -297,7 +324,7 @@ function sojib68_dw_ajax_party_get() {
 	if ( strlen( $key ) < 8 ) {
 		wp_send_json_success( array( 'party' => null ) );
 	}
-	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE nid = %s", $key ), ARRAY_A );
+	$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE nid = %s" . sojib68_dw_party_scope() . ' ORDER BY owner ASC LIMIT 1', $key ), ARRAY_A );
 	wp_send_json_success( array( 'party' => sojib68_dw_party_row_to_array( $row ) ) );
 }
 
@@ -330,8 +357,9 @@ function sojib68_dw_ajax_party_import() {
 			$keep[ $f ] = isset( $p[ $f ] ) ? mb_substr( (string) $p[ $f ], 0, 500 ) : '';
 		}
 		$rows = $wpdb->query( $wpdb->prepare(
-			"INSERT IGNORE INTO {$t} (nid, name, data, updated_at) VALUES (%s, %s, %s, %s)",
+			"INSERT IGNORE INTO {$t} (nid, owner, name, data, updated_at) VALUES (%s, %d, %s, %s, %s)",
 			$key,
+			sojib68_dw_owner_id(),
 			mb_substr( (string) $p['name'], 0, 190 ),
 			wp_json_encode( $keep, JSON_UNESCAPED_UNICODE ),
 			$now
@@ -359,7 +387,11 @@ function sojib68_dw_ajax_party_update() {
 	if ( strlen( $key ) < 8 ) {
 		wp_send_json_error( array( 'message' => 'সঠিক NID লিখুন।' ), 400 );
 	}
-	$clash = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE nid = %s AND id <> %d", $key, $id ) );
+	$cur = $wpdb->get_row( $wpdb->prepare( "SELECT id, owner FROM {$t} WHERE id = %d" . sojib68_dw_party_scope(), $id ), ARRAY_A );
+	if ( ! $cur ) {
+		wp_send_json_error( array( 'message' => 'এই তথ্য আপনার নয়।' ), 403 );
+	}
+	$clash = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE nid = %s AND owner = %d AND id <> %d", $key, (int) $cur['owner'], $id ) );
 	if ( $clash ) {
 		wp_send_json_error( array( 'message' => 'এই NID অন্য একজনের নামে আগে থেকেই সেভ আছে।' ), 409 );
 	}
@@ -378,7 +410,10 @@ function sojib68_dw_ajax_party_delete() {
 	global $wpdb;
 	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 	if ( $id ) {
-		$wpdb->delete( sojib68_dw_parties_table(), array( 'id' => $id ), array( '%d' ) );
+		$mine = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . sojib68_dw_parties_table() . ' WHERE id = %d' . sojib68_dw_party_scope(), $id ) );
+		if ( $mine ) {
+			$wpdb->delete( sojib68_dw_parties_table(), array( 'id' => $id ), array( '%d' ) );
+		}
 	}
 	wp_send_json_success();
 }
@@ -395,9 +430,9 @@ function sojib68_dw_ajax_party_search() {
 	$digits = sojib68_dw_nid_key( $q );
 	$like   = '%' . $wpdb->esc_like( $q ) . '%';
 	if ( strlen( $digits ) >= 4 ) {
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE nid LIKE %s OR name LIKE %s ORDER BY updated_at DESC LIMIT 8", '%' . $wpdb->esc_like( $digits ) . '%', $like ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE (nid LIKE %s OR name LIKE %s)" . sojib68_dw_party_scope() . " ORDER BY updated_at DESC LIMIT 8", '%' . $wpdb->esc_like( $digits ) . '%', $like ), ARRAY_A );
 	} else {
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE name LIKE %s ORDER BY updated_at DESC LIMIT 8", $like ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE name LIKE %s" . sojib68_dw_party_scope() . " ORDER BY updated_at DESC LIMIT 8", $like ), ARRAY_A );
 	}
 	wp_send_json_success( array( 'results' => array_map( 'sojib68_dw_party_row_to_array', (array) $rows ) ) );
 }
@@ -407,7 +442,7 @@ function sojib68_dw_ajax_delete() {
 	sojib68_dw_guard();
 	global $wpdb;
 	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-	if ( $id ) {
+	if ( $id && sojib68_dw_get_draft( $id, true ) ) {
 		$wpdb->update( sojib68_dw_drafts_table(), array( 'deleted_at' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
 	}
 	wp_send_json_success();
@@ -418,7 +453,7 @@ function sojib68_dw_ajax_restore() {
 	sojib68_dw_guard();
 	global $wpdb;
 	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-	if ( $id ) {
+	if ( $id && sojib68_dw_get_draft( $id, true ) ) {
 		$wpdb->query( $wpdb->prepare( 'UPDATE ' . sojib68_dw_drafts_table() . ' SET deleted_at = NULL WHERE id = %d', $id ) );
 	}
 	wp_send_json_success();
@@ -429,7 +464,7 @@ function sojib68_dw_ajax_purge() {
 	sojib68_dw_guard();
 	global $wpdb;
 	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-	if ( $id ) {
+	if ( $id && sojib68_dw_get_draft( $id, true ) ) {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . sojib68_dw_drafts_table() . ' WHERE id = %d AND deleted_at IS NOT NULL', $id ) );
 	}
 	wp_send_json_success();
@@ -675,8 +710,14 @@ function sojib68_dw_ajax_mouza_save() {
 	}
 	$list = sojib68_dw_get_mouzas();
 	$id   = isset( $in['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) $in['id'] ) ) : '';
+	if ( '' !== $id && isset( $list[ $id ] ) && sojib68_dw_scoped() && (int) ( $list[ $id ]['by'] ?? 0 ) !== get_current_user_id() ) {
+		wp_send_json_error( array( 'message' => 'এই মৌজাটি অন্য কেউ যোগ করেছেন, আপনি বদলাতে পারবেন না।' ), 403 );
+	}
 	if ( '' === $id || ! isset( $list[ $id ] ) ) {
 		$id = 'm' . base_convert( (string) time(), 10, 36 ) . wp_rand( 10, 99 );
+		$clean['by'] = get_current_user_id();
+	} else {
+		$clean['by'] = (int) ( $list[ $id ]['by'] ?? 0 );
 	}
 	$clean['id']  = $id;
 	$list[ $id ]  = $clean;
@@ -689,6 +730,9 @@ function sojib68_dw_ajax_mouza_delete() {
 	sojib68_dw_guard();
 	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
 	$list = sojib68_dw_get_mouzas();
+	if ( isset( $list[ $id ] ) && sojib68_dw_scoped() && (int) ( $list[ $id ]['by'] ?? 0 ) !== get_current_user_id() ) {
+		wp_send_json_error( array( 'message' => 'এই মৌজাটি অন্য কেউ যোগ করেছেন, আপনি মুছতে পারবেন না।' ), 403 );
+	}
 	unset( $list[ $id ] );
 	update_option( 'sojib68_dw_mouzas', $list, false );
 	wp_send_json_success();
@@ -714,10 +758,14 @@ function sojib68_dw_ajax_owntpl_save() {
 	}
 	$list = sojib68_dw_get_owntpls();
 	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
+	if ( '' !== $id && isset( $list[ $id ] ) && sojib68_dw_scoped() && (int) ( $list[ $id ]['by'] ?? 0 ) !== get_current_user_id() ) {
+		wp_send_json_error( array( 'message' => 'এই টেমপ্লেটটি অন্য কেউ বানিয়েছেন, আপনি বদলাতে পারবেন না।' ), 403 );
+	}
+	$by = '' !== $id && isset( $list[ $id ] ) ? (int) ( $list[ $id ]['by'] ?? 0 ) : get_current_user_id();
 	if ( '' === $id || ! isset( $list[ $id ] ) ) {
 		$id = 't' . base_convert( (string) time(), 10, 36 ) . wp_rand( 10, 99 );
 	}
-	$list[ $id ] = array( 'id' => $id, 'name' => $name, 'text' => $text );
+	$list[ $id ] = array( 'id' => $id, 'name' => $name, 'text' => $text, 'by' => $by );
 	update_option( 'sojib68_dw_owntpls', $list, false );
 	wp_send_json_success( array( 'id' => $id, 'tpl' => $list[ $id ] ) );
 }
@@ -727,6 +775,9 @@ function sojib68_dw_ajax_owntpl_delete() {
 	sojib68_dw_guard();
 	$id   = isset( $_POST['id'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['id'] ) ) ) : '';
 	$list = sojib68_dw_get_owntpls();
+	if ( isset( $list[ $id ] ) && sojib68_dw_scoped() && (int) ( $list[ $id ]['by'] ?? 0 ) !== get_current_user_id() ) {
+		wp_send_json_error( array( 'message' => 'এই টেমপ্লেটটি অন্য কেউ বানিয়েছেন, আপনি মুছতে পারবেন না।' ), 403 );
+	}
 	unset( $list[ $id ] );
 	update_option( 'sojib68_dw_owntpls', $list, false );
 	wp_send_json_success();
@@ -791,7 +842,7 @@ function sojib68_dw_render( $base = null ) {
 	$people_view = isset( $_GET['people'] ) && ! $edit_id && ! $is_new;
 	$trash_view  = isset( $_GET['trash'] ) && ! $edit_id && ! $is_new && ! $people_view;
 	sojib68_dw_purge_old();
-	$n_trash = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NOT NULL' );
+	$n_trash = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NOT NULL' . sojib68_dw_draft_scope() );
 	$mouzas    = sojib68_dw_get_mouzas();
 	uasort( $mouzas, static function ( $x, $y ) {
 		return strnatcasecmp( (string) $x['name'] . ' ' . (string) $x['no'], (string) $y['name'] . ' ' . (string) $y['no'] );
@@ -810,7 +861,7 @@ function sojib68_dw_render( $base = null ) {
 	$n_none     = 0;
 	if ( ! $edit_id && ! $is_new ) {
 		$t    = sojib68_dw_drafts_table();
-		$rows = (array) $wpdb->get_results( "SELECT id, title, data, created_at, updated_at FROM {$t} WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 500", ARRAY_A );
+		$rows = (array) $wpdb->get_results( "SELECT id, title, data, created_at, updated_at FROM {$t} WHERE deleted_at IS NULL" . sojib68_dw_draft_scope() . " ORDER BY updated_at DESC LIMIT 500", ARRAY_A );
 		foreach ( $rows as $r ) {
 			$d   = json_decode( $r['data'], true );
 			$mid = sojib68_dw_draft_mouza_id( is_array( $d ) ? $d : array(), $mouzas );
@@ -865,21 +916,21 @@ function sojib68_dw_render( $base = null ) {
 		$pg   = isset( $_GET['pg'] ) ? max( 1, (int) $_GET['pg'] ) : 1;
 		$per  = 50;
 		$pt   = sojib68_dw_parties_table();
-		$where = '';
+		$where = 'WHERE 1=1' . sojib68_dw_party_scope();
 		$args  = array();
 		if ( '' !== $q ) {
 			$digits = sojib68_dw_nid_key( $q );
 			$like   = '%' . $wpdb->esc_like( $q ) . '%';
 			if ( strlen( $digits ) >= 3 ) {
-				$where  = 'WHERE nid LIKE %s OR name LIKE %s OR data LIKE %s';
+				$where .= ' AND (nid LIKE %s OR name LIKE %s OR data LIKE %s)';
 				$args[] = '%' . $wpdb->esc_like( $digits ) . '%';
 			} else {
-				$where  = 'WHERE name LIKE %s OR data LIKE %s';
+				$where .= ' AND (name LIKE %s OR data LIKE %s)';
 			}
 			$args[] = $like;
 			$args[] = $like;
 		}
-		$total = (int) ( $args ? $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$pt} {$where}", $args ) ) : $wpdb->get_var( "SELECT COUNT(*) FROM {$pt}" ) );
+		$total = (int) ( $args ? $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$pt} {$where}", $args ) ) : $wpdb->get_var( "SELECT COUNT(*) FROM {$pt} {$where}" ) );
 		$sql   = "SELECT * FROM {$pt} {$where} ORDER BY updated_at DESC LIMIT %d OFFSET %d";
 		$rows  = (array) $wpdb->get_results( $wpdb->prepare( $sql, array_merge( $args, array( $per, ( $pg - 1 ) * $per ) ) ), ARRAY_A );
 		$pages = max( 1, (int) ceil( $total / $per ) );
@@ -953,7 +1004,7 @@ function sojib68_dw_render( $base = null ) {
 		<?php
 	} elseif ( $trash_view ) {
 		$t    = sojib68_dw_drafts_table();
-		$rows = (array) $wpdb->get_results( "SELECT id, title, data, updated_at, deleted_at FROM {$t} WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC LIMIT 500", ARRAY_A );
+		$rows = (array) $wpdb->get_results( "SELECT id, title, data, updated_at, deleted_at FROM {$t} WHERE deleted_at IS NOT NULL" . sojib68_dw_draft_scope() . " ORDER BY deleted_at DESC LIMIT 500", ARRAY_A );
 		?>
 		<h2 class="dw-ph">🗑 রিসাইকেল বিন <small>— মোছা দলিল <?php echo (int) SOJIB68_DW_TRASH_DAYS; ?> দিন পর্যন্ত এখানে থাকে, তারপর নিজে নিজে স্থায়ীভাবে মুছে যায়</small></h2>
 		<p><a class="btn btn-outline btn-sm" href="<?php echo esc_url( $base ); ?>">← দলিলের তালিকা</a></p>
@@ -1003,9 +1054,9 @@ function sojib68_dw_render( $base = null ) {
 			return ! $sel_mouza || $r['mid'] === $sel_mouza;
 		} ) );
 		$new_url  = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
-		$n_deeds  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NULL' );
-		$n_people = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_parties_table() );
-		$n_week   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NULL AND updated_at >= %s', gmdate( 'Y-m-d H:i:s', time() + (int) ( get_option( 'gmt_offset', 0 ) * HOUR_IN_SECONDS ) - 7 * DAY_IN_SECONDS ) ) );
+		$n_deeds  = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NULL' . sojib68_dw_draft_scope() );
+		$n_people = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . sojib68_dw_parties_table() . ' WHERE 1=1' . sojib68_dw_party_scope() );
+		$n_week   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . sojib68_dw_drafts_table() . ' WHERE deleted_at IS NULL' . sojib68_dw_draft_scope() . ' AND updated_at >= %s', gmdate( 'Y-m-d H:i:s', time() + (int) ( get_option( 'gmt_offset', 0 ) * HOUR_IN_SECONDS ) - 7 * DAY_IN_SECONDS ) ) );
 		?>
 		<div class="dw-stats">
 			<div><b><?php echo (int) $n_deeds; ?></b><span>মোট দলিল</span></div>
