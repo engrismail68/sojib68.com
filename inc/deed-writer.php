@@ -627,14 +627,44 @@ function sojib68_dw_ajax_owntpl_delete() {
 	wp_send_json_success();
 }
 
-/** Which mouza does a saved deed belong to? (matches the saved mouza id, else name + number) */
+/** For matching only: Bangla/English digits alike, no "নং", spaces or punctuation. */
+function sojib68_dw_norm( $s ) {
+	$s = strtr( (string) $s, array( '০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4', '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9' ) );
+	$s = preg_replace( '/নং|নম্বর|মৌজা|[\s\.\-:,।\/]+/u', '', $s );
+	return mb_strtolower( (string) $s );
+}
+
+/**
+ * Which mouza does a saved deed belong to? The saved mouza id first; otherwise the mouza name (and number
+ * when several mouzas share the name), compared leniently so "১০১নং মামুদপুর" / "101 মামুদপুর" are the same.
+ */
 function sojib68_dw_draft_mouza_id( $data, $mouzas ) {
 	$f = isset( $data['f'] ) && is_array( $data['f'] ) ? $data['f'] : array();
 	if ( ! empty( $f['mouza_id'] ) && isset( $mouzas[ $f['mouza_id'] ] ) ) {
 		return $f['mouza_id'];
 	}
+	$name    = sojib68_dw_norm( $f['mouza_name'] ?? '' );
+	$name_no = '';
+	if ( preg_match( '/\d+/', $name, $mm ) ) { // number typed inside the name ("১০১নং মামুদপুর")
+		$name_no = $mm[0];
+		$name    = preg_replace( '/\d+/', '', $name );
+	}
+	if ( '' === $name ) {
+		return '';
+	}
+	$same = array();
 	foreach ( $mouzas as $id => $m ) {
-		if ( '' !== $m['name'] && trim( (string) ( $f['mouza_name'] ?? '' ) ) === trim( $m['name'] ) && trim( (string) ( $f['mouza_no'] ?? '' ) ) === trim( $m['no'] ) ) {
+		if ( sojib68_dw_norm( $m['name'] ) === $name ) {
+			$same[ $id ] = $m;
+		}
+	}
+	if ( 1 === count( $same ) ) {
+		return (string) key( $same );
+	}
+	$no = sojib68_dw_norm( $f['mouza_no'] ?? '' );
+	$no = '' !== $no ? $no : $name_no;
+	foreach ( $same as $id => $m ) {
+		if ( sojib68_dw_norm( $m['no'] ) === $no ) {
 			return $id;
 		}
 	}
@@ -659,6 +689,7 @@ function sojib68_dw_render( $base = null ) {
 		return strnatcasecmp( (string) $x['name'] . ' ' . (string) $x['no'], (string) $y['name'] . ' ' . (string) $y['no'] );
 	} );
 	$sel_mouza = isset( $_GET['mouza'] ) ? preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_GET['mouza'] ) ) ) : '';
+	$sel_none = isset( $_GET['mouza'] ) && 'none' === sanitize_key( wp_unslash( $_GET['mouza'] ) );
 	if ( $sel_mouza && ! isset( $mouzas[ $sel_mouza ] ) ) {
 		$sel_mouza = '';
 	}
@@ -668,6 +699,7 @@ function sojib68_dw_render( $base = null ) {
 	// All saved deeds once: used for the list, and for the per-mouza counts in the sidebar.
 	$draft_rows = array();
 	$counts     = array();
+	$n_none     = 0;
 	if ( ! $edit_id && ! $is_new ) {
 		$t    = sojib68_dw_drafts_table();
 		$rows = (array) $wpdb->get_results( "SELECT id, title, data, created_at, updated_at FROM {$t} ORDER BY updated_at DESC LIMIT 500", ARRAY_A );
@@ -680,6 +712,8 @@ function sojib68_dw_render( $base = null ) {
 			$draft_rows[] = $r;
 			if ( $mid ) {
 				$counts[ $mid ] = ( $counts[ $mid ] ?? 0 ) + 1;
+			} else {
+				$n_none++;
 			}
 		}
 	}
@@ -692,7 +726,7 @@ function sojib68_dw_render( $base = null ) {
 					<input type="search" id="dw-mz-search" class="dw-mz-search" placeholder="মৌজা খুঁজুন…" autocomplete="off">
 				<?php endif; ?>
 			<ul class="dw-mouzas">
-				<li class="<?php echo ! $sel_mouza && ! $edit_id && ! $is_new ? 'is-on' : ''; ?>"><a href="<?php echo esc_url( $base ); ?>">সব দলিল</a></li>
+				<li class="<?php echo ! $sel_mouza && ! $sel_none && ! $edit_id && ! $is_new ? 'is-on' : ''; ?>"><a href="<?php echo esc_url( $base ); ?>">সব দলিল</a></li>
 				<?php foreach ( $mouzas as $id => $m ) : ?>
 					<li class="<?php echo $sel_mouza === $id ? 'is-on' : ''; ?>">
 						<a class="dw-mz-name" href="<?php echo esc_url( add_query_arg( 'mouza', $id, $base ) ); ?>"><?php echo esc_html( ( $m['no'] ? preg_replace( '/\s*নং\s*$/u', '', $m['no'] ) . 'নং ' : '' ) . $m['name'] ); ?> <small>(<?php echo (int) ( $counts[ $id ] ?? 0 ); ?>)</small></a>
@@ -700,6 +734,9 @@ function sojib68_dw_render( $base = null ) {
 						<button type="button" class="dw-mz-edit" data-mouza-edit="<?php echo esc_attr( $id ); ?>" title="মৌজার তথ্য বদলান">✎</button>
 					</li>
 				<?php endforeach; ?>
+				<?php if ( $n_none > 0 ) : ?>
+					<li class="<?php echo $sel_none ? 'is-on' : ''; ?>"><a class="dw-mz-name" href="<?php echo esc_url( add_query_arg( 'mouza', 'none', $base ) ); ?>" title="মৌজা তালিকার কোনো মৌজার সঙ্গে মেলেনি">মৌজা মেলেনি <small>(<?php echo (int) $n_none; ?>)</small></a></li>
+				<?php endif; ?>
 			</ul>
 			<?php if ( ! $mouzas ) : ?>
 				<p class="dw-hint">এখনো কোনো মৌজা সেভ করা নেই। নিচের বোতামে মৌজা যোগ করুন, তারপর সেই মৌজার "+ দলিল" চাপলে ইউনিয়ন, জে.এল. নং, ভূমি অফিস ইত্যাদি নিজে নিজে ভরা থাকবে।</p>
@@ -803,7 +840,10 @@ function sojib68_dw_render( $base = null ) {
 		</script>
 		<?php
 	} elseif ( ! $edit_id && ! $is_new ) {
-		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza ) {
+		$show = array_values( array_filter( $draft_rows, function ( $r ) use ( $sel_mouza, $sel_none ) {
+			if ( $sel_none ) {
+				return '' === $r['mid'];
+			}
 			return ! $sel_mouza || $r['mid'] === $sel_mouza;
 		} ) );
 		$new_url  = add_query_arg( array_filter( array( 'new' => '1', 'mouza' => $sel_mouza ) ), $base );
@@ -818,6 +858,9 @@ function sojib68_dw_render( $base = null ) {
 			<div><b><?php echo (int) count( sojib68_dw_get_owntpls() ); ?></b><span>মালিকানা টেমপ্লেট</span></div>
 			<div><b><?php echo (int) $n_week; ?></b><span>গত ৭ দিনে বদলানো দলিল</span></div>
 		</div>
+		<?php if ( $sel_none ) : ?>
+			<p class="office-muted">এই দলিলগুলোর মৌজার নাম/নম্বর সেভ করা কোনো মৌজার সঙ্গে মেলেনি, তাই কোনো মৌজার তালিকায় আসেনি। দলিল খুলে "মৌজা" অংশ থেকে সেভ করা মৌজাটি বেছে নিলে ঠিক মৌজার তালিকায় চলে যাবে।</p>
+		<?php endif; ?>
 		<p><a class="btn btn-primary" href="<?php echo esc_url( $new_url ); ?>">+ নতুন দলিল লিখুন<?php echo $sel_mouza ? ' (' . esc_html( $mouzas[ $sel_mouza ]['name'] ) . ' মৌজা)' : ''; ?></a></p>
 		<?php if ( ! $show ) : ?>
 			<p class="office-muted">এখানে এখনো কোনো দলিল নেই।</p>
