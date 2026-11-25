@@ -307,3 +307,17 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .df-sched td input[data-p], .df-sched td textarea[data-p], .df-t td input[data-p][data-bn] { border: 1px solid #cfd8d2; border-radius: 6px; background: #fff; }
 .df-sched td input[data-p]:placeholder-shown { background: #fffdf3; border-style: dashed; }
 .df-wd textarea { background: #f2f8f2; font-size: 13px; }
+
+/* Plain, even-stroke Bangla (closest to the Bijoy/SutonnyMJ look) for the whole deed tool.
+   A PC that has SutonnyOMJ / SolaimanLipi / Siyam Rupali uses it; otherwise Noto Sans Bengali is loaded. */
+:root { --dw-font: 'SutonnyOMJ', 'SolaimanLipi', 'Siyam Rupali', 'Kalpurush', 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif; }
+.dw-page--tool, .dw-page--tool *:not(svg):not(path), .dw-tpl-dlg, .dw-tpl-dlg *, .dw-imp-box *, .pv-paper, .pv-paper *, .dw-lock, .dw-stats, .dw-stats * {
+	font-family: var(--dw-font) !important; letter-spacing: 0 !important; font-feature-settings: normal;
+}
+.dw-page--tool { font-size: 16px; line-height: 1.75; }
+.dw-page--tool h1, .dw-page--tool h2, .dw-page--tool h3, .dw-page--tool .df-h, .dw-page--tool th { font-weight: 600 !important; }
+.dw-page--tool b, .dw-page--tool strong { font-weight: 600; }
+.dw-page--tool .dw-lead, .dw-page--tool .df-l, .dw-page--tool td, .dw-page--tool li, .dw-page--tool label { font-weight: 400; }
+.dw-page--tool input, .dw-page--tool textarea, .dw-page--tool select, .dw-page--tool button { font-size: 15px; line-height: 1.6; }
+.dw-page--tool .df-own { font-size: 16px; line-height: 2.1; }
+.dw-stats b { font-size: 26px !important; font-weight: 700 !important; }
