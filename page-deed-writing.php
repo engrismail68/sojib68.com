@@ -38,13 +38,26 @@ $inq_text = "আমি দলিল লেখাতে চাই।\nদলি�
 
 <main class="dw-page">
 	<div class="site-container">
+		<section class="dw-gate" aria-labelledby="dw-gate-title">
+			<span class="dw-gate__icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.2"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>
+			</span>
+			<div class="dw-gate__body">
+				<h1 id="dw-gate-title"><?php esc_html_e( 'এটি শুধুমাত্র দলিল লেখার জন্য ব্যবহৃত পেজ', 'sojib68' ); ?></h1>
+				<p class="dw-gate__lead"><?php esc_html_e( 'দলিল লেখার জন্য লগইন করুন।', 'sojib68' ); ?></p>
+				<p class="dw-gate__sub"><?php esc_html_e( 'শুধু দলিল লেখক ও অফিসের অনুমোদিত কর্মীরা এই সিস্টেম ব্যবহার করতে পারেন।', 'sojib68' ); ?></p>
+				<p class="dw-gate__act">
+					<a class="btn btn-primary dw-gate__btn" href="<?php echo esc_url( add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writing/' ) ), SOJIB68_OFFICE_LOGIN_URL ) ); ?>"><?php esc_html_e( 'লগইন করুন', 'sojib68' ); ?></a>
+				</p>
+			</div>
+		</section>
+
 		<header class="dw-head">
 			<p class="eyebrow"><?php esc_html_e( 'দলিল লিখুন', 'sojib68' ); ?></p>
-			<h1><?php esc_html_e( 'দলিল লেখার পেশায় তিন প্রজন্মের অভিজ্ঞতা', 'sojib68' ); ?></h1>
+			<h2 class="dw-head__title"><?php esc_html_e( 'দলিল লেখার পেশায় তিন প্রজন্মের অভিজ্ঞতা', 'sojib68' ); ?></h2>
 			<p class="dw-lead"><?php esc_html_e( '১৯৫০ সাল থেকে আমাদের পরিবার দলিল লেখার পেশায় আছে। আমার বাবা মোঃ নুরুল ইসলাম ১৯৮১ সাল থেকে দলিল লেখক হিসেবে কাজ করছেন, আর ২০২০ সাল থেকে আমি তাঁর সহকারী হিসেবে যুক্ত আছি।', 'sojib68' ); ?></p>
+			<p class="dw-lead dw-lead--small"><?php esc_html_e( 'আপনি যদি দলিল লেখাতে চান, নিচে যোগাযোগের বিকল্পগুলো দেখুন।', 'sojib68' ); ?></p>
 		</header>
-
-		<p class="dw-staff"><?php esc_html_e( 'দলিল লেখক/অফিসের কর্মী?', 'sojib68' ); ?> <a href="<?php echo esc_url( add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writing/' ) ), SOJIB68_OFFICE_LOGIN_URL ) ); ?>"><?php esc_html_e( 'লগইন করে দলিল লেখার সিস্টেম খুলুন', 'sojib68' ); ?></a></p>
 
 		<div class="dw-grid">
 			<section class="dw-card">

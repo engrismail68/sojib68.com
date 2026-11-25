@@ -13,3 +13,17 @@
 
 .dw-staff { margin: 0 0 18px; font-size: .95rem; }
 .dw-page--tool .site-container { max-width: 1100px; }
+
+/* sign-in notice for visitors who are not logged in */
+.dw-gate { display: flex; gap: 22px; align-items: center; margin: 0 0 34px; padding: 30px 34px; border-radius: 20px; background: linear-gradient(135deg, #14532d 0%, #198030 100%); color: #fff; box-shadow: 0 10px 30px rgba(20, 83, 45, .25); }
+.dw-gate__icon { flex: none; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff; }
+.dw-gate__body { min-width: 0; }
+.dw-gate h1 { margin: 0 0 8px; color: #fff; font-size: clamp(1.5rem, 3.4vw, 2.2rem); line-height: 1.3; }
+.dw-gate__lead { margin: 0 0 6px; font-size: clamp(1.15rem, 2.4vw, 1.5rem); font-weight: 700; color: #f3e9b5; }
+.dw-gate__sub { margin: 0 0 18px; font-size: 1rem; opacity: .92; }
+.dw-gate__act { margin: 0; }
+.dw-gate .dw-gate__btn { background: #fff; color: #14532d; border-color: #fff; font-size: 1.1rem; padding: 14px 34px; font-weight: 700; }
+.dw-gate .dw-gate__btn:hover { background: #f3e9b5; border-color: #f3e9b5; color: #14532d; }
+.dw-head__title { margin: 0 0 12px; font-size: clamp(1.4rem, 2.6vw, 1.9rem); }
+.dw-lead--small { margin-top: 10px; color: #566760; font-size: .98rem; }
+@media (max-width: 640px) { .dw-gate { flex-direction: column; align-items: flex-start; padding: 24px 22px; } .dw-gate__icon { width: 64px; height: 64px; } .dw-gate .dw-gate__btn { width: 100%; text-align: center; } }
