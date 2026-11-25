@@ -28,11 +28,16 @@ const SOJIB68_DW_TRASH_DAYS   = 7;
 const SOJIB68_DW_CAP = 'access_sojib_deeds';
 
 function sojib68_dw_ensure_role() {
-	if ( ! get_role( 'sojib_deed_writer' ) ) {
+	$role = get_role( 'sojib_deed_writer' );
+	if ( ! $role ) {
 		add_role( 'sojib_deed_writer', 'দলিল লেখক (শুধু দলিল লেখার পেজ)', array( 'read' => true, SOJIB68_DW_CAP => true ) );
+	} elseif ( ! $role->has_cap( SOJIB68_DW_CAP ) ) {
+		$role->add_cap( SOJIB68_DW_CAP );
 	}
 }
-add_action( 'init', 'sojib68_dw_ensure_role' );
+add_action( 'init', 'sojib68_dw_ensure_role', 1 );
+add_action( 'admin_init', 'sojib68_dw_ensure_role', 1 );
+add_action( 'after_switch_theme', 'sojib68_dw_ensure_role' );
 
 /** May this visitor use the deed-writing tool? */
 function sojib68_dw_can_use() {
