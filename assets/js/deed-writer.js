@@ -5,6 +5,7 @@
 
 	var BOOT = window.sojib68Dw;
 	var app = document.getElementById( 'dw-app' );
+	var LOCKED = !! BOOT.corrupt;   // the saved data could not be read: never auto-save over it
 	if ( ! BOOT || ! app ) { return; }
 
 	/* ------------------------------------------------------------ Bangla helpers */
@@ -615,6 +616,7 @@
 		h += '</div><section class="dw-end"><button type="button" class="btn btn-primary" id="dw-download2">Word ডাউনলোড (বিজয় / SutonnyMJ)</button>' +
 			'<p class="dw-hint">ডাউনলোড করা ফাইলে ডান ক্লিক → Properties → Unblock টিক দিয়ে খুলুন। Word-এ SutonnyMJ ফন্ট ইনস্টল থাকতে হবে।</p></section>';
 		h += '<datalist id="dw-classes"><option value="নাল"><option value="ভিটি"><option value="ভিটা"><option value="পুকুর"><option value="বাড়ী (স্থাপনা বিহীন)"><option value="বাগান"><option value="ডোবা"><option value="আবাদী"><option value="চালা"><option value="জঙ্গল"></datalist>' + '<datalist id="dw-types"><option value="সাফ কবলা"><option value="হেবা"><option value="বণ্টননামা"><option value="বায়না"><option value="দান"></datalist>';
+		if ( LOCKED ) { app.innerHTML = '<div class="dw-lock"><b>এই দলিলের সংরক্ষিত তথ্য পড়া যায়নি।</b> তাই এখানে কিছু সেভ করা বন্ধ রাখা হয়েছে, যাতে আসল তথ্য নষ্ট না হয়। পেজটির স্ক্রিনশট পাঠান — আমি তথ্য উদ্ধার করে দেব।</div>'; return; }
 		app.innerHTML = '<div class="dw-edit' + ( previewHidden() ? ' is-nopreview' : '' ) + '"><div class="dw-form">' + h + '</div><aside class="dw-preview" id="dw-preview" aria-label="দলিলের প্রিভিউ"></aside></div>';
 		refreshAuto();
 	}
@@ -745,6 +747,7 @@
 	}
 
 	function send( beacon ) {
+		if ( LOCKED ) { return Promise.resolve(); }
 		var p = payload(), json = JSON.stringify( p.data );
 		if ( json === lastSaved && S.id ) { return Promise.resolve(); }
 		var fd = new FormData();
@@ -765,7 +768,7 @@
 		} );
 	}
 	function flush() { clearTimeout( timer ); timer = null; if ( inflight ) { schedule(); return Promise.resolve(); } return send( false ); }
-	function schedule() { dirty = true; statusText( 'লেখা হচ্ছে…', '' ); clearTimeout( timer ); timer = setTimeout( flush, 700 ); }
+	function schedule() { if ( LOCKED ) { return; } dirty = true; statusText( 'লেখা হচ্ছে…', '' ); clearTimeout( timer ); timer = setTimeout( flush, 700 ); }
 	window.addEventListener( 'beforeunload', function () { if ( dirty ) { send( true ); } } );
 	document.addEventListener( 'visibilitychange', function () { if ( document.hidden && dirty ) { flush(); } } );
 

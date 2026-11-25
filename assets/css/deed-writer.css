@@ -300,3 +300,5 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-psearch input[type=search] { flex: 1; min-width: 220px; padding: 8px 10px; border: 1px solid #98a79c; border-radius: 6px; font: inherit; }
 .dw-ptable { overflow-x: auto; } .dw-paddr { max-width: 280px; font-size: 13px; }
 .dw-pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 12px 0; }
+
+.dw-lock { background: #fdecec; border: 1px solid #f0b4ae; color: #8a1c14; border-radius: 10px; padding: 14px 16px; line-height: 1.6; margin: 10px 0; }

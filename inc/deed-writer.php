@@ -989,8 +989,10 @@ function sojib68_dw_render( $base = null ) {
 		if ( $edit_id && ! $draft ) {
 			echo '<p>খসড়া পাওয়া যায়নি। <a href="' . esc_url( $base ) . '">তালিকায় ফিরুন</a></p>';
 		} else {
-			$data = $draft ? json_decode( $draft['data'], true ) : array();
+			$data    = $draft ? json_decode( $draft['data'], true ) : array();
+			$corrupt = $draft && ( ! is_array( $data ) || ! isset( $data['f'] ) );
 			$boot = array(
+				'corrupt'   => $corrupt,
 				'ajaxUrl'   => $ajax,
 				'nonce'     => $nonce,
 				'id'        => $draft ? (int) $draft['id'] : 0,
@@ -1004,7 +1006,14 @@ function sojib68_dw_render( $base = null ) {
 			);
 			?>
 			<div id="dw-app" class="dw-app" aria-live="polite"></div>
-			<script>window.sojib68Dw = <?php echo wp_json_encode( $boot, JSON_UNESCAPED_UNICODE ); ?>;</script>
+			<script>
+				/* if the editor cannot start, say why on the page instead of staying blank */
+				window.addEventListener('error', function (e) {
+					var a = document.getElementById('dw-app');
+					if (a && !a.querySelector('.dw-edit')) { a.innerHTML = '<div class="dw-lock"><b>এই দলিল খোলা যাচ্ছে না।</b> ত্রুটি: ' + String(e.message || '').replace(/[<>&]/g, '') + ' (' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '') + ')<br>এই লেখাটির স্ক্রিনশট পাঠান। আপনার দলিল সার্ভারে নিরাপদ আছে, কিছু মুছেনি।</div>'; }
+				});
+				</script>
+				<script>window.sojib68Dw = <?php echo wp_json_encode( $boot, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_PARTIAL_OUTPUT_ON_ERROR ); ?>;</script>
 			<script src="<?php echo esc_url( get_theme_file_uri( 'assets/js/deed-writer.js' ) ); ?>?v=<?php echo (int) $ver( 'assets/js/deed-writer.js' ); ?>"></script>
 			<?php
 		}
