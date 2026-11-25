@@ -17,7 +17,7 @@ function sojib68_social_meta() {
 	$title = wp_get_document_title();
 	$desc  = 'জমি রেজিস্ট্রেশন, নামজারি, দলিল অনুসন্ধান, সার্টিফাইড কপি ও ভূমিসংক্রান্ত বিষয়ে পরামর্শ ও সহায়তা।';
 	if ( function_exists( 'sojib68_is_deed_page' ) && sojib68_is_deed_page() ) {
-		$desc = 'দলিল লেখার পেশায় তিন প্রজন্মের অভিজ্ঞতা। দলিল লেখাতে চাইলে যোগাযোগ করুন।';
+		$desc = 'দলিল লেখার সিস্টেম — শুধু অনুমোদিত দলিল লেখক ও অফিসের কর্মীদের জন্য। দলিল লেখার জন্য লগইন করুন।';
 	} elseif ( is_singular() ) {
 		$ex = has_excerpt() ? get_the_excerpt() : '';
 		if ( '' !== trim( wp_strip_all_tags( $ex ) ) ) {

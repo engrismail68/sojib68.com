@@ -58,7 +58,7 @@ add_filter( 'pre_get_document_title', 'sojib68_deed_title' );
 
 function sojib68_deed_head() {
 	if ( sojib68_is_deed_page() ) {
-		echo '<meta name="description" content="' . esc_attr( 'দলিল লেখার পেশায় তিন প্রজন্মের অভিজ্ঞতা। দলিল লেখাতে চাইলে যোগাযোগ করুন।' ) . '">' . "\n";
+		echo '<meta name="description" content="' . esc_attr( 'দলিল লেখার সিস্টেম — শুধু অনুমোদিত দলিল লেখক ও অফিসের কর্মীদের জন্য। দলিল লেখার জন্য লগইন করুন।' ) . '">' . "\n";
 	}
 }
 add_action( 'wp_head', 'sojib68_deed_head', 1 );
