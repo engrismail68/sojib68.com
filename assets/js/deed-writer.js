@@ -299,8 +299,9 @@
 	function inp( path, o ) {
 		o = o || {};
 		var v = getp( path ), ph = o.ph ? ' placeholder="' + esc( o.ph ) + '"' : '';
-		if ( o.area ) { return '<textarea data-p="' + esc( path ) + '" rows="' + ( o.rows || 2 ) + '"' + ph + '>' + esc( v ) + '</textarea>'; }
-		return '<input type="' + ( o.type || 'text' ) + '" data-p="' + esc( path ) + '" value="' + esc( v ) + '"' + ph + ( o.nid ? ' data-nid="1" inputmode="numeric"' : '' ) + ( o.list ? ' list="' + o.list + '"' : '' ) + ' autocomplete="off">';
+		var bnA = o.bn ? ' data-bn="1"' : '';
+		if ( o.area ) { return '<textarea data-p="' + esc( path ) + '"' + bnA + ' rows="' + ( o.rows || 2 ) + '"' + ph + '>' + esc( v ) + '</textarea>'; }
+		return '<input type="' + ( o.type || 'text' ) + '" data-p="' + esc( path ) + '"' + bnA + ' value="' + esc( v ) + '"' + ph + ( o.nid ? ' data-nid="1" inputmode="numeric"' : '' ) + ( o.list ? ' list="' + o.list + '"' : '' ) + ' autocomplete="off">';
 	}
 	function ainp( key, scope, rows ) {
 		var holder = scope || 'f.o';
@@ -322,7 +323,7 @@
 			drow( 'লিঙ্গ <em>(মহিলা হলে দলিলে গ্রহিত্রী/দাত্রী আসবে)</em>', '<select data-p="' + base + 'gender"><option value=""' + ( ! p.gender ? ' selected' : '' ) + '>— বেছে নিন —</option><option' + ( p.gender === 'পুরুষ' ? ' selected' : '' ) + '>পুরুষ</option><option' + ( p.gender === 'মহিলা' ? ' selected' : '' ) + '>মহিলা</option></select>' ) +
 			drow( 'স্বামীর নাম <em>(বিবাহিতা মহিলা হলে)</em>', inp( base + 'spouse' ) ) +
 			drow( 'পিতার নাম', inp( base + 'father' ) ) + drow( 'মাতার নাম', inp( base + 'mother' ) ) +
-			drow( 'জন্ম তারিখ', inp( base + 'dob', { ph: 'যেমন ১০/০৩/১৯৮৭' } ) ) +
+			drow( 'জন্ম তারিখ', inp( base + 'dob', { bn: true, ph: 'যেমন ১০/০৩/১৯৮৭' } ) ) +
 			drow( 'ধর্ম', inp( base + 'religion' ) ) + drow( 'পেশা', inp( base + 'profession' ) ) + drow( 'জাতীয়তা', inp( base + 'nationality' ) ) +
 			'<table class="df-t df-addr"><tr>' + th( 'স্থায়ী ঠিকানা' ) + th( 'বর্তমান ঠিকানা <button type="button" class="dw-link" data-copy-addr="' + group + ':' + i + '">স্থায়ীর মতোই</button>' ) + '</tr><tr><td>' +
 			inp( base + 'perm', { area: true, rows: 3, ph: 'বাসা/হোল্ডিং: …, গ্রাম/রাস্তা: …, ডাকঘর: …, উপজেলা: …, জেলা: …' } ) + '</td><td>' + inp( base + 'present', { area: true, rows: 3 } ) + '</td></tr></table>' +
@@ -537,9 +538,9 @@
 		var many = ( S.f.lands || [] ).length > 1;
 		return ( S.f.lands || [] ).map( function ( l, i ) {
 			var b = 'f.lands.' + i + '.', ho = 'f.lands.' + i + '.o';
-			return '<tr><td>' + inp( b + 'area', { ph: 'শতাংশ (শুধু সংখ্যা), যেমন 5 বা 5.25' } ) + wbox( 'area_text', ho ) + '</td>' +
+			return '<tr><td>' + inp( b + 'area', { bn: true, ph: 'শতাংশ (শুধু সংখ্যা), যেমন 5 বা 5.25' } ) + wbox( 'area_text', ho ) + '</td>' +
 				'<td class="df-mid">' + inp( b + 'cls', { ph: 'শ্রেণী, যেমন নাল, ভিটি, পুকুর', list: 'dw-classes' } ) + '</td>' +
-				'<td>' + inp( b + 'price', { ph: 'টাকা (শুধু সংখ্যা), যেমন 500000' } ) + wbox( 'price_text', ho ) + '</td>' +
+				'<td>' + inp( b + 'price', { bn: true, ph: 'টাকা (শুধু সংখ্যা), যেমন 500000' } ) + wbox( 'price_text', ho ) + '</td>' +
 				'<td class="df-x">' + ( many ? '<button type="button" class="dw-x" data-del-land="' + i + '" title="এই সারি মুছুন">×</button>' : '' ) + '</td></tr>';
 		} ).join( '' );
 	}
@@ -559,7 +560,7 @@
 			mouzaPicker() + '<div class="df-row df-btnrow"><button type="button" class="btn btn-outline btn-sm" id="dw-save-mouza">এই মৌজার তথ্য মৌজা তালিকায় সেভ করুন</button> <small id="dw-mouza-st"></small></div>' + drow( '১। রেজিস্ট্রী অফিসের নাম', inp( 'f.sub_office' ) ) +
 			'<p class="df-cap">২। দলিলের সার সংক্ষেপ</p>' +
 			'<table class="df-t"><tr>' + [ 'দলিলের প্রকৃতি', 'মৌজা নম্বর', 'মৌজার নাম', 'ইউনিয়ন/ওয়ার্ড', 'থানা/উপজেলা', 'জেলা' ].map( th ).join( '' ) + '</tr><tr>' +
-			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
+			'<td>' + inp( 'f.deed_type', { list: 'dw-types' } ) + '</td><td>' + inp( 'f.mouza_no', { bn: true, ph: '99' } ) + '</td><td>' + inp( 'f.mouza_name', { ph: 'তিয়রী' } ) + '</td><td>' + inp( 'f.union', { ph: '৯ নং ভোলাকোট' } ) + '</td><td>' + inp( 'f.upazila' ) + '</td><td>' + inp( 'f.district' ) + '</td></tr></table>' +
 			'<table class="df-t df-sum"><colgroup><col style="width:38%"><col style="width:24%"><col style="width:34%"><col style="width:4%"></colgroup><tr>' + [ 'হস্তান্তরিত সম্পত্তির পরিমান', 'শ্রেণী', 'মূল্য (অংকে ও কথায়)', '' ].map( th ).join( '' ) + '</tr>' + landRows() +
 			'<tr class="df-total"><td>' + wbox( 'area_text', 'f.o' ) + '<small class="df-mini">মোট জমি (নিজে নিজে যোগ হয়)</small></td><td class="df-mid df-tl">মোট</td><td>' + wbox( 'price_text', 'f.o' ) + '<small class="df-mini">মোট মূল্য (নিজে নিজে যোগ হয়)</small></td><td class="df-x"></td></tr></table>' +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-land="1">+ আরেক শ্রেণীর জমি (ভিটি, পুকুর, বাড়ী …)</button>' );
@@ -582,14 +583,14 @@
 			var kb = 'f.khatians.' + ki + '.', n = k.dags.length;
 			return k.dags.map( function ( d, di ) {
 				var b = kb + 'dags.' + di + '.';
-				return '<tr>' + ( di === 0 ? '<td class="df-kh" rowspan="' + n + '"><small class="df-mini">খতিয়ান ' + bn( ki + 1 ) + '</small>' + inp( kb + 'khatian', { area: true, rows: 3, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) +
+				return '<tr>' + ( di === 0 ? '<td class="df-kh" rowspan="' + n + '"><small class="df-mini">খতিয়ান ' + bn( ki + 1 ) + '</small>' + inp( kb + 'khatian', { bn: true, area: true, rows: 3, ph: 'সি.এস ০৮নং খং … আগত আর.এস ৩৮ নং খং …' } ) +
 					'<button type="button" class="dw-link" data-add-dag="' + ki + '">+ এই খতিয়ানে আরেকটি দাগ</button>' + ( S.f.khatians.length > 1 ? '<button type="button" class="dw-x" data-del-kh="' + ki + '">এই খতিয়ান মুছুন ×</button>' : '' ) + '</td>' : '' ) +
-					'<td>' + inp( b + 'cs_dag', { ph: 'সি.এস দাগ নং' } ) + '</td><td>' + inp( b + 'rs_dag', { ph: 'আর.এস দাগ নং (সংখ্যা)' } ) + wbox( 'rs_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'cls', { list: 'dw-classes' } ) + '</td><td>' + inp( b + 'total', { ph: 'শতাংশ (সংখ্যা), যেমন 18' } ) + wbox( 'total_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'transferred', { ph: 'শতাংশ (সংখ্যা), যেমন 10' } ) + wbox( 'transferred_text', kb + 'dags.' + di + '.o' ) + '</td>' +
+					'<td>' + inp( b + 'cs_dag', { bn: true, ph: 'সি.এস দাগ নং' } ) + '</td><td>' + inp( b + 'rs_dag', { bn: true, ph: 'আর.এস দাগ নং (সংখ্যা)' } ) + wbox( 'rs_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'cls', { list: 'dw-classes' } ) + '</td><td>' + inp( b + 'total', { bn: true, ph: 'শতাংশ (সংখ্যা), যেমন 18' } ) + wbox( 'total_text', kb + 'dags.' + di + '.o' ) + '</td><td>' + inp( b + 'transferred', { bn: true, ph: 'শতাংশ (সংখ্যা), যেমন 10' } ) + wbox( 'transferred_text', kb + 'dags.' + di + '.o' ) + '</td>' +
 					'<td class="df-x">' + ( n > 1 ? '<button type="button" class="dw-x" data-del-dag="' + ki + ':' + di + '" title="এই দাগ মুছুন">×</button>' : '' ) + '</td></tr>';
 			} ).join( '' );
 		} ).join( '' );
 		h += dsec( 's-11', '১১', 'সম্পত্তির তফসিল',
-			drow( 'গ্রাম', inp( 'f.village' ) ) + drow( 'জে.এল. নং', inp( 'f.jl_no', { ph: 'সি.এস ১৪১ আর.এস ৯৯ নং' } ) ) + drow( 'ভূমি অফিসের নাম', inp( 'f.land_office' ) ) +
+			drow( 'গ্রাম', inp( 'f.village' ) ) + drow( 'জে.এল. নং', inp( 'f.jl_no', { bn: true, ph: 'সি.এস ১৪১ আর.এস ৯৯ নং' } ) ) + drow( 'ভূমি অফিসের নাম', inp( 'f.land_office' ) ) +
 			dauto( 'তফসিলের শুরুর লাইন', 'schedule_head', 'f.o', 2 ) +
 			'<table class="df-t df-sched"><colgroup><col style="width:20%"><col style="width:9%"><col style="width:19%"><col style="width:9%"><col style="width:19%"><col style="width:19%"><col style="width:5%"></colgroup><tr>' + [ 'খতিয়ান নং (সি.এস / আর.এস / বর্তমান)', 'সি.এস দাগ', 'আর.এস দাগ (কথায় নিজে নিজে হয়)', 'শ্রেণি', 'দাগে মোট জমি', 'হস্তান্তরিত জমির পরিমান', '' ].map( th ).join( '' ) + '</tr>' + srows + '</table>' +
 			'<button type="button" class="btn btn-outline btn-sm" data-add-kh="1">+ আলাদা খতিয়ান (নতুন খতিয়ান ও দাগ)</button>' + dauto( 'মোট জমির পরিমান', 'total_text', 'f.o', 1 ) );
@@ -780,6 +781,7 @@
 		if ( el.closest && el.closest( '[data-own]' ) ) { ownSync( el.closest( '[data-own]' ) ); refreshAuto(); schedule(); return; }
 		if ( el.matches( '.dw-search input' ) ) { return searchInput( el ); }
 		var p = el.getAttribute && el.getAttribute( 'data-p' ), a = el.getAttribute && el.getAttribute( 'data-auto' );
+		if ( p && el.hasAttribute( 'data-bn' ) && /[0-9]/.test( el.value ) ) { var cs = el.selectionStart, ce = el.selectionEnd; el.value = bn( el.value ); try { el.setSelectionRange( cs, ce ); } catch ( err ) {} }
 		if ( p ) {
 			setp( p, el.value );
 			if ( el.hasAttribute( 'data-nid' ) ) { nidChanged( el, p ); }
@@ -792,6 +794,20 @@
 		} else { return; }
 		refreshAuto();
 		schedule();
+	} );
+
+	/* a plain number typed into a "কথায়" box belongs in the number box above it — move it there, the words then fill in by themselves */
+	app.addEventListener( 'change', function ( e ) {
+		var el = e.target, a = el.getAttribute && el.getAttribute( 'data-auto' );
+		if ( ! a || ! /\.o\.(rs_text|total_text|transferred_text|area_text|price_text)$/.test( a ) ) { return; }
+		var v = String( el.value ).trim();
+		if ( ! /^[0-9০-৯]+(\.[0-9০-৯]+)?$/.test( v ) ) { return; }
+		var td = el.closest( 'td' ), numEl = td && td.querySelector( 'input[data-p]' );
+		if ( ! numEl ) { return; }
+		var parts = a.split( '.' ), key = parts.pop(), holder = getp( parts.join( '.' ) );
+		if ( holder ) { delete holder[ key ]; }
+		numEl.value = bn( v ); setp( numEl.getAttribute( 'data-p' ), numEl.value );
+		refreshAuto(); el.value = el.placeholder; schedule();
 	} );
 
 	app.addEventListener( 'change', function ( e ) {

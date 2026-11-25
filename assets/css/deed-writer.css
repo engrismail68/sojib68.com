@@ -302,3 +302,8 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 12px 0; }
 
 .dw-lock { background: #fdecec; border: 1px solid #f0b4ae; color: #8a1c14; border-radius: 10px; padding: 14px 16px; line-height: 1.6; margin: 10px 0; }
+
+/* schedule / land tables: the number boxes look like boxes, and the auto-words box is clearly the second one */
+.df-sched td input[data-p], .df-sched td textarea[data-p], .df-t td input[data-p][data-bn] { border: 1px solid #cfd8d2; border-radius: 6px; background: #fff; }
+.df-sched td input[data-p]:placeholder-shown { background: #fffdf3; border-style: dashed; }
+.df-wd textarea { background: #f2f8f2; font-size: 13px; }
