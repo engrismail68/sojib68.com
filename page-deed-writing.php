@@ -6,7 +6,7 @@
  */
 
 // Signed-in office users get the deed-writing tool on this page; everyone else sees the public page below.
-$sojib68_dw_staff = function_exists( 'sojib68_office_is_authorized' ) && sojib68_office_is_authorized();
+$sojib68_dw_staff = function_exists( 'sojib68_dw_can_use' ) && sojib68_dw_can_use();
 if ( $sojib68_dw_staff ) {
 	if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 		define( 'DONOTCACHEPAGE', true );
@@ -23,6 +23,13 @@ if ( $sojib68_dw_staff ) :
 		<div class="site-container">
 			<h1><?php esc_html_e( 'দলিল লিখুন', 'sojib68' ); ?></h1>
 			<p class="dw-lead"><?php esc_html_e( 'তথ্য ভরুন, নিজে নিজে সেভ হবে। শেষে বিজয় ফন্টে Word ডাউনলোড করুন।', 'sojib68' ); ?></p>
+			<p class="dw-userbar">
+				<?php echo esc_html( wp_get_current_user()->display_name ); ?>
+				<?php if ( defined( 'SOJIB68_2FA_PAGE' ) ) : ?>
+					· <a href="<?php echo esc_url( admin_url( 'users.php?page=' . SOJIB68_2FA_PAGE ) ); ?>"><?php esc_html_e( 'টু-স্টেপ ভেরিফিকেশন', 'sojib68' ); ?></a>
+				<?php endif; ?>
+				· <a href="<?php echo esc_url( wp_logout_url( home_url( '/deed-writing/' ) ) ); ?>"><?php esc_html_e( 'লগআউট', 'sojib68' ); ?></a>
+			</p>
 			<?php sojib68_dw_render( home_url( '/deed-writing/' ) ); ?>
 		</div>
 	</main>

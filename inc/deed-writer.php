@@ -21,6 +21,63 @@ require_once __DIR__ . '/docx-writer.php';
 const SOJIB68_DW_DB_VERSION = '1.1.0';
 const SOJIB68_DW_TRASH_DAYS   = 7;
 
+/* ---------------------------------------------------------------------
+ * Access: Administrator and Office Staff (office cap) AND the dedicated "দলিল লেখক" role, which can use ONLY this tool.
+ * ------------------------------------------------------------------ */
+
+const SOJIB68_DW_CAP = 'access_sojib_deeds';
+
+function sojib68_dw_ensure_role() {
+	if ( ! get_role( 'sojib_deed_writer' ) ) {
+		add_role( 'sojib_deed_writer', 'দলিল লেখক (শুধু দলিল লেখার পেজ)', array( 'read' => true, SOJIB68_DW_CAP => true ) );
+	}
+}
+add_action( 'init', 'sojib68_dw_ensure_role' );
+
+/** May this visitor use the deed-writing tool? */
+function sojib68_dw_can_use() {
+	return is_user_logged_in() && ( current_user_can( SOJIB68_DW_CAP ) || ( defined( 'SOJIB68_OFFICE_CAP' ) && current_user_can( SOJIB68_OFFICE_CAP ) ) );
+}
+
+/** A user who has the deed tool but nothing else (no office system, no site admin). */
+function sojib68_dw_is_deed_only( $user_id = 0 ) {
+	$user_id = $user_id ? (int) $user_id : get_current_user_id();
+	return $user_id && user_can( $user_id, SOJIB68_DW_CAP ) && ! user_can( $user_id, 'manage_options' ) && ! ( defined( 'SOJIB68_OFFICE_CAP' ) && user_can( $user_id, SOJIB68_OFFICE_CAP ) );
+}
+
+// Deed-only users: no admin bar, no wp-admin (except the two-step page and AJAX), always land on /deed-writing/.
+add_filter( 'show_admin_bar', function ( $show ) {
+	return sojib68_dw_is_deed_only() ? false : $show;
+} );
+add_action( 'admin_init', function () {
+	if ( ! sojib68_dw_is_deed_only() || wp_doing_ajax() ) {
+		return;
+	}
+	global $pagenow;
+	$two = defined( 'SOJIB68_2FA_PAGE' ) && 'users.php' === $pagenow && isset( $_GET['page'] ) && SOJIB68_2FA_PAGE === $_GET['page'];
+	if ( $two || 'admin-post.php' === $pagenow ) {
+		return;
+	}
+	wp_safe_redirect( home_url( '/deed-writing/' ) );
+	exit;
+}, 1 );
+add_filter( 'login_redirect', function ( $to, $req, $user ) {
+	return ( $user instanceof WP_User && sojib68_dw_is_deed_only( $user->ID ) ) ? home_url( '/deed-writing/' ) : $to;
+}, 10, 3 );
+
+// Word download: /deed-writing/?dwdocx=ID (works for every user who may use the tool).
+add_action( 'template_redirect', function () {
+	if ( ! isset( $_GET['dwdocx'] ) ) {
+		return;
+	}
+	if ( ! sojib68_dw_can_use() ) {
+		wp_safe_redirect( add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writing/' ) ), defined( 'SOJIB68_OFFICE_LOGIN_URL' ) ? SOJIB68_OFFICE_LOGIN_URL : wp_login_url() ) );
+		exit;
+	}
+	sojib68_dw_download( (int) $_GET['dwdocx'] );
+	exit;
+}, 1 );
+
 function sojib68_dw_drafts_table() {
 	global $wpdb;
 	return $wpdb->prefix . 'office_dw_drafts';
@@ -182,7 +239,7 @@ function sojib68_dw_remember_parties( $data ) {
  * ------------------------------------------------------------------ */
 
 function sojib68_dw_guard() {
-	if ( ! sojib68_office_is_authorized() ) {
+	if ( ! sojib68_dw_can_use() ) {
 		wp_send_json_error( array( 'message' => 'লগইন প্রয়োজন।' ), 401 );
 	}
 	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['nonce'] ), 'sojib68_dw' ) ) {
@@ -969,7 +1026,7 @@ function sojib68_dw_render( $base = null ) {
 						<td><?php echo esc_html( $r['updated_at'] ); ?></td>
 						<td class="dw-actions">
 							<a class="btn btn-outline btn-sm" href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>">খুলুন</a>
-							<a class="btn btn-primary btn-sm" href="<?php echo esc_url( home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' . (int) $r['id'] ) ); ?>">Word ডাউনলোড</a>
+							<a class="btn btn-primary btn-sm" href="<?php echo esc_url( add_query_arg( 'dwdocx', (int) $r['id'], $base ) ); ?>">Word ডাউনলোড</a>
 							<button type="button" class="btn btn-outline btn-sm dw-del" data-id="<?php echo (int) $r['id']; ?>">মুছুন</button>
 						</td>
 					</tr>
@@ -1005,7 +1062,7 @@ function sojib68_dw_render( $base = null ) {
 				'mouzas'    => array_values( $mouzas ),
 				'owntpls'   => array_values( sojib68_dw_get_owntpls() ),
 				'listUrl'   => $base,
-				'docxUrl'   => home_url( '/' . SOJIB68_OFFICE_BASE . '/deed-docx/' ),
+				'docxUrl'   => add_query_arg( 'dwdocx', '', $base ),
 			);
 			?>
 			<div id="dw-app" class="dw-app" aria-live="polite"></div>

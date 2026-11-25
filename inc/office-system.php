@@ -216,6 +216,11 @@ add_action( 'init', 'sojib68_office_router' );
  * ------------------------------------------------------------------ */
 
 function sojib68_office_handle_login_request() {
+	// Deed writers (no office access) only ever go to the deed-writing page.
+	if ( ! sojib68_office_is_authorized() && function_exists( 'sojib68_dw_can_use' ) && sojib68_dw_can_use() ) {
+		wp_safe_redirect( home_url( '/deed-writing/' ) );
+		return;
+	}
 	// Already signed in with access — skip straight to the dashboard.
 	if ( sojib68_office_is_authorized() ) {
 		$redirect = isset( $_GET['redirect_to'] ) ? esc_url_raw( urldecode( wp_unslash( $_GET['redirect_to'] ) ) ) : home_url( '/' . SOJIB68_OFFICE_BASE . '/' );
@@ -243,13 +248,16 @@ function sojib68_office_handle_login_request() {
 			if ( is_wp_error( $user ) ) {
 				sojib68_office_register_failed_attempt();
 				$error = sojib68_2fa_is_2fa_error( $user ) ? $user->get_error_message() : __( 'ইউজারনেম বা পাসওয়ার্ড সঠিক নয়।', 'sojib68' );
-			} elseif ( ! user_can( $user, SOJIB68_OFFICE_CAP ) ) {
+			} elseif ( ! user_can( $user, SOJIB68_OFFICE_CAP ) && ! ( function_exists( 'sojib68_dw_is_deed_only' ) && user_can( $user, SOJIB68_DW_CAP ) ) ) {
 				wp_logout();
 				sojib68_office_register_failed_attempt();
 				$error = __( 'এই অ্যাকাউন্টের এই সিস্টেমে প্রবেশের অনুমতি নেই।', 'sojib68' );
 			} else {
 				sojib68_office_clear_rate_limit();
 				$redirect = isset( $_POST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_to'] ) ) : home_url( '/' . SOJIB68_OFFICE_BASE . '/' );
+				if ( ! user_can( $user, SOJIB68_OFFICE_CAP ) ) { // deed writer: only the deed-writing page
+					$redirect = home_url( '/deed-writing/' );
+				}
 				wp_safe_redirect( $redirect );
 				return;
 			}
