@@ -365,3 +365,5 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-bk__card { background: #fff; border: 1px solid #e4e2d8; border-radius: 14px; padding: 16px 20px; }
 .dw-bk__card h3 { margin: 0 0 8px; }
 .dw-bk__warn { background: #fdecec; border: 1px solid #f0b4ae; color: #8a1c14; border-radius: 8px; padding: 9px 12px; font-size: 14.5px; }
+
+.dw-price { font-weight: 600; white-space: nowrap; color: #14532d; }

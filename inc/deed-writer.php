@@ -1121,13 +1121,13 @@ function sojib68_dw_render( $base = null ) {
 			<p class="office-muted">এখানে এখনো কোনো দলিল নেই।</p>
 		<?php else : ?>
 			<div class="office-card"><table class="office-table dw-list">
-				<thead><tr><th>দলিল</th><th>মৌজা</th><th>লেখার তারিখ</th><th>অবস্থা</th><th>রেজিস্ট্রি</th><th></th></tr></thead>
+				<thead><tr><th>দলিল</th><th>মৌজা</th><th>মূল্য</th><th>অবস্থা</th><th>রেজিস্ট্রি</th><th></th></tr></thead>
 				<tbody>
 				<?php foreach ( $show as $r ) : ?>
 					<tr>
 						<td><a href="<?php echo esc_url( add_query_arg( 'draft', (int) $r['id'], $base ) ); ?>"><?php echo esc_html( '' !== $r['title'] ? $r['title'] : 'নামহীন দলিল #' . (int) $r['id'] ); ?></a></td>
 						<td><?php echo esc_html( $r['mname'] ); ?></td>
-						<td><?php echo esc_html( substr( (string) $r['created_at'], 0, 10 ) ); ?><br><small class="office-muted">সংরক্ষণ: <?php echo esc_html( substr( (string) $r['updated_at'], 0, 16 ) ); ?></small></td>
+						<td class="dw-price"><?php echo '' !== $r['meta']['taka'] ? esc_html( $r['meta']['taka'] ) : ( '' !== $r['meta']['price'] ? esc_html( $r['meta']['price'] ) : '—' ); ?></td>
 						<td><select class="dw-st dw-st--<?php echo esc_attr( $r['meta']['status'] ); ?>" data-id="<?php echo (int) $r['id']; ?>" data-cur="<?php echo esc_attr( $r['meta']['status'] ); ?>"><?php foreach ( $stl as $k => $v ) : ?><option value="<?php echo esc_attr( $k ); ?>"<?php selected( $r['meta']['status'], $k ); ?>><?php echo esc_html( $v ); ?></option><?php endforeach; ?></select></td>
 						<td class="dw-reg"><?php echo esc_html( trim( $r['meta']['reg_date'] . ' ' . ( '' !== $r['meta']['reg_no'] ? '· নং ' . $r['meta']['reg_no'] : '' ) ) ); ?></td>
 						<td class="dw-actions">

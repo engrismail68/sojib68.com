@@ -13,6 +13,19 @@ function sojib68_dw_statuses() {
 	return array( 'draft' => 'খসড়া', 'done' => 'লেখা সম্পন্ন', 'registered' => 'রেজিস্ট্রি হয়েছে' );
 }
 
+/** 500000 → ৫,০০,০০০ টাকা (lakh grouping, Bangla digits). */
+function sojib68_dw_taka( $n ) {
+	$n = (int) round( (float) $n );
+	if ( $n <= 0 ) {
+		return '';
+	}
+	$s = (string) $n;
+	if ( strlen( $s ) > 3 ) {
+		$s = preg_replace( '/\B(?=(\d{2})+(?!\d))/', ',', substr( $s, 0, -3 ) ) . ',' . substr( $s, -3 );
+	}
+	return strtr( $s, array( '0' => '০', '1' => '১', '2' => '২', '3' => '৩', '4' => '৪', '5' => '৫', '6' => '৬', '7' => '৭', '8' => '৮', '9' => '৯' ) ) . ' টাকা';
+}
+
 /** Pull the searchable / reportable facts out of a saved deed. */
 function sojib68_dw_row_meta( $d ) {
 	$f      = isset( $d['f'] ) && is_array( $d['f'] ) ? $d['f'] : array();
@@ -47,6 +60,7 @@ function sojib68_dw_row_meta( $d ) {
 		'mouza'    => isset( $f['mouza_name'] ) ? (string) $f['mouza_name'] : '',
 		'area'     => isset( $out['area_text'] ) ? (string) $out['area_text'] : '',
 		'price'    => isset( $out['price_text'] ) ? (string) $out['price_text'] : '',
+		'taka'     => isset( $f['price'] ) && is_numeric( sojib68_dw_bn_digits( $f['price'] ) ) ? sojib68_dw_taka( sojib68_dw_bn_digits( $f['price'] ) ) : '',
 	);
 }
 
