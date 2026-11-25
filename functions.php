@@ -26,6 +26,7 @@ require_once get_theme_file_path( 'inc/office-export.php' );
 require_once get_theme_file_path( 'inc/office-gdrive-backup.php' );
 require_once get_theme_file_path( 'inc/office-system.php' );
 require_once get_theme_file_path( 'inc/deed-writer.php' );
+require_once get_theme_file_path( 'inc/deed-access.php' );
 require_once get_theme_file_path( 'inc/crm-db.php' );
 require_once get_theme_file_path( 'inc/crm-leads.php' );
 require_once get_theme_file_path( 'inc/crm-ajax.php' );

@@ -53,6 +53,25 @@ $login_url = add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writin
 	.dwg-sub { text-wrap: balance; margin: 0 auto 32px; max-width: 400px; color: #566760; font-size: 1rem; line-height: 1.7; }
 	.dwg-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-width: 230px; padding: 16px 38px; border-radius: 14px; background: linear-gradient(135deg, #198030, #0f6023); color: #fff !important; font-size: 1.15rem; font-weight: 700; text-decoration: none; box-shadow: 0 10px 24px rgba(15,96,35,.32); transition: transform .15s ease, box-shadow .15s ease; }
 	.dwg-btn:hover, .dwg-btn:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(15,96,35,.4); }
+	.dwg-or { display: flex; align-items: center; gap: 14px; margin: 26px 0 18px; color: #8a948f; font-size: .95rem; }
+	.dwg-or::before, .dwg-or::after { content: ""; flex: 1; height: 1px; background: #e4e2d8; }
+	.dwg-req-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 230px; padding: 13px 30px; border-radius: 14px; border: 2px solid #198030; background: #fff; color: #14532d; font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background .15s ease; }
+	.dwg-req-btn:hover { background: #eaf4ec; }
+	.dwg-fee { margin: 12px auto 0; max-width: 420px; color: #566760; font-size: .95rem; }
+	.dwg-form { margin: 22px 0 0; padding: 22px 20px; text-align: left; background: #f6faf6; border: 1px solid #cfe5d3; border-radius: 18px; }
+	.dwg-form[hidden] { display: none; }
+	.dwg-form h2 { margin: 0 0 4px; font-size: 1.25rem; color: #032737; }
+	.dwg-form .dwg-form__note { margin: 0 0 14px; color: #566760; font-size: .93rem; }
+	.dwg-field { display: grid; gap: 5px; margin: 0 0 14px; font-weight: 600; font-size: .98rem; color: #1f3a2c; }
+	.dwg-field input, .dwg-field textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid #b9cdbd; border-radius: 10px; background: #fff; font: inherit; font-weight: 400; font-size: 1rem; }
+	.dwg-field input:focus, .dwg-field textarea:focus { outline: 3px solid rgba(25,128,48,.25); border-color: #198030; }
+	.dwg-card [hidden] { display: none !important; }
+	.dwg-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+	.dwg-send { width: 100%; padding: 15px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #198030, #0f6023); color: #fff; font: inherit; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+	.dwg-send[disabled] { opacity: .6; cursor: wait; }
+	.dwg-msg { margin: 12px 0 0; padding: 11px 14px; border-radius: 10px; font-size: .97rem; }
+	.dwg-msg.is-ok { background: #e6f5e9; color: #14532d; border: 1px solid #a6d4af; }
+	.dwg-msg.is-bad { background: #fdecec; color: #8a1c14; border: 1px solid #f0b4ae; }
 	@media (max-width: 520px) { .dwg-card { padding: 44px 22px 34px; border-radius: 22px; } .dwg-btn { width: 100%; min-width: 0; } }
 </style>
 
@@ -65,6 +84,39 @@ $login_url = add_query_arg( 'redirect_to', rawurlencode( home_url( '/deed-writin
 		<p class="dwg-lead"><?php esc_html_e( 'দলিল লেখার জন্য লগইন করুন।', 'sojib68' ); ?></p>
 		<p class="dwg-sub"><?php esc_html_e( 'শুধু দলিল লেখক ও অফিসের অনুমোদিত কর্মীরা এই সিস্টেম ব্যবহার করতে পারেন।', 'sojib68' ); ?></p>
 		<a class="dwg-btn" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'লগইন করুন', 'sojib68' ); ?> <span aria-hidden="true">→</span></a>
+
+		<div class="dwg-or"><?php esc_html_e( 'অথবা', 'sojib68' ); ?></div>
+		<button type="button" class="dwg-req-btn" id="dwg-open"><?php esc_html_e( 'এই সেবা ব্যবহার করতে অনুরোধ পাঠান', 'sojib68' ); ?></button>
+		<p class="dwg-fee"><?php esc_html_e( 'সেবা ব্যবহারে সার্ভিস চার্জ প্রযোজ্য।', 'sojib68' ); ?></p>
+
+		<form class="dwg-form" id="dwg-form" hidden novalidate>
+			<h2><?php esc_html_e( 'অ্যাক্সেসের অনুরোধ', 'sojib68' ); ?></h2>
+			<p class="dwg-form__note"><?php esc_html_e( 'নিচের তথ্য দিন। আমরা দেখে অনুমোদন দিলে আপনার ইমেইলে পাসওয়ার্ড সেট করার লিঙ্ক যাবে। সেবা ব্যবহারে সার্ভিস চার্জ প্রযোজ্য।', 'sojib68' ); ?></p>
+			<label class="dwg-field"><?php esc_html_e( 'নাম', 'sojib68' ); ?><input type="text" name="name" autocomplete="name" required></label>
+			<label class="dwg-field"><?php esc_html_e( 'পূর্ণ ঠিকানা', 'sojib68' ); ?><textarea name="address" rows="3" autocomplete="street-address" required></textarea></label>
+			<label class="dwg-field"><?php esc_html_e( 'মোবাইল নম্বর', 'sojib68' ); ?><input type="tel" name="mobile" inputmode="tel" autocomplete="tel" placeholder="01XXXXXXXXX" required></label>
+			<label class="dwg-field"><?php esc_html_e( 'ইমেইল', 'sojib68' ); ?><input type="email" name="email" autocomplete="email" required></label>
+			<div class="dwg-hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+			<button type="submit" class="dwg-send" id="dwg-send"><?php esc_html_e( 'অনুরোধ পাঠান', 'sojib68' ); ?></button>
+			<p class="dwg-msg" id="dwg-msg" hidden></p>
+		</form>
+		<script>
+		( function () {
+			var open = document.getElementById( 'dwg-open' ), form = document.getElementById( 'dwg-form' ), msg = document.getElementById( 'dwg-msg' ), send = document.getElementById( 'dwg-send' );
+			if ( ! open || ! form ) { return; }
+			open.addEventListener( 'click', function () { form.hidden = ! form.hidden; if ( ! form.hidden ) { form.querySelector( 'input' ).focus(); form.scrollIntoView( { behavior: 'smooth', block: 'center' } ); } } );
+			function say( t, ok ) { msg.textContent = t; msg.hidden = ! t; msg.className = 'dwg-msg ' + ( ok ? 'is-ok' : 'is-bad' ); }
+			form.addEventListener( 'submit', function ( e ) {
+				e.preventDefault();
+				var fd = new FormData( form ); fd.append( 'action', 'sojib68_dw_request' );
+				send.disabled = true; say( 'পাঠানো হচ্ছে…', true );
+				fetch( <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, { method: 'POST', body: fd, credentials: 'same-origin' } ).then( function ( r ) { return r.json(); } ).then( function ( res ) {
+					if ( res && res.success ) { say( res.data.message, true ); form.reset(); open.hidden = true; [].forEach.call( form.querySelectorAll( '.dwg-field, .dwg-send, .dwg-form__note, h2' ), function ( el ) { el.hidden = true; } ); }
+					else { say( ( res && res.data && res.data.message ) || 'পাঠানো যায়নি। আবার চেষ্টা করুন।', false ); send.disabled = false; }
+				}, function () { say( 'সংযোগ সমস্যা। আবার চেষ্টা করুন।', false ); send.disabled = false; } );
+			} );
+		}() );
+		</script>
 	</section>
 </main>
 
