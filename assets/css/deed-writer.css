@@ -331,3 +331,7 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .dw-page--tool .df-h { font-size: 19px; }
 .dw-page--tool .pv-paper { font-size: 14.5px; }
 .dw-page--tool .pv-paper table { font-size: 14px; }
+
+/* output-only boxes (words, totals): plainly "results", not inputs */
+.df-wd--out textarea { padding: 6px 8px !important; cursor: default; resize: none !important; background: #eef6ef !important; border: 1px solid #d3e3d6 !important; color: #14532d; font-weight: 600; height: auto; min-height: 34px; overflow: hidden; }
+.df-wd--out textarea:focus { outline: none !important; }

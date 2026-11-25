@@ -366,7 +366,14 @@
 	}
 
 	/** words box with the ↺ button inside it */
-	function wbox( key, scope ) { return '<div class="df-wd">' + ainp( key, scope, 1 ) + reset( key, scope ) + '</div>'; }
+	/** output-only box: shows the words / totals worked out from the number boxes; it cannot be typed in */
+	function wbox( key, scope ) { return '<div class="df-wd df-wd--out"><textarea data-auto="' + ( scope || 'f.o' ) + '.' + key + '" rows="1" readonly tabindex="-1" title="নিজে নিজে হয় — এখানে লেখা যায় না"></textarea></div>'; }
+	/** manual texts typed here by older versions are dropped, so the output always follows the numbers */
+	function dropOutputOverrides() {
+		( S.f.khatians || [] ).forEach( function ( k ) { ( k.dags || [] ).forEach( function ( d ) { if ( d.o ) { delete d.o.rs_text; delete d.o.total_text; delete d.o.transferred_text; } } ); } );
+		( S.f.lands || [] ).forEach( function ( l ) { if ( l.o ) { delete l.o.area_text; delete l.o.price_text; } } );
+		if ( S.f.o ) { delete S.f.o.area_text; delete S.f.o.price_text; }
+	}
 	function boundSets() {
 		var many = ( S.f.bounds || [] ).length > 1;
 		return ( S.f.bounds || [] ).map( function ( b, i ) {
@@ -952,6 +959,7 @@
 	/* test hook */
 	window.sojib68DwDebug = { words: words, lakh: lakh, areaText: areaText, priceText: priceText, banglaDate: banglaDate, fmtNid: fmtNid, state: S, compute: compute };
 
+	dropOutputOverrides();
 	render();
 	if ( S.id ) { statusText( 'খোলা হয়েছে — যা বদলাবেন নিজে নিজে সেভ হবে', 'is-ok' ); lastSaved = JSON.stringify( payload().data ); }
 	if ( loadedFilled ) { lastSaved = ''; schedule(); }
