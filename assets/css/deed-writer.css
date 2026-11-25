@@ -308,9 +308,8 @@ mark.ok { background: #d9f0dd; border-bottom: 2px solid #198030; }
 .df-sched td input[data-p]:placeholder-shown { background: #fffdf3; border-style: dashed; }
 .df-wd textarea { background: #f2f8f2; font-size: 15px; }
 
-/* Plain, even-stroke Bangla (closest to the Bijoy/SutonnyMJ look) for the whole deed tool.
-   A PC that has SutonnyOMJ / SolaimanLipi / Siyam Rupali uses it; otherwise Noto Sans Bengali is loaded. */
-:root { --dw-font: 'SutonnyOMJ', 'SolaimanLipi', 'Siyam Rupali', 'Kalpurush', 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif; }
+/* One clear, self-hosted Bangla font (Noto Sans Bengali) for the whole deed tool, the same on every PC. */
+:root { --dw-font: 'DW Bangla', 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif; }
 .dw-page--tool, .dw-page--tool *:not(svg):not(path), .dw-tpl-dlg, .dw-tpl-dlg *, .dw-imp-box *, .pv-paper, .pv-paper *, .dw-lock, .dw-stats, .dw-stats * {
 	font-family: var(--dw-font) !important; letter-spacing: 0 !important; font-feature-settings: normal;
 }
