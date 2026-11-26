@@ -1799,6 +1799,39 @@ function sojib68_office_render_period_stats() {
 			);
 			?>
 		</div>
+		<?php
+		// Why the yearly figure can differ from the all-time total: show exactly which entries fall outside the year.
+		$outside = sojib68_office_outside_year_rows( $y_year );
+		if ( $outside ) :
+			$o_in  = 0;
+			$o_out = 0;
+			foreach ( $outside as $o ) {
+				'income' === $o->kind ? $o_in += (int) $o->amount : $o_out += (int) $o->amount;
+			}
+			?>
+			<details class="period-outside">
+				<summary>
+					<?php
+					/* translators: 1: year, 2: number of rows */
+					echo esc_html( sprintf( __( '%1$s সালের বাইরের আয়-ব্যয় (%2$s টি এন্ট্রি) — মোট হিসাবের সঙ্গে না মেলার কারণ', 'sojib68' ), sojib68_bn_digits( $y_year ), sojib68_bn_digits( count( $outside ) ) ) );
+					?>
+				</summary>
+				<p class="period-outside__note"><?php echo esc_html( sprintf( __( 'এই এন্ট্রিগুলো সব-সময়ের মোটে আছে, কিন্তু %1$s সালের হিসাবে ধরা হয়নি, কারণ এগুলোর তারিখ অন্য সালের। আয় মোট ৳ %2$s, ব্যয় মোট ৳ %3$s। তারিখ ভুল থাকলে দলিল খুলে ঠিক করুন।', 'sojib68' ), sojib68_bn_digits( $y_year ), sojib68_poysha_to_display( $o_in ), sojib68_poysha_to_display( $o_out ) ) ); ?></p>
+				<table class="office-table period-outside__table">
+					<thead><tr><th><?php esc_html_e( 'ধরন', 'sojib68' ); ?></th><th><?php esc_html_e( 'তারিখ (ধরা)', 'sojib68' ); ?></th><th><?php esc_html_e( 'টাকা', 'sojib68' ); ?></th><th><?php esc_html_e( 'দলিল', 'sojib68' ); ?></th></tr></thead>
+					<tbody>
+					<?php foreach ( $outside as $o ) : ?>
+						<tr>
+							<td><?php echo 'income' === $o->kind ? esc_html__( 'আয়', 'sojib68' ) : esc_html__( 'ব্যয়', 'sojib68' ); ?></td>
+							<td><?php echo esc_html( $o->used_date ); ?><?php echo $o->own_date ? '' : ' <small>(এন্ট্রির দিন)</small>'; // phpcs:ignore ?></td>
+							<td><?php echo sojib68_money_html( $o->amount ); // phpcs:ignore ?></td>
+							<td><a href="<?php echo esc_url( add_query_arg( 'id', (int) $o->deed_id, home_url( '/' . SOJIB68_OFFICE_BASE . '/entry-new' ) ) ); ?>"><?php echo esc_html( $o->deed_no ? '#' . $o->deed_no : ( $o->serial_no ? 'ক্রমিক ' . $o->serial_no : 'দলিল ' . (int) $o->deed_id ) ); ?></a></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			</details>
+		<?php endif; ?>
 	</section>
 	<?php
 }

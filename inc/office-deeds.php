@@ -551,11 +551,10 @@ function sojib68_deed_replace_receipts( $deed_id, $rows ) {
 	return true;
 }
 
-/** Date used for an amount entered without a date: the deed's registration date, else today. */
+/** Date used for an amount entered without a date: the day it is entered (today). */
 function sojib68_deed_default_entry_date( $deed_id ) {
 	global $wpdb;
-	$reg = $wpdb->get_var( $wpdb->prepare( 'SELECT reg_date FROM ' . sojib68_deeds_table( 'deeds' ) . ' WHERE id = %d', $deed_id ) );
-	return $reg ? $reg : current_time( 'Y-m-d' );
+	return current_time( 'Y-m-d' );
 }
 
 function sojib68_deed_replace_expenses( $deed_id, $rows ) {
@@ -1110,14 +1109,37 @@ function sojib68_bn_month_label( $month_num ) {
 /** Deeds/receipts/expenses for one calendar year, as raw rows (one SQL round trip each). */
 /**
  * The date an income / expense counts in. Rows saved without a date (the quick "আদায় হয়েছে" and খরচ boxes
- * have no date field) fall back to the deed's registration date, then to the day the deed was entered —
- * otherwise they would be invisible in every monthly / yearly total.
+ * have no date field) count on the day the deed was ENTERED — that is when the money was recorded, and it keeps
+ * the monthly / yearly totals equal to the all-time total. (The deed's registration date can be years earlier.)
  */
 function sojib68_receipt_date_sql() {
-	return 'COALESCE(r.received_date, d.reg_date, DATE(d.created_at))';
+	return 'COALESCE(r.received_date, DATE(d.created_at))';
 }
 function sojib68_expense_date_sql() {
-	return 'COALESCE(e.paid_date, d.reg_date, DATE(d.created_at))';
+	return 'COALESCE(e.paid_date, DATE(d.created_at))';
+}
+
+/**
+ * Income / expense rows that are NOT inside $year, with the reason, so a total that differs from the
+ * yearly figure can be traced to the exact entries. Legacy (পুরাতন হিসাব) deeds are left out, as in the totals.
+ */
+function sojib68_office_outside_year_rows( $year ) {
+	global $wpdb;
+	$deeds    = sojib68_deeds_table( 'deeds' );
+	$receipts = sojib68_deeds_table( 'deed_receipts' );
+	$expenses = sojib68_deeds_table( 'deed_expenses' );
+	$like     = (int) $year . '-%';
+	$rd       = sojib68_receipt_date_sql();
+	$ed       = sojib68_expense_date_sql();
+	$sql      = "SELECT 'income' AS kind, d.id AS deed_id, d.deed_no, d.serial_no, r.amount_poysha AS amount, $rd AS used_date, r.received_date AS own_date
+		FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id
+		WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND r.amount_poysha <> 0 AND $rd NOT LIKE %s
+		UNION ALL
+		SELECT 'expense', d.id, d.deed_no, d.serial_no, e.amount_poysha, $ed, e.paid_date
+		FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id
+		WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND e.amount_poysha <> 0 AND $ed NOT LIKE %s
+		ORDER BY 6 DESC, 2 DESC LIMIT 60";
+	return (array) $wpdb->get_results( $wpdb->prepare( $sql, $like, $like ) );
 }
 
 function sojib68_office_report_raw_rows( $year ) {
