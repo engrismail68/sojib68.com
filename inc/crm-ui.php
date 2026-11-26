@@ -316,6 +316,15 @@ function sojib68_crm_render_idle_alert( $scope, $show_empty = false ) {
 	$staff  = sojib68_crm_assignable_users();
 	$alerts = count( array_filter( $idle, function ( $w ) { return 'alert' === $w['idle_level']; } ) );
 	$level  = $alerts ? 'alert' : 'warn';
+	$a_note = isset( $_GET['crm_notice'] ) ? sanitize_key( wp_unslash( $_GET['crm_notice'] ) ) : '';
+	if ( 'assigned' === $a_note ) {
+		echo '<div class="crm-notice crm-notice--ok">' . esc_html__( 'দায়িত্ব দেওয়া হয়েছে।', 'sojib68' ) . '</div>';
+	} elseif ( 'assign_error' === $a_note ) {
+		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'দায়িত্ব দেওয়া যায়নি — আবার চেষ্টা করুন।', 'sojib68' ) . '</div>';
+	}
+	if ( sojib68_crm_is_admin() && count( $staff ) < 2 ) {
+		echo '<div class="crm-notice">' . esc_html__( 'এখন দায়িত্ব দেওয়ার মতো শুধু আপনি (admin) আছেন। অন্য কাউকে দায়িত্ব দিতে wp-admin → Users → Add New থেকে "CRM Staff" রোলে একজন ইউজার বানান।', 'sojib68' ) . '</div>';
+	}
 	?>
 	<div class="crm-idle crm-idle--<?php echo esc_attr( $level ); ?>" role="alert">
 		<div class="crm-idle__head">
@@ -349,7 +358,22 @@ function sojib68_crm_render_idle_alert( $scope, $show_empty = false ) {
 						<?php echo esc_html( $w['customer_name'] ? $w['customer_name'] : $w['customer_phone'] ); ?>
 						<em><?php echo esc_html( ( $types[ $w['work_type'] ] ?? $w['work_type'] ) . ' · ' . sojib68_crm_work_stage_label( $w ) ); ?></em>
 					</span>
-					<?php if ( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ) : ?>
+					<?php if ( sojib68_crm_is_admin() ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-idle__assign">
+							<input type="hidden" name="action" value="sojib68_crm_assign">
+							<?php wp_nonce_field( 'sojib68_crm_assign' ); ?>
+							<input type="hidden" name="kind" value="work">
+							<input type="hidden" name="id" value="<?php echo (int) $w['id']; ?>">
+							<input type="hidden" name="back" value="<?php echo esc_attr( home_url( '/' . SOJIB68_CRM_BASE . '/notifications' ) ); ?>">
+							<select name="user" class="<?php echo empty( $w['assigned_to'] ) ? 'is-none' : ''; ?>" aria-label="<?php esc_attr_e( 'দায়িত্ব দিন', 'sojib68' ); ?>">
+								<option value="0"><?php echo empty( $w['assigned_to'] ) ? esc_html__( '— দায়িত্ব দেওয়া হয়নি —', 'sojib68' ) : esc_html__( '(কেউ নয়)', 'sojib68' ); ?></option>
+								<?php foreach ( $staff as $uid => $uname ) : ?>
+									<option value="<?php echo (int) $uid; ?>" <?php selected( (int) $w['assigned_to'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( 'দিন', 'sojib68' ); ?></button>
+						</form>
+					<?php elseif ( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ) : ?>
 						<span class="crm-idle__who"><?php echo esc_html( $staff[ $w['assigned_to'] ] ); ?></span>
 					<?php else : ?>
 						<span class="crm-idle__who crm-idle__who--none"><?php esc_html_e( 'দায়িত্ব দেওয়া হয়নি', 'sojib68' ); ?></span>

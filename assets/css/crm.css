@@ -1266,3 +1266,7 @@
 .crm-presets a { padding: 4px 12px; border-radius: 999px; border: 1px solid #b8cbbd; background: #fff; color: #14532d; text-decoration: none; font-weight: 600; }
 .crm-presets a.is-on, .crm-presets a:hover { background: #14532d; color: #fff; border-color: #14532d; }
 .crm-presets small { color: #6b7a75; }
+
+.crm-idle__assign { display: inline-flex; gap: 6px; align-items: center; }
+.crm-idle__assign select { padding: 5px 8px; border: 1px solid #d3d9d4; border-radius: 8px; font: inherit; font-size: 13px; background: #fff; max-width: 170px; }
+.crm-idle__assign select.is-none { border-color: #FDA4AF; background: #FFF1F3; color: #BE123C; font-weight: 600; }
