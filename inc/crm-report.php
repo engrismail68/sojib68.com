@@ -109,7 +109,7 @@ function sojib68_crm_render_leads_report() {
 	.head { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 3px solid var(--g); padding-bottom: 14px; margin-bottom: 16px; position: relative; }
 	.head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 1px; background: #b84a3c; }
 	.brand { display: flex; align-items: center; gap: 16px; }
-	.brand__mark { height: 76px; width: auto; display: block; }
+	.brand__mark { height: 92px; width: 92px; object-fit: contain; display: block; }
 	.brand__name { font-size: 1.85rem; font-weight: 800; line-height: 1.15; color: var(--g); letter-spacing: .2px; }
 	.brand__title { margin-top: 2px; font-size: .95rem; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #8a2b21; }
 	.brand__addr { margin-top: 4px; font-size: .86rem; color: #444; }
@@ -154,7 +154,7 @@ function sojib68_crm_render_leads_report() {
 <div class="sheet">
 	<div class="head">
 		<div class="brand">
-			<img class="brand__mark" src="<?php echo esc_url( get_theme_file_uri( 'assets/images/logo-mark.png' ) ); ?>" alt="">
+			<img class="brand__mark" src="<?php echo esc_url( get_theme_file_uri( 'assets/images/logo-ramganj-bhumi.jpg' ) ); ?>" alt="রামগঞ্জ ভূমি কনসালটেন্সি">
 			<div class="brand__txt">
 				<div class="brand__name">Ismail Hossain Sojib</div>
 				<div class="brand__title">Land &amp; IT Consultant</div>
