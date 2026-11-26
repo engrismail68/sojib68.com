@@ -518,7 +518,8 @@ function sojib68_deed_replace_receipts( $deed_id, $rows ) {
 		return false;
 	}
 
-	$order = 0;
+	$default_date = sojib68_deed_default_entry_date( $deed_id );
+	$order       = 0;
 	foreach ( (array) $rows as $row ) {
 		$date   = ! empty( $row['received_date'] ) ? $row['received_date'] : null;
 		$amount = sojib68_money_to_poysha( $row['amount'] ?? '' );
@@ -527,6 +528,9 @@ function sojib68_deed_replace_receipts( $deed_id, $rows ) {
 
 		if ( null === $date && null === $amount && '' === $method && '' === $note ) {
 			continue;
+		}
+		if ( null === $date ) {
+			$date = $default_date; // a plain amount with no date still has to count in a month
 		}
 
 		$values = array(
@@ -547,9 +551,26 @@ function sojib68_deed_replace_receipts( $deed_id, $rows ) {
 	return true;
 }
 
+/** Date used for an amount entered without a date: the deed's registration date, else today. */
+function sojib68_deed_default_entry_date( $deed_id ) {
+	global $wpdb;
+	$reg = $wpdb->get_var( $wpdb->prepare( 'SELECT reg_date FROM ' . sojib68_deeds_table( 'deeds' ) . ' WHERE id = %d', $deed_id ) );
+	return $reg ? $reg : current_time( 'Y-m-d' );
+}
+
 function sojib68_deed_replace_expenses( $deed_id, $rows ) {
 	global $wpdb;
 	$table = sojib68_deeds_table( 'deed_expenses' );
+
+	// The four fixed expense boxes are re-saved on every edit: keep the date each one already had.
+	$old_dates = array();
+	foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT category, paid_date FROM $table WHERE deed_id = %d AND paid_date IS NOT NULL ORDER BY sort_order", $deed_id ) ) as $o ) {
+		$key = (string) $o->category;
+		if ( ! isset( $old_dates[ $key ] ) ) {
+			$old_dates[ $key ] = $o->paid_date;
+		}
+	}
+	$default_date = sojib68_deed_default_entry_date( $deed_id );
 
 	if ( false === $wpdb->delete( $table, array( 'deed_id' => $deed_id ) ) && $wpdb->last_error ) {
 		return false;
@@ -566,6 +587,9 @@ function sojib68_deed_replace_expenses( $deed_id, $rows ) {
 
 		if ( '' === $category && '' === $description && null === $amount && null === $paid_date ) {
 			continue;
+		}
+		if ( null === $paid_date ) {
+			$paid_date = isset( $old_dates[ $category ] ) ? $old_dates[ $category ] : $default_date;
 		}
 
 		$values = array(
@@ -1084,6 +1108,18 @@ function sojib68_bn_month_label( $month_num ) {
 }
 
 /** Deeds/receipts/expenses for one calendar year, as raw rows (one SQL round trip each). */
+/**
+ * The date an income / expense counts in. Rows saved without a date (the quick "আদায় হয়েছে" and খরচ boxes
+ * have no date field) fall back to the deed's registration date, then to the day the deed was entered —
+ * otherwise they would be invisible in every monthly / yearly total.
+ */
+function sojib68_receipt_date_sql() {
+	return 'COALESCE(r.received_date, d.reg_date, DATE(d.created_at))';
+}
+function sojib68_expense_date_sql() {
+	return 'COALESCE(e.paid_date, d.reg_date, DATE(d.created_at))';
+}
+
 function sojib68_office_report_raw_rows( $year ) {
 	global $wpdb;
 
@@ -1095,11 +1131,11 @@ function sojib68_office_report_raw_rows( $year ) {
 	return array(
 		'deeds'    => $wpdb->get_results( $wpdb->prepare( "SELECT reg_date, deed_value_poysha FROM $deeds WHERE deleted_at IS NULL AND reg_date LIKE %s", $like ) ),
 		'receipts' => $wpdb->get_results( $wpdb->prepare(
-			"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND r.received_date LIKE %s",
+			'SELECT ' . sojib68_receipt_date_sql() . " AS received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND " . sojib68_receipt_date_sql() . ' LIKE %s',
 			$like
 		) ),
 		'expenses' => $wpdb->get_results( $wpdb->prepare(
-			"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND e.paid_date LIKE %s",
+			'SELECT ' . sojib68_expense_date_sql() . " AS paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND " . sojib68_expense_date_sql() . ' LIKE %s',
 			$like
 		) ),
 	);
@@ -1200,7 +1236,7 @@ function sojib68_office_yearly_stats( $years_back = 6 ) {
 	}
 
 	$receipt_rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT r.received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND r.received_date >= %s",
+		'SELECT ' . sojib68_receipt_date_sql() . " AS received_date, r.amount_poysha FROM $receipts r INNER JOIN $deeds d ON d.id = r.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND " . sojib68_receipt_date_sql() . ' >= %s',
 		$start_year . '-01-01'
 	) );
 	foreach ( $receipt_rows as $row ) {
@@ -1211,7 +1247,7 @@ function sojib68_office_yearly_stats( $years_back = 6 ) {
 	}
 
 	$expense_rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT e.paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND e.paid_date >= %s",
+		'SELECT ' . sojib68_expense_date_sql() . " AS paid_date, e.amount_poysha FROM $expenses e INNER JOIN $deeds d ON d.id = e.deed_id WHERE d.deleted_at IS NULL AND d.is_legacy = 0 AND " . sojib68_expense_date_sql() . ' >= %s',
 		$start_year . '-01-01'
 	) );
 	foreach ( $expense_rows as $row ) {
@@ -1325,7 +1361,7 @@ function sojib68_dues_summary() {
 	$month_collected = (int) $wpdb->get_var( $wpdb->prepare(
 		"SELECT COALESCE(SUM(r.amount_poysha), 0) FROM $receipts r
 		 INNER JOIN $deeds d ON d.id = r.deed_id
-		 WHERE d.deleted_at IS NULL AND r.received_date >= %s",
+		 WHERE d.deleted_at IS NULL AND " . sojib68_receipt_date_sql() . ' >= %s',
 		$month_start
 	) );
 
