@@ -549,8 +549,8 @@ function sojib68_office_render_entry_form() {
 
 		<div class="deed-actionbar">
 			<div class="deed-form-actions">
-				<button type="submit" class="btn btn-primary" data-action="submit"><?php esc_html_e( 'সাবমিট করুন', 'sojib68' ); ?></button>
-				<button type="submit" class="btn btn-outline" data-action="submit-and-new"><?php esc_html_e( 'সংরক্ষণ করে আরেকটি এন্ট্রি', 'sojib68' ); ?></button>
+				<button type="submit" class="btn btn-primary" data-action="submit"><?php echo $deed ? esc_html__( 'আপডেট করুন', 'sojib68' ) : esc_html__( 'সাবমিট করুন', 'sojib68' ); ?></button>
+				<button type="submit" class="btn btn-outline" data-action="submit-and-new"><?php echo $deed ? esc_html__( 'আপডেট করে নতুন এন্ট্রি খুলুন', 'sojib68' ) : esc_html__( 'সংরক্ষণ করে আরেকটি এন্ট্রি', 'sojib68' ); ?></button>
 			</div>
 			<div class="deed-success-actions" hidden>
 				<?php if ( isset( $_GET['from'] ) && 'profit' === $_GET['from'] ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>

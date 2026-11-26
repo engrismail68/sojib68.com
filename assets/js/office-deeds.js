@@ -330,6 +330,10 @@
 	var successActions = form.querySelector( '.deed-success-actions' );
 	var submitButtons = form.querySelectorAll( 'button[type="submit"]' );
 	var lastClickedAction = 'submit';
+	// Editing an existing deed: "আপডেট করুন" saves THIS record in place (deed_id is always sent, so no copy is ever
+	// made), and the buttons stay available for the next change.
+	var idField0 = form.querySelector( '[name="deed_id"]' );
+	var editingExisting = !! ( idField0 && parseInt( idField0.value, 10 ) > 0 );
 
 	submitButtons.forEach( function ( btn ) {
 		btn.addEventListener( 'click', function () {
@@ -540,10 +544,17 @@
 						return;
 					}
 
-					if ( formActions ) { formActions.hidden = true; }
-					if ( successActions ) { successActions.hidden = false; }
 					var deedIdField = form.querySelector( '[name="deed_id"]' );
 					if ( deedIdField ) { deedIdField.value = res.data.deed_id; }
+					if ( editingExisting ) {
+						// stay on the edit page; the same record can be updated again
+						submitButtons.forEach( function ( b ) { b.disabled = false; } );
+						window.scrollTo( { top: 0, behavior: 'smooth' } );
+						showDonePopup( info, false );
+						return;
+					}
+					if ( formActions ) { formActions.hidden = true; }
+					if ( successActions ) { successActions.hidden = false; }
 					showDonePopup( info, true );
 				} else {
 					showNotice( 'error', res.data && res.data.message ? res.data.message : 'সংরক্ষণ করা যায়নি।' );
