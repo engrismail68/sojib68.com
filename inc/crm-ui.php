@@ -438,8 +438,20 @@ function sojib68_crm_render_leads_table() {
 		<input type="date" name="date_to" value="<?php echo esc_attr( $args['date_to'] ); ?>" title="<?php esc_attr_e( 'তারিখ পর্যন্ত', 'sojib68' ); ?>">
 		<button type="submit" class="btn btn-outline btn-sm"><?php echo sojib68_crm_icon( 'filter', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'ফিল্টার', 'sojib68' ); ?></button>
 		<a href="<?php echo esc_url( $base_url ); ?>" class="btn btn-outline btn-sm"><?php esc_html_e( 'Clear', 'sojib68' ); ?></a>
+		<button type="submit" class="btn btn-outline btn-sm" formaction="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/leads-report' ) ); ?>" formtarget="_blank" title="<?php esc_attr_e( 'এই ফিল্টারের লিডগুলোর প্রিন্ট-উপযোগী রিপোর্ট (কোম্পানিকে মাসিক/বার্ষিক রিপোর্ট দিতে)', 'sojib68' ); ?>">🖨 <?php esc_html_e( 'রিপোর্ট প্রিন্ট', 'sojib68' ); ?></button>
 		<a href="<?php echo esc_url( home_url( '/' . SOJIB68_CRM_BASE . '/entry-new' ) ); ?>" class="btn btn-primary btn-sm"><?php echo sojib68_crm_icon( 'plus', 16 ); // phpcs:ignore ?> <?php esc_html_e( 'নতুন লিড', 'sojib68' ); ?></a>
 	</form>
+
+	<?php
+	$keep_q = array_filter( array( 'q' => $args['q'], 'service_type' => $args['service_type'], 'source' => $args['source'], 'assigned_to' => $args['assigned_to'], 'status' => $args['status'] ) );
+	?>
+	<p class="crm-presets">
+		<span><?php esc_html_e( 'দ্রুত সময়:', 'sojib68' ); ?></span>
+		<?php foreach ( sojib68_crm_period_presets() as $label => $range ) : ?>
+			<a href="<?php echo esc_url( add_query_arg( array_merge( $keep_q, array( 'date_from' => $range[0], 'date_to' => $range[1] ) ), $base_url ) ); ?>" class="<?php echo ( $args['date_from'] === $range[0] && $args['date_to'] === $range[1] ) ? 'is-on' : ''; ?>"><?php echo esc_html( $label ); ?></a>
+		<?php endforeach; ?>
+		<small><?php esc_html_e( '— সময় বেছে "🖨 রিপোর্ট প্রিন্ট" চাপলে কোম্পানির জন্য মাসিক/বার্ষিক রিপোর্ট হয়', 'sojib68' ); ?></small>
+	</p>
 
 	<?php if ( empty( $result['rows'] ) ) : ?>
 		<p class="crm-empty"><?php esc_html_e( 'কোনো লিড পাওয়া যায়নি।', 'sojib68' ); ?></p>

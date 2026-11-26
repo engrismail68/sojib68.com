@@ -1261,3 +1261,8 @@
 .crm-work-card.is-active {
 	outline: 2px solid var(--crm-green, #198030);
 }
+
+.crm-presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; font-size: .88rem; }
+.crm-presets a { padding: 4px 12px; border-radius: 999px; border: 1px solid #b8cbbd; background: #fff; color: #14532d; text-decoration: none; font-weight: 600; }
+.crm-presets a.is-on, .crm-presets a:hover { background: #14532d; color: #fff; border-color: #14532d; }
+.crm-presets small { color: #6b7a75; }

@@ -179,6 +179,12 @@ function sojib68_crm_router() {
 			exit;
 		}
 
+		// Printable lead report (same filters as the সব লিড list).
+		if ( isset( $segments[1] ) && 'leads-report' === $segments[1] ) {
+			sojib68_crm_render_leads_report();
+			exit;
+		}
+
 		$page_key = isset( $segments[1] ) && '' !== $segments[1] ? $segments[1] : 'dashboard';
 		sojib68_crm_render_dashboard( $page_key );
 		exit;
