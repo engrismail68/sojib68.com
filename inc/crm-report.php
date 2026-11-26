@@ -106,11 +106,16 @@ function sojib68_crm_render_leads_report() {
 	.bar .btn--p { background: var(--g); color: #fff; }
 	.bar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 	.sheet { max-width: 1000px; margin: 18px auto; background: #fff; padding: 28px 34px; box-shadow: 0 2px 14px rgba(0,0,0,.12); }
-	.head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 3px solid var(--g); padding-bottom: 12px; margin-bottom: 14px; }
-	.head h2 { margin: 0; font-size: 1.35rem; color: var(--g); }
+	.head { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 3px solid var(--g); padding-bottom: 14px; margin-bottom: 16px; position: relative; }
+	.head::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 1px; background: #b84a3c; }
+	.brand { display: flex; align-items: center; gap: 16px; }
+	.brand__mark { height: 76px; width: auto; display: block; }
+	.brand__name { font-size: 1.85rem; font-weight: 800; line-height: 1.15; color: var(--g); letter-spacing: .2px; }
+	.brand__title { margin-top: 2px; font-size: .95rem; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: #8a2b21; }
+	.brand__addr { margin-top: 4px; font-size: .86rem; color: #444; }
 	.head p { margin: 2px 0; font-size: .92rem; color: #444; }
-	.head .ph { text-align: right; }
-	h1 { margin: 0 0 4px; font-size: 1.5rem; }
+	.head .ph { text-align: right; white-space: nowrap; }
+	h1 { margin: 12px 0 4px; font-size: 1.5rem; }
 	.meta { margin: 0 0 14px; font-size: .95rem; color: #333; }
 	.meta b { color: #000; }
 	.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 16px; }
@@ -122,7 +127,7 @@ function sojib68_crm_render_leads_report() {
 	th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; font-size: .92rem; }
 	th { background: #eaf2ec; font-weight: 700; }
 	td.n, th.n { text-align: right; white-space: nowrap; }
-	h3 { margin: 16px 0 6px; font-size: 1.05rem; color: var(--g); }
+	h3 { margin: 16px 0 6px; font-size: 1.05rem; color: var(--g); break-after: avoid; page-break-after: avoid; }
 	.small { font-size: .82rem; color: #666; }
 	.hide-phone .c-phone, .hide-name .c-name, .hide-list .list-sec { display: none; }
 	.foot { margin-top: 18px; font-size: .8rem; color: #666; border-top: 1px solid var(--line); padding-top: 8px; }
@@ -148,12 +153,16 @@ function sojib68_crm_render_leads_report() {
 
 <div class="sheet">
 	<div class="head">
-		<div>
-			<h2><?php echo esc_html( $office['name'] ); ?></h2>
-			<p><?php echo esc_html( $office['person'] ); ?></p>
+		<div class="brand">
+			<img class="brand__mark" src="<?php echo esc_url( get_theme_file_uri( 'assets/images/logo-mark.png' ) ); ?>" alt="">
+			<div class="brand__txt">
+				<div class="brand__name">Ismail Hossain Sojib</div>
+				<div class="brand__title">Land &amp; IT Consultant</div>
+				<div class="brand__addr">Address: City Plaza, Lift-3, Ramganj, Lakshmipur.</div>
+			</div>
 		</div>
 		<div class="ph">
-			<?php if ( ! empty( $office['phone'] ) ) : ?><p>যোগাযোগ: <b><?php echo esc_html( $office['phone'] ); ?></b></p><?php endif; ?>
+			<?php if ( ! empty( $office['phone'] ) ) : ?><p>Mobile: <b><?php echo esc_html( $office['phone'] ); ?></b></p><?php endif; ?>
 			<p>রিপোর্ট তৈরি: <?php echo esc_html( mysql2date( 'd M, Y', current_time( 'mysql' ) ) ); ?></p>
 		</div>
 	</div>
