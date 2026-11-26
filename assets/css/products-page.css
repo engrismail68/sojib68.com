@@ -1,0 +1,10 @@
+.prd-page{padding:56px 0 72px}
+.prd-head{max-width:720px;margin-bottom:28px}
+.prd-head h1{margin:6px 0 10px}
+.prd-lead{color:#4b5a50}
+.prd-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.prd-card{background:#fff;border:1px solid #dfe6df;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px}
+.prd-card h2{font-size:1.1rem;margin:0}
+.prd-ico{font-size:1.8rem}
+.prd-soon{align-self:flex-start;font-size:.8rem;font-weight:700;color:#14532d;background:#e8f3ec;border-radius:999px;padding:3px 10px}
+.prd-cta{margin-top:28px}
