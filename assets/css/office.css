@@ -639,10 +639,11 @@
 .period-card__head { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
 .period-card__icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--tone-bg, #eee); color: var(--tone, #333); }
 .period-card__head h3 { margin: 0; font-size: .96rem; color: var(--o-ink); }
-.period-card__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.period-card__grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .period-card__grid > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .period-card__grid span { font-size: .72rem; color: var(--o-muted); font-weight: 600; }
 .period-card__grid strong { font-family: 'Figtree', sans-serif; font-size: 1rem; color: var(--o-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .period-card__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 420px) { .period-card__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* ---------- Chronological serial number (ক্রমিক নং) ---------- */
@@ -814,3 +815,10 @@
 .deed-quickfilter a.is-incomplete.is-active { background: #c0392b; border-color: #c0392b; color: #fff; }
 .deed-quickfilter a.is-incomplete.is-active em { background: rgba(255, 255, 255, .22); color: #fff; }
 @media (max-width: 480px) { .deed-quickfilter a { flex: 1; justify-content: center; } }
+
+/* period card: profit tile */
+.period-card__grid > .period-profit { padding: 6px 10px; border-radius: 10px; }
+.period-card__grid > .period-profit.is-gain { background: #e6f5e9; }
+.period-card__grid > .period-profit.is-gain strong { color: #14532d; }
+.period-card__grid > .period-profit.is-loss { background: #fdecec; }
+.period-card__grid > .period-profit.is-loss strong { color: #b42318; }

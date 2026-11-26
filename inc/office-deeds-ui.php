@@ -1728,6 +1728,7 @@ function sojib68_office_render_period_card( $tone, $icon, $title, $stats ) {
 			<div><span><?php esc_html_e( 'মূল্য', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['deed_value'] ); // phpcs:ignore ?></strong></div>
 			<div><span><?php esc_html_e( 'আয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['collected'] ); // phpcs:ignore ?></strong></div>
 			<div><span><?php esc_html_e( 'ব্যয়', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['expenses'] ); // phpcs:ignore ?></strong></div>
+			<div class="period-profit <?php echo (int) $stats['profit'] < 0 ? 'is-loss' : 'is-gain'; ?>"><span><?php esc_html_e( 'প্রফিট', 'sojib68' ); ?></span><strong><?php echo sojib68_money_html( $stats['profit'] ); // phpcs:ignore ?></strong></div>
 		</div>
 	</div>
 	<?php
