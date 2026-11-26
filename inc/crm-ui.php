@@ -323,7 +323,7 @@ function sojib68_crm_render_idle_alert( $scope, $show_empty = false ) {
 		echo '<div class="crm-notice crm-notice--error">' . esc_html__( 'দায়িত্ব দেওয়া যায়নি — আবার চেষ্টা করুন।', 'sojib68' ) . '</div>';
 	}
 	if ( sojib68_crm_is_admin() && count( $staff ) < 2 ) {
-		echo '<div class="crm-notice">' . esc_html__( 'এখন দায়িত্ব দেওয়ার মতো শুধু আপনি (admin) আছেন। অন্য কাউকে দায়িত্ব দিতে wp-admin → Users → Add New থেকে "CRM Staff" রোলে একজন ইউজার বানান।', 'sojib68' ) . '</div>';
+		echo '<div class="crm-notice">' . esc_html__( 'এখন দায়িত্ব দেওয়ার মতো শুধু আপনি আছেন। ওপরের "👥 টিমের সদস্যদের নাম" খুলে যারা কাজ করেন তাদের নাম লিখে যোগ করুন, তারপর ফাইলে দায়িত্ব দিন।', 'sojib68' ) . '</div>';
 	}
 	?>
 	<div class="crm-idle crm-idle--<?php echo esc_attr( $level ); ?>" role="alert">
@@ -370,7 +370,9 @@ function sojib68_crm_render_idle_alert( $scope, $show_empty = false ) {
 								<?php foreach ( $staff as $uid => $uname ) : ?>
 									<option value="<?php echo (int) $uid; ?>" <?php selected( (int) $w['assigned_to'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
 								<?php endforeach; ?>
+								<option value="-1"><?php esc_html_e( '➕ নতুন নাম লিখুন…', 'sojib68' ); ?></option>
 							</select>
+							<input type="hidden" name="new_name" value="">
 							<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( 'দিন', 'sojib68' ); ?></button>
 						</form>
 					<?php elseif ( $w['assigned_to'] && isset( $staff[ $w['assigned_to'] ] ) ) : ?>
@@ -1729,6 +1731,7 @@ function sojib68_crm_assignee_cell_html( $row, $staff ) {
 
 function sojib68_crm_render_staff_work() {
 	$is_admin = sojib68_crm_is_admin();
+	sojib68_crm_render_team_panel( home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' ) );
 	$staff    = sojib68_crm_assignable_users();
 	$base_url = home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' );
 
@@ -1842,7 +1845,9 @@ function sojib68_crm_render_staff_work() {
 										<?php foreach ( $staff as $uid => $uname ) : ?>
 											<option value="<?php echo (int) $uid; ?>" <?php selected( $r['assigned_to'], $uid ); ?>><?php echo esc_html( $uname ); ?></option>
 										<?php endforeach; ?>
+										<option value="-1"><?php esc_html_e( '➕ নতুন নাম লিখুন…', 'sojib68' ); ?></option>
 									</select>
+									<input type="hidden" name="new_name" value="">
 									<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দিন', 'sojib68' ); ?></button>
 								</form>
 							<?php else : ?>
@@ -1865,7 +1870,11 @@ function sojib68_crm_handle_assign() {
 	check_admin_referer( 'sojib68_crm_assign' );
 
 	$kind = isset( $_POST['kind'] ) && 'work' === $_POST['kind'] ? 'work' : 'lead';
-	$ok   = sojib68_crm_assign( $kind, isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, isset( $_POST['user'] ) ? (int) $_POST['user'] : 0 );
+	$user = isset( $_POST['user'] ) ? (int) $_POST['user'] : 0;
+	if ( ! empty( $_POST['new_name'] ) ) { // a name typed straight into the box: add to the team, then assign
+		$user = sojib68_crm_team_add( wp_unslash( $_POST['new_name'] ) );
+	}
+	$ok   = sojib68_crm_assign( $kind, isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, $user );
 
 	$back = isset( $_POST['back'] ) ? esc_url_raw( wp_unslash( $_POST['back'] ) ) : '';
 	if ( 0 !== strpos( $back, home_url( '/' . SOJIB68_CRM_BASE . '/' ) ) ) {
@@ -1875,3 +1884,72 @@ function sojib68_crm_handle_assign() {
 	exit;
 }
 add_action( 'admin_post_sojib68_crm_assign', 'sojib68_crm_handle_assign' );
+
+/** Admin: add / rename / delete the names of the people who do the work (no login needed). */
+function sojib68_crm_handle_team() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'এই কাজের অনুমতি নেই।', 'sojib68' ), 403 );
+	}
+	check_admin_referer( 'sojib68_crm_team' );
+	$do = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
+	$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	if ( 'add' === $do ) {
+		sojib68_crm_team_add( isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '' );
+	} elseif ( 'rename' === $do ) {
+		sojib68_crm_team_rename( $id, isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '' );
+	} elseif ( 'delete' === $do ) {
+		sojib68_crm_team_delete( $id );
+	}
+	$back = isset( $_POST['back'] ) ? esc_url_raw( wp_unslash( $_POST['back'] ) ) : '';
+	if ( 0 !== strpos( $back, home_url( '/' . SOJIB68_CRM_BASE . '/' ) ) ) {
+		$back = home_url( '/' . SOJIB68_CRM_BASE . '/staff-work' );
+	}
+	wp_safe_redirect( add_query_arg( 'crm_notice', 'team', $back ) );
+	exit;
+}
+add_action( 'admin_post_sojib68_crm_team', 'sojib68_crm_handle_team' );
+
+/** The "টিমের সদস্য" box (admin only): who can be given work, edited by simply typing names. */
+function sojib68_crm_render_team_panel( $back ) {
+	if ( ! sojib68_crm_is_admin() ) {
+		return;
+	}
+	$team  = sojib68_crm_team_members();
+	$post  = esc_url( admin_url( 'admin-post.php' ) );
+	$nonce = wp_nonce_field( 'sojib68_crm_team', '_wpnonce', true, false );
+	?>
+	<details class="crm-team" <?php echo isset( $_GET['crm_notice'] ) && 'team' === $_GET['crm_notice'] ? 'open' : ''; ?>>
+		<summary><?php esc_html_e( '👥 টিমের সদস্যদের নাম (কাকে দায়িত্ব দেওয়া যাবে) — নাম যোগ, বদল বা মুছুন', 'sojib68' ); ?></summary>
+		<p class="crm-muted"><?php esc_html_e( 'যারা কাজ করেন তাদের নাম এখানে লিখে রাখুন। লগইন বা ইউজার বানানোর দরকার নেই। এই নামগুলো দায়িত্ব দেওয়ার ড্রপডাউনে চলে আসবে।', 'sojib68' ); ?></p>
+		<?php foreach ( $team as $id => $name ) : ?>
+			<form method="post" action="<?php echo $post; // phpcs:ignore ?>" class="crm-team__row">
+				<?php echo $nonce; // phpcs:ignore ?>
+				<input type="hidden" name="action" value="sojib68_crm_team">
+				<input type="hidden" name="id" value="<?php echo (int) $id; ?>">
+				<input type="hidden" name="back" value="<?php echo esc_attr( $back ); ?>">
+				<input type="text" name="name" value="<?php echo esc_attr( $name ); ?>" maxlength="80">
+				<button type="submit" name="do" value="rename" class="btn btn-outline btn-sm"><?php esc_html_e( 'নাম বদলান', 'sojib68' ); ?></button>
+				<button type="submit" name="do" value="delete" class="btn btn-outline btn-sm" onclick="return confirm('<?php echo esc_js( __( 'এই সদস্যকে মুছবেন? যে ফাইলগুলো তাকে দেওয়া ছিল সেগুলোর দায়িত্ব খালি হয়ে যাবে।', 'sojib68' ) ); ?>')"><?php esc_html_e( 'মুছুন', 'sojib68' ); ?></button>
+			</form>
+		<?php endforeach; ?>
+		<form method="post" action="<?php echo $post; // phpcs:ignore ?>" class="crm-team__row crm-team__row--add">
+			<?php echo $nonce; // phpcs:ignore ?>
+			<input type="hidden" name="action" value="sojib68_crm_team">
+			<input type="hidden" name="do" value="add">
+			<input type="hidden" name="back" value="<?php echo esc_attr( $back ); ?>">
+			<input type="text" name="name" placeholder="<?php esc_attr_e( 'নতুন সদস্যের নাম লিখুন', 'sojib68' ); ?>" maxlength="80" required>
+			<button type="submit" class="btn btn-primary btn-sm"><?php esc_html_e( '+ যোগ করুন', 'sojib68' ); ?></button>
+		</form>
+	</details>
+	<script>
+	document.addEventListener( 'change', function ( e ) {
+		var s = e.target.closest && e.target.closest( '.crm-idle__assign select, .crm-assign-form select' );
+		if ( ! s || s.value !== '-1' ) { return; }
+		var n = window.prompt( 'যাকে দায়িত্ব দেবেন তার নাম লিখুন:', '' );
+		if ( n && n.trim() ) { var h = s.form.querySelector( 'input[name="new_name"]' ); if ( h ) { h.value = n.trim(); s.form.submit(); } else { s.selectedIndex = 0; } }
+		else { s.selectedIndex = 0; }
+	} );
+	</script>
+	<?php
+}
+

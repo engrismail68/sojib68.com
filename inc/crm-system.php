@@ -851,6 +851,7 @@ function sojib68_crm_render_section( $page_key ) {
 
 		case 'notifications':
 			ob_start();
+			sojib68_crm_render_team_panel( home_url( '/' . SOJIB68_CRM_BASE . '/notifications' ) );
 			sojib68_crm_render_idle_alert( sojib68_crm_current_user_scope(), true );
 			return ob_get_clean();
 

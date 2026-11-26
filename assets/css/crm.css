@@ -1270,3 +1270,9 @@
 .crm-idle__assign { display: inline-flex; gap: 6px; align-items: center; }
 .crm-idle__assign select { padding: 5px 8px; border: 1px solid #d3d9d4; border-radius: 8px; font: inherit; font-size: 13px; background: #fff; max-width: 170px; }
 .crm-idle__assign select.is-none { border-color: #FDA4AF; background: #FFF1F3; color: #BE123C; font-weight: 600; }
+
+.crm-team { margin: 0 0 14px; background: #fff; border: 1px solid #dfe6df; border-radius: 12px; padding: 10px 14px; }
+.crm-team summary { cursor: pointer; font-weight: 700; color: #14532d; }
+.crm-team__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.crm-team__row input[type=text] { flex: 1 1 220px; max-width: 320px; padding: 7px 10px; border: 1px solid #cfd8d2; border-radius: 8px; font: inherit; }
+.crm-team__row--add { border-top: 1px dashed #dfe6df; padding-top: 10px; }

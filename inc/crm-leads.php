@@ -144,7 +144,60 @@ function sojib68_crm_assignable_users() {
 	foreach ( $users as $u ) {
 		$out[ (int) $u->ID ] = $u->display_name;
 	}
+	// Team members the admin simply typed in (no login): stored with ids from 1,000,001 so they never clash with a WP user id.
+	foreach ( sojib68_crm_team_members() as $id => $name ) {
+		$out[ (int) $id ] = $name;
+	}
 	return $out;
+}
+
+/** Admin-managed names of the people who do the work: id (>= 1000001) => name. */
+function sojib68_crm_team_members() {
+	$t = get_option( 'sojib68_crm_team', array() );
+	return is_array( $t ) ? $t : array();
+}
+
+function sojib68_crm_team_add( $name ) {
+	$name = trim( mb_substr( sanitize_text_field( (string) $name ), 0, 80 ) );
+	if ( '' === $name ) {
+		return 0;
+	}
+	$t = sojib68_crm_team_members();
+	foreach ( $t as $id => $n ) {
+		if ( mb_strtolower( $n ) === mb_strtolower( $name ) ) {
+			return (int) $id; // already there
+		}
+	}
+	$id       = max( 1000000, $t ? max( array_map( 'intval', array_keys( $t ) ) ) : 0 ) + 1;
+	$t[ $id ] = $name;
+	update_option( 'sojib68_crm_team', $t, false );
+	return (int) $id;
+}
+
+function sojib68_crm_team_rename( $id, $name ) {
+	$t    = sojib68_crm_team_members();
+	$name = trim( mb_substr( sanitize_text_field( (string) $name ), 0, 80 ) );
+	if ( ! isset( $t[ (int) $id ] ) || '' === $name ) {
+		return false;
+	}
+	$t[ (int) $id ] = $name;
+	update_option( 'sojib68_crm_team', $t, false );
+	return true;
+}
+
+/** Remove a member; whatever was assigned to them becomes "দায়িত্ব দেওয়া হয়নি" again. */
+function sojib68_crm_team_delete( $id ) {
+	global $wpdb;
+	$id = (int) $id;
+	$t  = sojib68_crm_team_members();
+	if ( ! isset( $t[ $id ] ) ) {
+		return false;
+	}
+	unset( $t[ $id ] );
+	update_option( 'sojib68_crm_team', $t, false );
+	$wpdb->query( $wpdb->prepare( 'UPDATE ' . sojib68_crm_table() . ' SET assigned_to = NULL, assigned_at = NULL WHERE assigned_to = %d', $id ) );
+	$wpdb->query( $wpdb->prepare( 'UPDATE ' . sojib68_crm_works_table() . ' SET assigned_to = NULL, assigned_at = NULL WHERE assigned_to = %d', $id ) );
+	return true;
 }
 
 function sojib68_crm_next_lead_code( $id ) {
