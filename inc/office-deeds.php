@@ -1356,18 +1356,51 @@ function sojib68_deed_delete_payment( $payment_id, $user_id ) {
 	return true;
 }
 
+/**
+ * Period filter of the বকেয়া page: all | month | year, by the deed's registration date (a deed that has only a
+ * registration YEAR is found by the yearly filter) or by the day it was entered.
+ * Returns array( sql, args, label ) or null when no period is chosen.
+ */
+function sojib68_dues_period_from_get() {
+	$mode = isset( $_GET['dues_period'] ) ? sanitize_key( wp_unslash( $_GET['dues_period'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( 'month' !== $mode && 'year' !== $mode ) {
+		return null;
+	}
+	$now_y = (int) current_time( 'Y' );
+	$year  = isset( $_GET['dues_year'] ) ? max( 2000, min( $now_y + 1, (int) $_GET['dues_year'] ) ) : $now_y; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$month = isset( $_GET['dues_month'] ) ? max( 1, min( 12, (int) $_GET['dues_month'] ) ) : (int) current_time( 'n' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	$by    = isset( $_GET['dues_by'] ) && 'entry' === sanitize_key( wp_unslash( $_GET['dues_by'] ) ) ? 'entry' : 'reg'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+	if ( 'month' === $mode ) {
+		$start = sprintf( '%04d-%02d-01', $year, $month );
+		$end   = gmdate( 'Y-m-d', strtotime( $start . ' +1 month' ) );
+		$label = sojib68_bn_month_label( $month ) . ' ' . sojib68_bn_digits( $year );
+	} else {
+		$start = sprintf( '%04d-01-01', $year );
+		$end   = sprintf( '%04d-01-01', $year + 1 );
+		$label = sojib68_bn_digits( $year );
+	}
+	if ( 'entry' === $by ) {
+		return array( 'sql' => '(d.created_at >= %s AND d.created_at < %s)', 'args' => array( $start, $end ), 'label' => $label, 'mode' => $mode, 'year' => $year, 'month' => $month, 'by' => $by );
+	}
+	if ( 'month' === $mode ) {
+		return array( 'sql' => '(d.reg_date >= %s AND d.reg_date < %s)', 'args' => array( $start, $end ), 'label' => $label, 'mode' => $mode, 'year' => $year, 'month' => $month, 'by' => $by );
+	}
+	return array( 'sql' => '((d.reg_date >= %s AND d.reg_date < %s) OR (d.reg_date IS NULL AND d.reg_year = %d))', 'args' => array( $start, $end, $year ), 'label' => $label, 'mode' => $mode, 'year' => $year, 'month' => $month, 'by' => $by );
+}
+
 /** Summary numbers shown above the dues list. */
-function sojib68_dues_summary() {
+function sojib68_dues_summary( $period = null ) {
 	global $wpdb;
 
 	$deeds    = sojib68_deeds_table( 'deeds' );
 	$receipts = sojib68_deeds_table( 'deed_receipts' );
 
-	$rows = $wpdb->get_results(
-		"SELECT d.client_total_due_poysha AS total,
+	$period_sql = $period ? ' AND ' . $period['sql'] : '';
+	$sql        = "SELECT d.client_total_due_poysha AS total,
 			COALESCE((SELECT SUM(r.amount_poysha) FROM $receipts r WHERE r.deed_id = d.id), 0) AS received
-		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL"
-	);
+		 FROM $deeds d WHERE d.deleted_at IS NULL AND d.client_total_due_poysha IS NOT NULL" . $period_sql;
+	$rows       = $wpdb->get_results( $period ? $wpdb->prepare( $sql, $period['args'] ) : $sql );
 
 	$total_due = 0;
 	$count     = 0;
@@ -1422,6 +1455,11 @@ function sojib68_dues_list( array $filters, $paged = 1, $per_page = 15 ) {
 			OR EXISTS (SELECT 1 FROM $grantees gr WHERE gr.deed_id = d.id AND (gr.name LIKE %s OR gr.mobile LIKE %s))
 			OR d.deed_no_normalized LIKE %s)";
 		array_push( $args, $like, $like, $like, $like, $like );
+	}
+
+	if ( ! empty( $filters['period'] ) ) {
+		$where[] = $filters['period']['sql'];
+		$args    = array_merge( $args, $filters['period']['args'] );
 	}
 
 	$where_sql = implode( ' AND ', $where );

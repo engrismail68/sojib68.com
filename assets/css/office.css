@@ -827,3 +827,8 @@
 .period-outside summary { cursor: pointer; font-weight: 700; color: #7a4b00; }
 .period-outside__note { margin: 8px 0; font-size: .9rem; color: #5b4a22; }
 .period-outside__table { width: 100%; background: #fff; }
+
+.dues-period { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; padding: 10px 12px; background: #fff; border: 1px solid #e4e2d8; border-radius: 12px; }
+.dues-period__label { font-size: .85rem; font-weight: 700; color: var(--o-ink, #032737); display: inline-flex; gap: 6px; align-items: center; }
+.dues-period select { padding: 7px 9px; border: 1px solid #cfd8d2; border-radius: 8px; font: inherit; background: #fff; }
+.dues-period__clear { font-size: .88rem; color: #b42318; margin-left: 4px; }

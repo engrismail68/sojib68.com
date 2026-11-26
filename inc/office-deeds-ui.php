@@ -1000,19 +1000,26 @@ function sojib68_office_render_dues() {
 	$sort  = isset( $_GET['sort'] ) ? sanitize_key( wp_unslash( $_GET['sort'] ) ) : 'due_desc';
 	$paged = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
 
-	$summary = sojib68_dues_summary();
-	$result  = sojib68_dues_list( array( 'q' => $q, 'sort' => $sort ), $paged, 15 );
+	$period  = sojib68_dues_period_from_get();
+	$summary = sojib68_dues_summary( $period );
+	$result  = sojib68_dues_list( array( 'q' => $q, 'sort' => $sort, 'period' => $period ), $paged, 15 );
 	$base    = home_url( '/' . SOJIB68_OFFICE_BASE . '/dues' );
+	$now_y   = (int) current_time( 'Y' );
+	$p_mode  = $period ? $period['mode'] : '';
+	$p_year  = $period ? $period['year'] : $now_y;
+	$p_month = $period ? $period['month'] : (int) current_time( 'n' );
+	$p_by    = $period ? $period['by'] : 'reg';
+	$keep    = $period ? array( 'dues_period' => $p_mode, 'dues_year' => $p_year, 'dues_month' => $p_month, 'dues_by' => $p_by ) : array();
 	?>
 	<div class="office-stats-grid office-stats-grid--3">
 		<div class="office-stat-tile tone-red is-due">
 			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'clock', 22 ); // phpcs:ignore ?></span>
-			<span class="office-stat-tile__label"><?php esc_html_e( 'মোট বকেয়া', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__label"><?php echo $period ? esc_html( sprintf( __( 'মোট বকেয়া (%s)', 'sojib68' ), $period['label'] ) ) : esc_html__( 'মোট বকেয়া', 'sojib68' ); ?></span>
 			<span class="office-stat-tile__value"><?php echo sojib68_money_html( $summary['total_due'] ); // phpcs:ignore ?></span>
 		</div>
 		<div class="office-stat-tile tone-amber">
 			<span class="office-stat-tile__icon"><?php echo sojib68_office_icon( 'file', 22 ); // phpcs:ignore ?></span>
-			<span class="office-stat-tile__label"><?php esc_html_e( 'বকেয়া আছে এমন দলিল', 'sojib68' ); ?></span>
+			<span class="office-stat-tile__label"><?php echo $period ? esc_html( sprintf( __( 'বকেয়া আছে এমন দলিল (%s)', 'sojib68' ), $period['label'] ) ) : esc_html__( 'বকেয়া আছে এমন দলিল', 'sojib68' ); ?></span>
 			<span class="office-stat-tile__value"><?php echo esc_html( number_format( $summary['deed_count'] ) ); ?></span>
 		</div>
 		<div class="office-stat-tile tone-green is-hero">
@@ -1035,12 +1042,47 @@ function sojib68_office_render_dues() {
 		<button type="submit" class="btn btn-primary"><?php esc_html_e( 'খুঁজুন', 'sojib68' ); ?></button>
 	</form>
 
+	<form method="get" action="<?php echo esc_url( $base ); ?>" class="dues-period">
+		<?php if ( '' !== $q ) : ?><input type="hidden" name="q" value="<?php echo esc_attr( $q ); ?>"><?php endif; ?>
+		<input type="hidden" name="sort" value="<?php echo esc_attr( $sort ); ?>">
+		<span class="dues-period__label"><?php echo sojib68_office_icon( 'filter', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'সময় অনুযায়ী বকেয়া', 'sojib68' ); ?></span>
+		<select name="dues_period" id="dues-period-mode">
+			<option value="" <?php selected( $p_mode, '' ); ?>><?php esc_html_e( 'সব সময়', 'sojib68' ); ?></option>
+			<option value="month" <?php selected( $p_mode, 'month' ); ?>><?php esc_html_e( 'মাসিক', 'sojib68' ); ?></option>
+			<option value="year" <?php selected( $p_mode, 'year' ); ?>><?php esc_html_e( 'বার্ষিক', 'sojib68' ); ?></option>
+		</select>
+		<select name="dues_month" id="dues-period-month">
+			<?php for ( $mn = 1; $mn <= 12; $mn++ ) : ?>
+				<option value="<?php echo (int) $mn; ?>" <?php selected( $p_month, $mn ); ?>><?php echo esc_html( sojib68_bn_month_label( $mn ) ); ?></option>
+			<?php endfor; ?>
+		</select>
+		<select name="dues_year">
+			<?php foreach ( range( $now_y, $now_y - 15 ) as $yr ) : ?>
+				<option value="<?php echo (int) $yr; ?>" <?php selected( $p_year, $yr ); ?>><?php echo esc_html( sojib68_bn_digits( $yr ) ); ?></option>
+			<?php endforeach; ?>
+		</select>
+		<select name="dues_by" title="<?php esc_attr_e( 'কোন তারিখ ধরে', 'sojib68' ); ?>">
+			<option value="reg" <?php selected( $p_by, 'reg' ); ?>><?php esc_html_e( 'দলিলের রেজিস্ট্রির তারিখ ধরে', 'sojib68' ); ?></option>
+			<option value="entry" <?php selected( $p_by, 'entry' ); ?>><?php esc_html_e( 'এন্ট্রির তারিখ ধরে', 'sojib68' ); ?></option>
+		</select>
+		<button type="submit" class="btn btn-outline btn-sm"><?php esc_html_e( 'দেখান', 'sojib68' ); ?></button>
+		<?php if ( $period ) : ?><a class="dues-period__clear" href="<?php echo esc_url( add_query_arg( array_filter( array( 'q' => $q, 'sort' => $sort ) ), $base ) ); ?>"><?php esc_html_e( 'ফিল্টার মুছুন', 'sojib68' ); ?></a><?php endif; ?>
+	</form>
+	<script>
+	( function () {
+		var m = document.getElementById( 'dues-period-mode' ), mo = document.getElementById( 'dues-period-month' );
+		if ( ! m || ! mo ) { return; }
+		function sync() { mo.style.display = m.value === 'month' ? '' : 'none'; }
+		m.addEventListener( 'change', sync ); sync();
+	}() );
+	</script>
+
 	<div class="dues-flash" id="dues-flash" hidden></div>
 
 	<?php if ( empty( $result['rows'] ) ) : ?>
 		<div class="deed-empty-state">
 			<?php echo sojib68_office_icon( 'check', 34 ); // phpcs:ignore ?>
-			<p><?php echo $q ? esc_html__( 'এই খোঁজে কোনো বকেয়া পাওয়া যায়নি।', 'sojib68' ) : esc_html__( 'কোনো বকেয়া নেই — সব টাকা আদায় হয়ে গেছে!', 'sojib68' ); ?></p>
+			<p><?php echo ( $q || $period ) ? esc_html__( 'এই খোঁজে কোনো বকেয়া পাওয়া যায়নি।', 'sojib68' ) : esc_html__( 'কোনো বকেয়া নেই — সব টাকা আদায় হয়ে গেছে!', 'sojib68' ); ?></p>
 		</div>
 	<?php else : ?>
 		<div class="due-list">
@@ -1111,7 +1153,7 @@ function sojib68_office_render_dues() {
 		<?php if ( $result['total_pages'] > 1 ) : ?>
 			<nav class="deed-pagination" aria-label="<?php esc_attr_e( 'পাতা', 'sojib68' ); ?>">
 				<?php for ( $pg = 1; $pg <= $result['total_pages']; $pg++ ) : ?>
-					<a href="<?php echo esc_url( add_query_arg( array( 'q' => $q, 'sort' => $sort, 'paged' => $pg ), $base ) ); ?>" class="<?php echo $pg === $result['paged'] ? 'is-active' : ''; ?>"><?php echo (int) $pg; ?></a>
+					<a href="<?php echo esc_url( add_query_arg( array_merge( array( 'q' => $q, 'sort' => $sort, 'paged' => $pg ), $keep ), $base ) ); ?>" class="<?php echo $pg === $result['paged'] ? 'is-active' : ''; ?>"><?php echo (int) $pg; ?></a>
 				<?php endfor; ?>
 			</nav>
 		<?php endif; ?>
